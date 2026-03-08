@@ -12,6 +12,7 @@ interface SyncResult {
   message: string;
   syncedAt: string;
   folderStats: Record<string, number>;
+  folderErrors?: Record<string, string>;
   totalImages: number;
 }
 
@@ -85,7 +86,7 @@ export function AdminPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setSyncError(data.error || "Sync fehlgeschlagen");
+        setSyncError(data.details ? `${data.error}: ${data.details}` : (data.error || `Sync fehlgeschlagen (${res.status})`));
         return;
       }
 
@@ -221,6 +222,24 @@ export function AdminPage() {
                   )
                 )}
               </div>
+
+              {/* Folder errors */}
+              {syncResult.folderErrors && (
+                <div className="mt-4">
+                  <h3 className="text-red-400 text-[0.9rem] font-bold">
+                    Fehler bei bestimmten Ordnern:
+                  </h3>
+                  <ul className="list-disc list-inside text-red-400 text-[0.85rem]">
+                    {Object.entries(syncResult.folderErrors).map(
+                      ([folder, error]) => (
+                        <li key={folder}>
+                          {folder}: {error}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
 
               <p className="text-white/30 text-[0.75rem] mt-4">
                 {new Date(syncResult.syncedAt).toLocaleString("de-AT")}

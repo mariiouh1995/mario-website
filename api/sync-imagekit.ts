@@ -443,41 +443,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Step 1: Fetch all images from ImageKit ──
     const allRows: string[][] = [];
     const folderStats: Record<string, number> = {};
+    const folderErrors: Record<string, string> = {};
 
     for (const mapping of FOLDER_MAPPINGS) {
       console.log(`📂 Fetching: ${mapping.imagekitPath}`);
 
-      const files = await listImageKitFolder(imagekitKey, mapping.imagekitPath);
-      folderStats[mapping.imagekitPath] = files.length;
+      try {
+        const files = await listImageKitFolder(imagekitKey, mapping.imagekitPath);
+        folderStats[mapping.imagekitPath] = files.length;
 
-      // Determine the alt-tag key (category for wedding, page for others)
-      const altKey = mapping.category || mapping.page;
+        // Determine the alt-tag key (category for wedding, page for others)
+        const altKey = mapping.category || mapping.page;
 
-      files.forEach((file, index) => {
-        const altDe = getAltTag(altKey, index, "de");
-        const altEn = getAltTag(altKey, index, "en");
+        files.forEach((file, index) => {
+          const altDe = getAltTag(altKey, index, "de");
+          const altEn = getAltTag(altKey, index, "en");
 
-        // Map page names to Sheet format (capitalize first letter)
-        const pageLabel =
-          mapping.page === "hochzeit"
-            ? "hochzeit"
-            : mapping.page === "tiere"
-              ? "tiere"
-              : "portrait";
-
-        allRows.push([
-          pageLabel,
-          mapping.category,
-          file.url,
-          altDe,
-          altEn,
-        ]);
-      });
+          allRows.push([
+            mapping.page,
+            mapping.category,
+            file.url,
+            altDe,
+            altEn,
+          ]);
+        });
+      } catch (folderErr: any) {
+        console.error(`❌ Error fetching ${mapping.imagekitPath}:`, folderErr?.message);
+        folderErrors[mapping.imagekitPath] = folderErr?.message || "Unknown error";
+        folderStats[mapping.imagekitPath] = 0;
+      }
     }
 
     console.log(
       `✅ Found ${allRows.length} total images across ${FOLDER_MAPPINGS.length} folders`
     );
+
+    if (Object.keys(folderErrors).length > 0) {
+      console.warn("⚠️ Some folders had errors:", folderErrors);
+    }
 
     // ── Step 2: Write to Google Sheets ──
     const auth = getSheetsAuth();
@@ -518,6 +521,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: `Synced ${allRows.length} images from ImageKit to Google Sheets`,
       syncedAt: new Date().toISOString(),
       folderStats,
+      folderErrors: Object.keys(folderErrors).length > 0 ? folderErrors : undefined,
       totalImages: allRows.length,
     });
   } catch (error: any) {
@@ -525,6 +529,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({
       error: "Sync failed",
       details: error?.message,
+      stack: process.env.NODE_ENV !== "production" ? error?.stack : undefined,
     });
   }
 }
