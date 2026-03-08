@@ -1,7 +1,7 @@
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useLanguage } from "../LanguageContext";
 import { useState } from "react";
-import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, ChevronDown, Users, Award, Mountain } from "lucide-react";
+import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, ChevronDown, Users, Award, Video } from "lucide-react";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -48,14 +48,14 @@ export function AboutPage() {
         taglineDesc: "Bei der dokumentarischen Begleitung sind Posen und gestellte Aufnahmen ein absolutes No-Go. Mein Fokus liegt darauf, die echten Emotionen und natürlichen Momente festzuhalten.",
         // Stats
         statsTitle: "In Zahlen",
-        stat1Num: "200+",
+        stat1Num: "76+",
         stat1Label: "Hochzeiten begleitet",
-        stat2Num: "5+",
-        stat2Label: "Jahre Erfahrung",
-        stat3Num: "500+",
-        stat3Label: "Zufriedene Paare & Familien",
-        stat4Num: "50k+",
-        stat4Label: "Bearbeitete Bilder",
+        stat2Num: "420+",
+        stat2Label: "Zufriedene Kunden",
+        stat3Num: "11+",
+        stat3Label: "Jahre Erfahrung",
+        stat4Num: "140+",
+        stat4Label: "Videos produziert",
         // Mario in Action section
         passionTitle: "Mehr als nur Hochzeiten",
         passionText1: "Neben Hochzeiten ist die Tierfotografie meine zweite große Leidenschaft. Ob im Studio oder in freier Natur – ich bringe die Persönlichkeit eures Vierbeiners in Bildern zum Ausdruck, die euch ein Leben lang begleiten.",
@@ -126,14 +126,14 @@ export function AboutPage() {
         taglineDesc: "In documentary coverage, poses and staged shots are an absolute no-go. My focus is on capturing real emotions and natural moments.",
         // Stats
         statsTitle: "By the numbers",
-        stat1Num: "200+",
+        stat1Num: "76+",
         stat1Label: "Weddings captured",
-        stat2Num: "5+",
-        stat2Label: "Years of experience",
-        stat3Num: "500+",
-        stat3Label: "Happy couples & families",
-        stat4Num: "50k+",
-        stat4Label: "Images edited",
+        stat2Num: "420+",
+        stat2Label: "Happy clients",
+        stat3Num: "11+",
+        stat3Label: "Years of experience",
+        stat4Num: "140+",
+        stat4Label: "Videos produced",
         // Mario in Action section
         passionTitle: "More than just weddings",
         passionText1: "Besides weddings, animal photography is my second great passion. Whether in the studio or in the wild – I bring out the personality of your four-legged friend in images that will accompany you for a lifetime.",
@@ -197,9 +197,9 @@ export function AboutPage() {
 
   const stats = [
     { icon: Users, num: content.stat1Num, label: content.stat1Label },
-    { icon: Clock, num: content.stat2Num, label: content.stat2Label },
-    { icon: Award, num: content.stat3Num, label: content.stat3Label },
-    { icon: Mountain, num: content.stat4Num, label: content.stat4Label },
+    { icon: Heart, num: content.stat2Num, label: content.stat2Label },
+    { icon: Clock, num: content.stat3Num, label: content.stat3Label },
+    { icon: Video, num: content.stat4Num, label: content.stat4Label },
   ];
 
   return (

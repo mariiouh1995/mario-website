@@ -53,9 +53,11 @@ async function getAuth() {
     privateKey = privateKey.replace(/\\n/g, "\n");
   }
 
-  const auth = new google.auth.JWT(email, undefined, privateKey, [
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-  ]);
+  const auth = new google.auth.JWT({
+    email,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+  });
 
   await auth.authorize();
   return auth;

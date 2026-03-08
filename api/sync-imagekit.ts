@@ -404,9 +404,11 @@ async function getSheetsAuth() {
     );
   }
 
-  const auth = new google.auth.JWT(email, undefined, privateKey, [
-    "https://www.googleapis.com/auth/spreadsheets",
-  ]);
+  const auth = new google.auth.JWT({
+    email,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
 
   // Explicitly authorize to catch auth errors early
   try {
