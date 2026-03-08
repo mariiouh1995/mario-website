@@ -145,10 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           spreadsheetId: sheetId,
           range: "'Hochzeit Addons'!A:B",
         }),
-        sheets.spreadsheets.values.get({
-          spreadsheetId: sheetId,
-          range: "'Portrait'!A:G",
-        }),
+        sheets.spreadsheets.values
+          .get({
+            spreadsheetId: sheetId,
+            range: "'Portrait'!A:G",
+          })
+          .catch(() => ({ data: { values: undefined } })), // Optional tab
         sheets.spreadsheets.values
           .get({
             spreadsheetId: sheetId,
