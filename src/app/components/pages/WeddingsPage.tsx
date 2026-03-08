@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useWeddingPackages } from "../usePackagesFormatted";
+import { useImages } from "../useImages";
+import { useShuffledGallery } from "../useShuffledGallery";
+import { ParallaxHero } from "../ParallaxHero";
+import { GoogleReviewsGrid } from "../GoogleReviews";
+import { useState, useMemo, useCallback } from "react";
 import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, ChevronDown } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { Lightbox, useLightbox } from "../Lightbox";
 import { motion, useScroll, useTransform } from "motion/react";
-import { useRef } from "react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
-import { ParallaxHero } from "../ParallaxHero";
+import { MasonryGrid } from "../MasonryGrid";
 
 const IMAGES = {
   hero: "https://images.unsplash.com/photo-1765615197726-6d2a157620fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwb3V0ZG9vciUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc4OXww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -28,18 +32,51 @@ export function WeddingsPage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [galleryCategory, setGalleryCategory] = useState<string>("all");
+  const { getImagesForPage } = useImages();
 
-  const weddingGallery = [
-    { src: IMAGES.galleryBride, alt: "Braut beim Getting Ready – Hochzeitsfotografie Innsbruck, Tirol" },
-    { src: IMAGES.photo1, alt: "Elegante Hochzeitszeremonie in Tirol – Hochzeitsfotograf Mario Schubert" },
-    { src: IMAGES.galleryBouquet, alt: "Brautstrauss Detailaufnahme – Hochzeitsfotografie Innsbruck" },
-    { src: IMAGES.galleryDance, alt: "Erster Tanz als Ehepaar – Hochzeitsreportage Bayern" },
-    { src: IMAGES.photo2, alt: "Emotionales Brautportrait – authentische Hochzeitsfotografie Alpen" },
-    { src: IMAGES.galleryCeremony, alt: "Outdoor Hochzeitszeremonie in den Bergen – Hochzeitsfotograf Tirol" },
-    { src: IMAGES.details, alt: "Eheringe Detailfoto – Hochzeitsfotografie Innsbruck Mario Schubert" },
-    { src: IMAGES.video, alt: "Hochzeitsfeier und Tanz – Hochzeitsvideograf Innsbruck und Bayern" },
-    { src: IMAGES.hero, alt: "Romantisches Brautpaar Outdoor – Hochzeitsfotograf Tirol und Bayern" },
+  // Reset visibleCount when category changes
+  const GALLERY_PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE_SIZE);
+
+  const galleryCategories = [
+    { key: "all", label: { de: "Alle", en: "All" } },
+    { key: "paarshooting", label: { de: "Paarshooting", en: "Couple Shoot" } },
+    { key: "freie-trauung", label: { de: "Freie Trauung", en: "Outdoor Ceremony" } },
+    { key: "kirchliche-trauung", label: { de: "Kirchliche Trauung", en: "Church Ceremony" } },
+    { key: "getting-ready", label: { de: "Getting Ready", en: "Getting Ready" } },
+    { key: "standesamt", label: { de: "Standesamt", en: "Civil Ceremony" } },
+    { key: "party", label: { de: "Party", en: "Party" } },
   ];
+
+  // Get all wedding images from Google Sheets (with fallback)
+  const weddingGallery = useMemo(
+    () => getImagesForPage("hochzeit", undefined, lang),
+    [getImagesForPage, lang]
+  );
+
+  // Shuffle gallery on mount for varied display each page load
+  const shuffledGallery = useShuffledGallery(weddingGallery);
+
+  // Filter by selected category
+  const filteredGallery = useMemo(
+    () => galleryCategory === "all" ? shuffledGallery : shuffledGallery.filter((img) => img.category === galleryCategory),
+    [shuffledGallery, galleryCategory]
+  );
+
+  // Visible slice for Load More
+  const visibleGallery = useMemo(
+    () => filteredGallery.slice(0, visibleCount),
+    [filteredGallery, visibleCount]
+  );
+
+  const hasMore = visibleCount < filteredGallery.length;
+
+  // Reset visible count when filter changes
+  const handleCategoryChange = useCallback((key: string) => {
+    setGalleryCategory(key);
+    setVisibleCount(GALLERY_PAGE_SIZE);
+  }, []);
 
   const seo = lang === "de"
     ? {
@@ -53,174 +90,11 @@ export function WeddingsPage() {
         keywords: "wedding photographer Innsbruck, wedding photography Tyrol, wedding videographer Bavaria, wedding photographer Munich, destination wedding Alps",
       };
 
-  const photoPackages = [
-    {
-      name: "STANDESAMT",
-      price: "890\u20AC",
-      subtitle: "(Freitag bis Montag)",
-      features: [
-        "3h Begleitung (Ankunft, Trauung, Gratulation, Mini-Shooting)",
-        "ca. 200 Bilder",
-        "Onlinegalerie",
-      ],
-      featuresEn: [
-        "3h accompaniment (arrival, ceremony, congratulations, mini-shooting)",
-        "approx. 200 images",
-        "Online gallery",
-      ],
-    },
-    {
-      name: "ESSENTIAL",
-      price: "ab 2.090\u20AC",
-      subtitle: lang === "de" ? "Hier geht's los!" : "Let's go!",
-      features: [
-        "6h Reportage",
-        "ca. 400 bearbeitete Bilder in passwortgesch\u00FCtzter Onlinegalerie",
-        "20 Bilder binnen 72h",
-      ],
-      featuresEn: [
-        "6h reportage",
-        "approx. 400 edited images in password-protected online gallery",
-        "20 images within 72h",
-      ],
-    },
-    {
-      name: "SIGNATURE",
-      price: "ab 2.590\u20AC",
-      subtitle: lang === "de" ? "Der Klassiker." : "The classic.",
-      features: [
-        "8h Reportage",
-        "600+ bearbeitete Bilder",
-        "20 Bilder binnen 48h",
-      ],
-      featuresEn: [
-        "8h reportage",
-        "600+ edited images",
-        "20 images within 48h",
-      ],
-      highlight: true,
-    },
-    {
-      name: "SIGNATURE PLUS+",
-      price: "ab 3.190\u20AC",
-      subtitle:
-        lang === "de"
-          ? "F\u00FCr Paare, die \u201Ealles wollen\"."
-          : "For couples who want it all.",
-      features: [
-        "8h Hochzeitsbegleitung",
-        "600+ bearbeitete Bilder",
-        "20 Bilder binnen 48h",
-        "PLUS+ Minivideo 2\u20133 Min, +100 Fotos extra",
-      ],
-      featuresEn: [
-        "8h wedding accompaniment",
-        "600+ edited images",
-        "20 images within 48h",
-        "PLUS+ Mini video 2-3 min, +100 extra photos",
-      ],
-    },
-  ];
+  const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
 
-  const videoPackages = [
-    {
-      name: "CLIP",
-      price: "1.000\u20AC",
-      subtitle:
-        lang === "de"
-          ? "H\u00E4lt die wichtigsten Stationen eurer Hochzeit fest"
-          : "Captures the key moments of your wedding",
-      features: [
-        "Trauung, Gratulation und Paarshooting",
-        "emotionales Highlight-Video (2\u20133 Min.)",
-        "Full-HD Qualit\u00E4t und eurer Wunschlied (1 Lied)",
-      ],
-      featuresEn: [
-        "Ceremony, congratulations and couple shooting",
-        "emotional highlight video (2-3 min.)",
-        "Full-HD quality and your song of choice (1 song)",
-      ],
-    },
-    {
-      name: "VIDEO",
-      price: "1.800\u20AC",
-      subtitle:
-        lang === "de"
-          ? "Die umfassende Begleitung von eurem Hochzeitstag"
-          : "Comprehensive coverage of your wedding day",
-      features: [
-        "Getting Ready, Trauung, Gratulation, Paarshooting, Festessen und Tanz",
-        "5-7 Minuten Video",
-        "4K Aufl\u00F6sung",
-        "4 Liedern nach eurem Wunsch",
-      ],
-      featuresEn: [
-        "Getting Ready, ceremony, congratulations, couple shooting, dinner and dance",
-        "5-7 minute video",
-        "4K resolution",
-        "4 songs of your choice",
-      ],
-      highlight: true,
-    },
-    {
-      name: "FILM",
-      price: "2.500\u20AC",
-      subtitle:
-        lang === "de"
-          ? "Der Standard f\u00FCr Paare, die ihre Hochzeit in allen Facetten festgehalten haben m\u00F6chten"
-          : "The standard for couples who want every facet captured",
-      features: [
-        "Alles aus \"Video\" plus Hochzeitstorte, Er\u00F6ffnungstanz, Party bis 0 Uhr",
-        "8-10 Min Video",
-        "Drohnenaufnahmen (falls erlaubt)",
-        "Rohmaterial, Trauung & Reden in voller L\u00E4nge mit Ton",
-        "6 Lieder und pers\u00F6nliches Kennenlernen",
-      ],
-      featuresEn: [
-        "Everything from \"Video\" plus wedding cake, first dance, party until midnight",
-        "8-10 min video",
-        "Drone footage (if permitted)",
-        "Raw material, ceremony & speeches in full length with audio",
-        "6 songs and personal meeting",
-      ],
-    },
-  ];
-
-  const addOns = lang === "de"
-    ? [
-        "After-Wedding-Shooting (ca. 3h, 80 Bilder): 520\u20AC",
-        "Mini-Video: 400\u20AC",
-        "Probe-Shooting: 200\u20AC",
-        "Drohnenaufnahmen, 10 Bilder: 200\u20AC",
-        "Plotter: 50\u20AC",
-      ]
-    : [
-        "After-wedding shooting (approx. 3h, 80 images): 520\u20AC",
-        "Mini video: 400\u20AC",
-        "Trial shooting: 200\u20AC",
-        "Drone shots, 10 images: 200\u20AC",
-        "Plotter: 50\u20AC",
-      ];
-
-  const shotListItems = lang === "de"
-    ? [
-        { icon: Sparkles, title: "Getting Ready", text: "Die aufgeregte Vorbereitung, letzte Handgriffe, Emotionen vor dem gro\u00DFen Moment" },
-        { icon: Heart, title: "Trauung", text: "Das Ja-Wort, der Ringtausch, die Tr\u00E4nen der Freude \u2013 alles ungestellt und echt" },
-        { icon: Users, title: "Gratulation & G\u00E4ste", text: "Umarmungen, Freudentr\u00E4nen, die Gratulationen der Liebsten" },
-        { icon: Camera, title: "Paarshooting", text: "Zeit nur f\u00FCr euch zwei \u2013 entspannt, nat\u00FCrlich, in der sch\u00F6nsten Kulisse" },
-        { icon: Cake, title: "Festessen & Torte", text: "Die Tischdekoration, die Reden, das Anschneiden der Hochzeitstorte" },
-        { icon: Music, title: "Er\u00F6ffnungstanz", text: "Euer erster Tanz als Ehepaar \u2013 einer der emotionalsten Momente des Tages" },
-        { icon: PartyPopper, title: "Feier & Party", text: "Wenn die Stimmung steigt, die Tanzfl\u00E4che voll ist und alle feiern" },
-      ]
-    : [
-        { icon: Sparkles, title: "Getting Ready", text: "The excited preparation, final touches, emotions before the big moment" },
-        { icon: Heart, title: "Ceremony", text: "The vows, the ring exchange, tears of joy \u2013 all unposed and real" },
-        { icon: Users, title: "Congratulations & Guests", text: "Hugs, happy tears, congratulations from loved ones" },
-        { icon: Camera, title: "Couple Shooting", text: "Time just for you two \u2013 relaxed, natural, in the most beautiful setting" },
-        { icon: Cake, title: "Dinner & Cake", text: "Table decoration, speeches, cutting the wedding cake" },
-        { icon: Music, title: "First Dance", text: "Your first dance as a married couple \u2013 one of the most emotional moments" },
-        { icon: PartyPopper, title: "Celebration & Party", text: "When the mood rises, the dance floor is full and everyone celebrates" },
-      ];
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + GALLERY_PAGE_SIZE);
+  }, []);
 
   return (
     <>
@@ -255,7 +129,7 @@ export function WeddingsPage() {
                 </p>
                 <h2
                   style={{
-                    fontFamily: "'Cormorant Garamond', serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     fontSize: "clamp(2rem, 4vw, 3.5rem)",
                     fontWeight: 700,
                     lineHeight: 1.05,
@@ -325,7 +199,7 @@ export function WeddingsPage() {
                 </p>
                 <h2
                   style={{
-                    fontFamily: "'Cormorant Garamond', serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     fontSize: "clamp(2rem, 4vw, 3.5rem)",
                     fontWeight: 700,
                     lineHeight: 1.05,
@@ -366,7 +240,7 @@ export function WeddingsPage() {
               </p>
               <h2
                 style={{
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   fontSize: "clamp(2rem, 4vw, 3rem)",
                   fontWeight: 300,
                 }}
@@ -387,7 +261,7 @@ export function WeddingsPage() {
                     <h3
                       className="mb-1"
                       style={{
-                        fontFamily: "'Cormorant Garamond', serif",
+                        fontFamily: "'Montserrat', sans-serif",
                         fontSize: "1.2rem",
                         fontWeight: 600,
                       }}
@@ -426,7 +300,7 @@ export function WeddingsPage() {
             <h2
               className="text-center mb-12"
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(2rem, 4vw, 3rem)",
                 fontWeight: 300,
               }}
@@ -476,7 +350,7 @@ export function WeddingsPage() {
               activeTab === "photo" ? "lg:grid-cols-4" : "lg:grid-cols-3"
             } gap-6`}
           >
-            {(activeTab === "photo" ? photoPackages : videoPackages).map(
+            {(activeTab === "photo" ? weddingPhotoPackages : weddingVideoPackages).map(
               (pkg, i) => (
                 <SectionReveal key={pkg.name} delay={i * 0.1}>
                   <div
@@ -495,7 +369,7 @@ export function WeddingsPage() {
                     <p
                       className="mb-2"
                       style={{
-                        fontFamily: "'Cormorant Garamond', serif",
+                        fontFamily: "'Montserrat', sans-serif",
                         fontSize: "2rem",
                         fontWeight: 600,
                         lineHeight: 1.1,
@@ -546,7 +420,7 @@ export function WeddingsPage() {
                 <h3
                   className="text-center mb-8"
                   style={{
-                    fontFamily: "'Cormorant Garamond', serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     fontSize: "1.8rem",
                     fontWeight: 400,
                   }}
@@ -594,9 +468,9 @@ export function WeddingsPage() {
         <div className="max-w-7xl mx-auto">
           <SectionReveal>
             <h2
-              className="text-center mb-16"
+              className="text-center mb-6"
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(2rem, 4vw, 3rem)",
                 fontWeight: 300,
                 letterSpacing: "0.1em",
@@ -606,114 +480,55 @@ export function WeddingsPage() {
             </h2>
           </SectionReveal>
 
-          <div className="columns-2 md:columns-3 gap-3 md:gap-4">
-            {weddingGallery.map((img, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <motion.div
-                  className="mb-3 md:mb-4 break-inside-avoid overflow-hidden cursor-pointer"
-                  onClick={() => openLightbox(i)}
-                  whileHover={{ scale: 0.98 }}
-                  transition={{ duration: 0.3 }}
+          {/* Subtle Category Filter */}
+          <SectionReveal>
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-14">
+              {galleryCategories.map((category) => (
+                <button
+                  key={category.key}
+                  onClick={() => handleCategoryChange(category.key)}
+                  className="bg-transparent border-none cursor-pointer px-1 py-2 transition-all duration-300"
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: "0.78rem",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    fontWeight: galleryCategory === category.key ? 500 : 300,
+                    color: galleryCategory === category.key ? "black" : "rgba(0,0,0,0.35)",
+                    borderBottom: galleryCategory === category.key ? "1px solid black" : "1px solid transparent",
+                  }}
                 >
-                  <motion.div
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <ImageWithFallback
-                      src={img.src}
-                      alt={img.alt}
-                      className={`w-full object-cover ${i % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`}
-                    />
-                  </motion.div>
-                </motion.div>
-              </SectionReveal>
-            ))}
-          </div>
+                  {lang === "de" ? category.label.de : category.label.en}
+                </button>
+              ))}
+            </div>
+          </SectionReveal>
+
+          <MasonryGrid
+            images={visibleGallery}
+            openLightbox={openLightbox}
+          />
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
+                style={{ fontWeight: 400 }}
+              >
+                {t.weddings.loadMore}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Wedding Testimonials */}
-      <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
-        <div className="max-w-6xl mx-auto">
-          <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                {lang === "de" ? "KUNDENSTIMMEN" : "TESTIMONIALS"}
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {lang === "de" ? "Das sagen meine Paare" : "What my couples say"}
-              </h2>
-            </div>
-          </SectionReveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {(lang === "de"
-              ? [
-                  {
-                    text: "Mario hat unsere Hochzeit so eingefangen, wie wir sie erlebt haben – echt, emotional und wunderschön. Wir schauen uns die Bilder immer wieder an.",
-                    name: "Sarah & Thomas",
-                    detail: "Hochzeit in Innsbruck, 2025",
-                  },
-                  {
-                    text: "Wir hatten eine kleine Berghochzeit und Mario hat jeden Moment perfekt festgehalten. Er war so unauffällig, dass wir oft vergessen haben, dass er da war – und das merkt man an den Bildern.",
-                    name: "Julia & Markus",
-                    detail: "Elopement am Achensee, 2024",
-                  },
-                  {
-                    text: "Das Kombi-Paket aus Foto und Video war die beste Entscheidung! Der Film bringt uns jedes Mal zum Weinen – im besten Sinne.",
-                    name: "Anna & Florian",
-                    detail: "Hochzeit in München, 2025",
-                  },
-                ]
-              : [
-                  {
-                    text: "Mario captured our wedding exactly as we experienced it – real, emotional and beautiful. We look at the photos again and again.",
-                    name: "Sarah & Thomas",
-                    detail: "Wedding in Innsbruck, 2025",
-                  },
-                  {
-                    text: "We had a small mountain wedding and Mario captured every moment perfectly. He was so unobtrusive we often forgot he was there – and you can tell from the photos.",
-                    name: "Julia & Markus",
-                    detail: "Elopement at Lake Achensee, 2024",
-                  },
-                  {
-                    text: "The photo and video combo package was the best decision! The film makes us cry every time – in the best way.",
-                    name: "Anna & Florian",
-                    detail: "Wedding in Munich, 2025",
-                  },
-                ]
-            ).map((review, i) => (
-              <SectionReveal key={review.name} delay={i * 0.12}>
-                <div className="bg-white p-8 h-full flex flex-col">
-                  <div className="flex gap-1 mb-5">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} size={14} className="text-black/70 fill-black/70" />
-                    ))}
-                  </div>
-                  <p
-                    className="text-black/60 text-[0.88rem] flex-1 mb-6"
-                    style={{ lineHeight: 1.75, fontWeight: 300, fontStyle: "italic" }}
-                  >
-                    "{review.text}"
-                  </p>
-                  <div>
-                    <p className="text-[0.85rem]" style={{ fontWeight: 500 }}>{review.name}</p>
-                    <p className="text-black/40 text-[0.78rem]" style={{ fontWeight: 300 }}>{review.detail}</p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <GoogleReviewsGrid
+        count={3}
+        title={lang === "de" ? "Das sagen meine Paare" : "What my couples say"}
+      />
 
       {/* Wedding FAQ */}
       <section className="py-24 md:py-32 px-4">
@@ -728,7 +543,7 @@ export function WeddingsPage() {
               </p>
               <h2
                 style={{
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   fontSize: "clamp(2rem, 4vw, 3rem)",
                   fontWeight: 300,
                 }}
@@ -796,7 +611,7 @@ export function WeddingsPage() {
           <SectionReveal>
             <h2
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(2rem, 5vw, 3.5rem)",
                 fontWeight: 300,
                 lineHeight: 1.1,
@@ -825,7 +640,7 @@ export function WeddingsPage() {
 
       {/* Lightbox */}
       <Lightbox
-        images={weddingGallery}
+        images={filteredGallery}
         initialIndex={index}
         open={open}
         onClose={closeLightbox}

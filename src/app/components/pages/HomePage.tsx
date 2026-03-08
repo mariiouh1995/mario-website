@@ -1,5 +1,5 @@
+import { ArrowRight, Camera, Film, Heart, Briefcase, MessageCircle, Sparkles } from "lucide-react";
 import { Link } from "react-router";
-import { ArrowRight, Camera, Film, Heart, Briefcase, MessageCircle, Users, Sparkles, Star } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -8,6 +8,10 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
+import { ParallaxHero } from "../ParallaxHero";
+import { GoogleReviewSingle } from "../GoogleReviews";
+import { useShuffledGallery } from "../useShuffledGallery";
+import { MasonryGrid } from "../MasonryGrid";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
@@ -70,7 +74,7 @@ export function HomePage() {
     },
   ];
 
-  const galleryImages = [
+  const galleryImages = useShuffledGallery([
     { src: IMAGES.gallery1, alt: "Brautportrait bei Hochzeit in Tirol – zeitlose Hochzeitsfotografie von Mario Schubert", tall: true },
     { src: IMAGES.gallery2, alt: "Golden Retriever Outdoor Naturfotografie – Tierfotograf Innsbruck", tall: false },
     { src: IMAGES.gallery3, alt: "Romantisches Couple Shooting bei Sonnenuntergang – Paarfotograf Tirol", tall: true },
@@ -80,7 +84,7 @@ export function HomePage() {
     { src: IMAGES.gallery7, alt: "Elegante Hochzeitszeremonie Outdoor – Hochzeitsfotograf Innsbruck Tirol", tall: false },
     { src: IMAGES.gallery8, alt: "Familie im Herbst Outdoor – Familienfotografie Tirol", tall: true },
     { src: IMAGES.gallery9, alt: "Lachendes Paar beim Engagement Shooting – Couple Fotograf Bayern", tall: false },
-  ];
+  ]);
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -203,7 +207,7 @@ export function HomePage() {
                     <h3
                       className="text-[1.1rem] text-black"
                       style={{
-                        fontFamily: "'Cormorant Garamond', serif",
+                        fontFamily: "'Montserrat', sans-serif",
                         fontWeight: 600,
                         fontSize: "1.4rem",
                       }}
@@ -247,7 +251,7 @@ export function HomePage() {
             <h2
               className="text-center mb-16"
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(1.8rem, 3.5vw, 2.8rem)",
                 fontWeight: 300,
               }}
@@ -293,7 +297,7 @@ export function HomePage() {
                   <h3
                     className="text-white mb-3"
                     style={{
-                      fontFamily: "'Cormorant Garamond', serif",
+                      fontFamily: "'Montserrat', sans-serif",
                       fontSize: "1.3rem",
                       fontWeight: 600,
                     }}
@@ -340,7 +344,7 @@ export function HomePage() {
               </p>
               <h2
                 style={{
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "'Montserrat', sans-serif",
                   fontSize: "clamp(2rem, 4vw, 3.2rem)",
                   fontWeight: 300,
                   lineHeight: 1.1,
@@ -382,7 +386,7 @@ export function HomePage() {
             <h2
               className="text-center mb-16"
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(2rem, 4vw, 3rem)",
                 fontWeight: 300,
                 letterSpacing: "0.1em",
@@ -392,31 +396,11 @@ export function HomePage() {
             </h2>
           </SectionReveal>
 
-          <div className="columns-2 md:columns-3 gap-3 md:gap-4">
-            {galleryImages.map((img, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <motion.div
-                  className="mb-3 md:mb-4 break-inside-avoid overflow-hidden cursor-pointer"
-                  onClick={() => openLightbox(i)}
-                  whileHover={{ scale: 0.98 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <ImageWithFallback
-                      src={img.src}
-                      alt={img.alt}
-                      className={`w-full object-cover ${
-                        img.tall ? "aspect-[3/4]" : "aspect-square"
-                      }`}
-                    />
-                  </motion.div>
-                </motion.div>
-              </SectionReveal>
-            ))}
-          </div>
+          <MasonryGrid
+            images={galleryImages}
+            openLightbox={openLightbox}
+            initialPageSize={galleryImages.length}
+          />
         </div>
       </section>
 
@@ -428,30 +412,7 @@ export function HomePage() {
       />
 
       {/* Testimonial Strip */}
-      <section className="py-16 md:py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <SectionReveal>
-            <div className="text-center">
-              <div className="flex justify-center gap-1 mb-5">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} size={14} className="text-black/60 fill-black/60" />
-                ))}
-              </div>
-              <p
-                className="text-black/55 text-[1.05rem] md:text-[1.15rem] mb-6 max-w-2xl mx-auto"
-                style={{ lineHeight: 1.8, fontWeight: 300, fontStyle: "italic" }}
-              >
-                {lang === "de"
-                  ? "\"Mario hat unsere Hochzeit so eingefangen, wie wir sie erlebt haben – echt, emotional und wunderschön. Die Bilder sind einfach nur wow.\""
-                  : "\"Mario captured our wedding exactly as we experienced it – real, emotional and beautiful. The photos are simply wow.\""}
-              </p>
-              <p className="text-black/40 text-[0.82rem]" style={{ fontWeight: 400 }}>
-                — Sarah & Thomas, {lang === "de" ? "Hochzeit in Innsbruck" : "Wedding in Innsbruck"} 2025
-              </p>
-            </div>
-          </SectionReveal>
-        </div>
-      </section>
+      <GoogleReviewSingle bg="white" reviewIndex={0} />
 
       {/* Wyldworks – Corporate CTA */}
       <section className="py-14 md:py-16 bg-[#f8f7f5] px-4">
@@ -500,7 +461,7 @@ export function HomePage() {
           <SectionReveal>
             <h2
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Montserrat', sans-serif",
                 fontSize: "clamp(2rem, 5vw, 3.5rem)",
                 fontWeight: 300,
                 lineHeight: 1.1,

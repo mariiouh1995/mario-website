@@ -1,1 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+@font-face {
+  font-family: 'Montserrat';
+  src: url('https://ik.imagekit.io/r2yqrg6np/Montserrat-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Alias: all references to Cormorant Garamond now render as Montserrat */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('https://ik.imagekit.io/r2yqrg6np/Montserrat-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

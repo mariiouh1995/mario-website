@@ -1,3 +1,5 @@
+import { GoogleReviewSingle } from "../GoogleReviews";
+import { useShuffledGallery } from "../useShuffledGallery";
 import { useState } from "react";
 import { ArrowRight, Check, Star, ChevronDown, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
@@ -8,12 +10,15 @@ import { motion } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { ParallaxHero } from "../ParallaxHero";
+import { MasonryGrid } from "../MasonryGrid";
 
 const IMAGES = {
-  hero: "https://images.unsplash.com/photo-1767381392938-c95d24cd5873?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbCUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc3Mjk5NTc5MXww&ixlib=rb-4.1.0&q=80&w=1080",
-  dogs: "https://images.unsplash.com/photo-1727379819078-65e02ff69f5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjByZXRyaWV2ZXIlMjBoYXBweSUyMG91dGRvb3J8ZW58MXx8fHwxNzcyOTk1Nzk0fDA&ixlib=rb-4.1.0&q=80&w=1080",
-  horses: "https://images.unsplash.com/photo-1603985724731-287f8d5faf7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3JzZSUyMHBvcnRyYWl0JTIwb3V0ZG9vcnxlbnwxfHx8fDE3NzI5OTU3OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  cats: "https://images.unsplash.com/photo-1643866223072-30bbf814bb89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NzI5OTU3OTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+  hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3474_(WebRes).jpg?updatedAt=1772999916029",
+  dogs: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3252_(WebRes).jpg?updatedAt=1772999915979",
+  horses: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8536.jpg?updatedAt=1773000811495",
+  cats: "https://images.unsplash.com/photo-1643968479233-642460fdb9f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbCUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc3MzAwMTEwMnww&ixlib=rb-4.1.0&q=80&w=1080",
+  studio: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1552_(WebRes).jpg?updatedAt=1772999913736",
+  outdoor: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2039_(WebRes).jpg?updatedAt=1772999915959",
 };
 
 export function AnimalsPage() {
@@ -106,13 +111,39 @@ export function AnimalsPage() {
   ];
 
   const galleryImages = [
-    { src: IMAGES.dogs, alt: "Dog photography 1" },
-    { src: IMAGES.horses, alt: "Horse photography" },
-    { src: IMAGES.cats, alt: "Cat photography" },
-    { src: IMAGES.hero, alt: "Animal photography" },
-    { src: IMAGES.dogs, alt: "Dog photography 2" },
-    { src: IMAGES.horses, alt: "Horse photography 2" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3474_(WebRes).jpg?updatedAt=1772999916029", alt: "Hundeshooting Outdoor – Tierfotografie Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3137_(WebRes).jpg?updatedAt=1772999916001", alt: "Hundeportrait im Wald – Tierfotograf Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1604_(WebRes).jpg?updatedAt=1772999915990", alt: "Hund in der Natur – Outdoor Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2905_(WebRes).jpg?updatedAt=1772999915968", alt: "Hundeshooting Herbst – Mario Schubert Fotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3887_(WebRes).jpg?updatedAt=1772999915959", alt: "Professionelles Hundeportrait – Tierfotografie Alpen" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3825_(WebRes).jpg?updatedAt=1772999915827", alt: "Hund auf der Wiese – Tiershooting Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3321_(WebRes).jpg?updatedAt=1772999915644", alt: "Hundefotografie Outdoor – Natürliches Licht" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3406_(WebRes).jpg?updatedAt=1772999915637", alt: "Hundeblick – Emotionale Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1936_(WebRes).jpg?updatedAt=1772999915611", alt: "Hund im Herbstlaub – Tierfotograf Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3925_(WebRes).jpg?updatedAt=1772999915496", alt: "Hundeshooting Goldene Stunde – Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4206_(WebRes).jpg?updatedAt=1772999915438", alt: "Hund Portrait Close-up – Mario Schubert" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2275_(WebRes).jpg?updatedAt=1773000790968", alt: "Hundeshooting Nahaufnahme – Tierfotografie Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2260_(WebRes).jpg?updatedAt=1773000797178", alt: "Hund Outdoor Portrait – Tierfotograf Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_0606_(WebRes).jpg?updatedAt=1773000798391", alt: "Tierfotografie Natur – Professionelles Tiershooting" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2288_(WebRes).jpg?updatedAt=1773000799744", alt: "Hundeportrait Outdoor – Mario Schubert Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1038_(WebRes).jpg?updatedAt=1773000802084", alt: "Tiershooting im Freien – Tierfotograf Alpen" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_0996_(WebRes).jpg?updatedAt=1773000802181", alt: "Natürliche Tierfotografie – Outdoor Shooting Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1141_(WebRes).jpg?updatedAt=1773000802588", alt: "Tierfotografie Goldene Stunde – Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1083_(WebRes).jpg?updatedAt=1773000803246", alt: "Professionelles Tiershooting – Tierfotograf Bayern" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1054_(WebRes).jpg?updatedAt=1773000803645", alt: "Tier im Abendlicht – Outdoor Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1146_(WebRes).jpg?updatedAt=1773000805276", alt: "Tierfotografie Detail – Mario Schubert Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8472.jpg?updatedAt=1773000809216", alt: "Pferdefotografie – Majestic Horse Portrait Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8536.jpg?updatedAt=1773000811495", alt: "Pferdeportrait Outdoor – Pferdefotograf Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1616_(WebRes).jpg?updatedAt=1772999915085", alt: "Hund im Freien – Professionelle Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1812_(WebRes).jpg?updatedAt=1772999915072", alt: "Hundeportrait Natur – Tierfotograf Innsbruck" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1788_(WebRes).jpg?updatedAt=1772999915075", alt: "Hund Spaziergang – Outdoor Tierfotografie Tirol" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1716_(WebRes).jpg?updatedAt=1772999915061", alt: "Hund im Abendlicht – Emotionale Hundefotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1606_(WebRes)-2.jpg?updatedAt=1772999913978", alt: "Hundeshooting Detail – Tierfotografie Alpen" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4107_(WebRes).jpg?updatedAt=1772999913835", alt: "Hund im Grünen – Natürliche Tierfotografie" },
+    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4009_(WebRes).jpg?updatedAt=1772999913826", alt: "Hundeportrait Outdoor – Tierfotograf Bayern" },
   ];
+
+  const shuffledGalleryImages = useShuffledGallery(galleryImages);
 
   return (
     <>
@@ -169,7 +200,7 @@ export function AnimalsPage() {
               <div className="bg-white border border-black/10 overflow-hidden h-full flex flex-col">
                 <div className="aspect-[4/3] overflow-hidden">
                   <ImageWithFallback
-                    src={IMAGES.dogs}
+                    src={IMAGES.studio}
                     alt="Studio Tierfotografie"
                     className="w-full h-full object-cover"
                   />
@@ -231,7 +262,7 @@ export function AnimalsPage() {
               <div className="bg-white border border-black h-full flex flex-col overflow-hidden">
                 <div className="aspect-[4/3] overflow-hidden">
                   <ImageWithFallback
-                    src={IMAGES.horses}
+                    src={IMAGES.outdoor}
                     alt="Outdoor Tierfotografie"
                     className="w-full h-full object-cover"
                   />
@@ -351,59 +382,23 @@ export function AnimalsPage() {
             </h2>
           </SectionReveal>
 
-          <div className="columns-2 md:columns-3 gap-3 md:gap-4">
-            {galleryImages.map((img, i) => (
-              <SectionReveal key={i} delay={i * 0.08}>
-                <div
-                  className="mb-3 md:mb-4 break-inside-avoid overflow-hidden group cursor-pointer"
-                  onClick={() => openLightbox(i)}
-                >
-                  <ImageWithFallback
-                    src={img.src}
-                    alt={img.alt}
-                    className={`w-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                      i % 3 === 0 ? "aspect-[3/4]" : "aspect-square"
-                    }`}
-                  />
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
+          <MasonryGrid
+            images={shuffledGalleryImages}
+            openLightbox={openLightbox}
+            initialPageSize={shuffledGalleryImages.length}
+          />
         </div>
       </section>
 
       <Lightbox
-        images={galleryImages}
+        images={shuffledGalleryImages}
         initialIndex={index}
         open={open}
         onClose={closeLightbox}
       />
 
       {/* Testimonial */}
-      <section className="py-20 md:py-24 bg-[#f8f7f5] px-4">
-        <div className="max-w-4xl mx-auto">
-          <SectionReveal>
-            <div className="text-center">
-              <div className="flex justify-center gap-1 mb-5">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} size={14} className="text-black/60 fill-black/60" />
-                ))}
-              </div>
-              <p
-                className="text-black/55 text-[1.05rem] md:text-[1.15rem] mb-6 max-w-2xl mx-auto"
-                style={{ lineHeight: 1.8, fontWeight: 300, fontStyle: "italic" }}
-              >
-                {lang === "de"
-                  ? "\"Das Shooting mit unserem Hund war mega! Mario hat so eine ruhige Art, dass selbst unser aufgedrehter Golden Retriever total entspannt war. Die Bilder sind der Wahnsinn.\""
-                  : "\"The shoot with our dog was amazing! Mario has such a calm energy that even our hyper Golden Retriever was totally relaxed. The photos are incredible.\""}
-              </p>
-              <p className="text-black/40 text-[0.82rem]" style={{ fontWeight: 400 }}>
-                — Lisa M., {lang === "de" ? "Hundeshooting" : "Dog Shoot"} 2024
-              </p>
-            </div>
-          </SectionReveal>
-        </div>
-      </section>
+      <GoogleReviewSingle bg="cream" reviewIndex={2} />
 
       {/* Tips Section */}
       <section className="py-24 md:py-32 px-4">

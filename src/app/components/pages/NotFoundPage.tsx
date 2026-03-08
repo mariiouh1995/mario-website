@@ -10,7 +10,7 @@ export function NotFoundPage() {
       <h1
         className="mb-4"
         style={{
-          fontFamily: "'Cormorant Garamond', serif",
+          fontFamily: "'Montserrat', sans-serif",
           fontSize: "6rem",
           fontWeight: 300,
           lineHeight: 1,

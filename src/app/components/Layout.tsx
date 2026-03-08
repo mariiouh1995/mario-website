@@ -24,7 +24,7 @@ export function Layout() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen flex flex-col" style={{ fontFamily: "'Montserrat', sans-serif" }}>
       <StructuredData />
 
       {/* Navigation */}
@@ -237,6 +237,9 @@ export function Layout() {
               </Link>
               <Link to="/impressum" className="text-white/30 hover:text-white/60 text-[0.75rem] no-underline transition-colors">
                 {t.footer.imprint}
+              </Link>
+              <Link to="/admin" className="text-white/[0.12] hover:text-white/30 text-[0.75rem] no-underline transition-colors">
+                Admin
               </Link>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { PortraitPage } from "./components/pages/PortraitPage";
 import { AboutPage } from "./components/pages/AboutPage";
 import { ImpressumPage } from "./components/pages/ImpressumPage";
 import { DatenschutzPage } from "./components/pages/DatenschutzPage";
+import { AdminPage } from "./components/pages/AdminPage";
 import { NotFoundPage } from "./components/pages/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: "ueber-mich", Component: AboutPage },
       { path: "impressum", Component: ImpressumPage },
       { path: "datenschutz", Component: DatenschutzPage },
+      { path: "admin", Component: AdminPage },
       { path: "*", Component: NotFoundPage },
     ],
   },

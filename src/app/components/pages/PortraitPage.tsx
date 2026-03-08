@@ -1,5 +1,7 @@
+import { ParallaxHero } from "../ParallaxHero";
+import { GoogleReviewSingle } from "../GoogleReviews";
 import { useState } from "react";
-import { ArrowRight, Star, ChevronDown, Check, Heart, Users, Baby, PartyPopper } from "lucide-react";
+import { ArrowRight, Star, ChevronDown, Heart, Users, Baby, PartyPopper } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -7,7 +9,8 @@ import { Lightbox, useLightbox } from "../Lightbox";
 import { motion } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
-import { ParallaxHero } from "../ParallaxHero";
+import { useShuffledGallery } from "../useShuffledGallery";
+import { MasonryGrid } from "../MasonryGrid";
 
 const IMAGES = {
   hero: "https://images.unsplash.com/photo-1761334859630-611bdf32e3e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBzaG9vdGluZyUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -59,7 +62,7 @@ export function PortraitPage() {
     },
   ];
 
-  const galleryImages = [
+  const galleryImages = useShuffledGallery([
     { src: IMAGES.coupleSunset, alt: "Romantisches Couple Shooting bei Sonnenuntergang – Paarfotograf Tirol" },
     { src: IMAGES.family, alt: "Natuerliches Familienshooting Outdoor – Familienfotograf Innsbruck" },
     { src: IMAGES.baptismChurch, alt: "Taufe Zeremonie in der Kirche – Taufe Fotograf Innsbruck" },
@@ -68,7 +71,7 @@ export function PortraitPage() {
     { src: IMAGES.couple, alt: "Romantisches Paar Outdoor in den Alpen – Paarshooting Mario Schubert" },
     { src: IMAGES.hero, alt: "Couple Shooting Outdoor – Portrait und Paarfotografie Innsbruck" },
     { src: IMAGES.baptism, alt: "Taufe Fotografie – Babyfotograf und Eventfotograf Tirol" },
-  ];
+  ]);
 
   return (
     <>
@@ -159,112 +162,50 @@ export function PortraitPage() {
         </section>
       ))}
 
-      {/* Pricing */}
+      {/* Pricing → replaced with friendly "on request" section */}
       <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-3xl mx-auto text-center">
           <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                {lang === "de" ? "PREISE" : "PRICING"}
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {lang === "de" ? "Meine Pakete" : "My Packages"}
-              </h2>
-            </div>
-          </SectionReveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {(lang === "de"
-              ? [
-                  {
-                    name: "MINI",
-                    price: "190\u20AC",
-                    sub: "Perfekt für ein schnelles Shooting",
-                    features: ["ca. 30 Min. Shooting", "10 bearbeitete Bilder", "Online-Galerie", "1 Location"],
-                  },
-                  {
-                    name: "CLASSIC",
-                    price: "ab 350\u20AC",
-                    sub: "Der Allrounder",
-                    features: ["ca. 1 Stunde Shooting", "25 bearbeitete Bilder", "Online-Galerie", "bis zu 2 Locations", "Outfitwechsel möglich"],
-                    highlight: true,
-                  },
-                  {
-                    name: "PREMIUM",
-                    price: "ab 550\u20AC",
-                    sub: "Für besondere Anlässe",
-                    features: ["ca. 2 Stunden Shooting", "50+ bearbeitete Bilder", "Online-Galerie", "Mehrere Locations", "Outfitwechsel inklusive", "10 Sneak Peeks binnen 48h"],
-                  },
-                ]
-              : [
-                  {
-                    name: "MINI",
-                    price: "190\u20AC",
-                    sub: "Perfect for a quick shoot",
-                    features: ["approx. 30 min shoot", "10 edited images", "Online gallery", "1 location"],
-                  },
-                  {
-                    name: "CLASSIC",
-                    price: "from 350\u20AC",
-                    sub: "The all-rounder",
-                    features: ["approx. 1 hour shoot", "25 edited images", "Online gallery", "up to 2 locations", "Outfit change possible"],
-                    highlight: true,
-                  },
-                  {
-                    name: "PREMIUM",
-                    price: "from 550\u20AC",
-                    sub: "For special occasions",
-                    features: ["approx. 2 hour shoot", "50+ edited images", "Online gallery", "Multiple locations", "Outfit changes included", "10 sneak peeks within 48h"],
-                  },
-                ]
-            ).map((pkg, i) => (
-              <SectionReveal key={pkg.name} delay={i * 0.12}>
-                <div className={`bg-white p-8 h-full flex flex-col border transition-shadow hover:shadow-lg ${(pkg as any).highlight ? "border-black" : "border-black/10"}`}>
-                  <p className="text-[0.7rem] tracking-[0.2em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
-                    {pkg.name}
-                  </p>
-                  <p className="mb-2" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "2rem", fontWeight: 600, lineHeight: 1.1 }}>
-                    {pkg.price}
-                  </p>
-                  <p className="text-black/50 text-[0.8rem] mb-6" style={{ fontWeight: 300, fontStyle: "italic" }}>
-                    {pkg.sub}
-                  </p>
-                  <div className="flex flex-col gap-3 flex-1">
-                    {pkg.features.map((f, fi) => (
-                      <div key={fi} className="flex gap-2">
-                        <Check size={14} className="text-black/30 mt-1 shrink-0" />
-                        <span className="text-black/60 text-[0.8rem]" style={{ lineHeight: 1.5, fontWeight: 300 }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-          <SectionReveal>
-            <div className="text-center mt-10">
-              <p className="text-black/40 text-[0.8rem] mb-8" style={{ fontWeight: 300 }}>
-                {lang === "de"
-                  ? "Innerhalb 20 km um Innsbruck keine Anfahrtskosten. Darüber hinaus 60ct/km."
-                  : "No travel costs within 20 km of Innsbruck. Beyond that, 60ct/km."}
-              </p>
-              <button
-                onClick={() => openContact("portrait")}
-                className="inline-flex items-center gap-2 text-black border border-black px-10 py-4 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
-                style={{ fontWeight: 400 }}
-              >
-                {lang === "de" ? "Jetzt buchen!" : "Book now!"}
-                <ArrowRight size={14} />
-              </button>
-            </div>
+            <p
+              className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+              style={{ fontWeight: 400 }}
+            >
+              {lang === "de" ? "INDIVIDUELL & PERSÖNLICH" : "INDIVIDUAL & PERSONAL"}
+            </p>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "clamp(2rem, 4vw, 3rem)",
+                fontWeight: 300,
+                marginBottom: "1.5rem",
+              }}
+            >
+              {lang === "de" ? "Jedes Shooting ist einzigartig" : "Every shoot is unique"}
+            </h2>
+            <p
+              className="text-black/55 text-[0.92rem] mb-4 max-w-2xl mx-auto"
+              style={{ lineHeight: 1.9, fontWeight: 300 }}
+            >
+              {lang === "de"
+                ? "Ob Couple Shooting, Familienportrait, Taufe oder ein ganz besonderer Anlass – ich schnüre für jedes Shooting ein individuelles Angebot, das perfekt zu euch passt. Keine starren Pakete, sondern genau das, was ihr braucht."
+                : "Whether it's a couple shoot, family portrait, baptism or a special occasion – I create a custom offer for every shoot that's perfectly tailored to you. No rigid packages, just exactly what you need."}
+            </p>
+            <p
+              className="text-black/40 text-[0.85rem] mb-10 max-w-xl mx-auto"
+              style={{ lineHeight: 1.8, fontWeight: 300, fontStyle: "italic" }}
+            >
+              {lang === "de"
+                ? "Schreibt mir einfach – ich melde mich innerhalb von 24 Stunden mit einem unverbindlichen Angebot bei euch."
+                : "Just send me a message – I'll get back to you within 24 hours with a non-binding offer."}
+            </p>
+            <button
+              onClick={() => openContact("portrait")}
+              className="inline-flex items-center gap-2 text-black border border-black px-10 py-4 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
+              style={{ fontWeight: 400 }}
+            >
+              {lang === "de" ? "Unverbindlich anfragen" : "Inquire now"}
+              <ArrowRight size={14} />
+            </button>
           </SectionReveal>
         </div>
       </section>
@@ -338,29 +279,11 @@ export function PortraitPage() {
             </h2>
           </SectionReveal>
 
-          <div className="columns-2 md:columns-3 gap-3 md:gap-4">
-            {galleryImages.map((img, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <motion.div
-                  className="mb-3 md:mb-4 break-inside-avoid overflow-hidden cursor-pointer"
-                  onClick={() => openLightbox(i)}
-                  whileHover={{ scale: 0.98 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <ImageWithFallback
-                      src={img.src}
-                      alt={img.alt}
-                      className={`w-full object-cover ${i % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`}
-                    />
-                  </motion.div>
-                </motion.div>
-              </SectionReveal>
-            ))}
-          </div>
+          <MasonryGrid
+            images={galleryImages}
+            openLightbox={openLightbox}
+            initialPageSize={galleryImages.length}
+          />
         </div>
       </section>
 
@@ -372,30 +295,7 @@ export function PortraitPage() {
       />
 
       {/* Testimonial */}
-      <section className="py-20 md:py-24 bg-[#f8f7f5] px-4">
-        <div className="max-w-4xl mx-auto">
-          <SectionReveal>
-            <div className="text-center">
-              <div className="flex justify-center gap-1 mb-5">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} size={14} className="text-black/60 fill-black/60" />
-                ))}
-              </div>
-              <p
-                className="text-black/55 text-[1.05rem] md:text-[1.15rem] mb-6 max-w-2xl mx-auto"
-                style={{ lineHeight: 1.8, fontWeight: 300, fontStyle: "italic" }}
-              >
-                {lang === "de"
-                  ? "\"Wir hatten ein Familienshooting mit unseren drei Kindern – ich dachte, das wird Chaos. Aber Mario hat aus dem Chaos die schönsten Momente gezaubert. Absolut empfehlenswert!\""
-                  : "\"We had a family shoot with our three kids – I thought it would be chaos. But Mario turned the chaos into the most beautiful moments. Absolutely recommended!\""}
-              </p>
-              <p className="text-black/40 text-[0.82rem]" style={{ fontWeight: 400 }}>
-                — {lang === "de" ? "Familie Berger, Familienshooting" : "Berger Family, Family Shoot"} 2025
-              </p>
-            </div>
-          </SectionReveal>
-        </div>
-      </section>
+      <GoogleReviewSingle bg="cream" reviewIndex={4} />
 
       {/* Portrait FAQ */}
       <section className="py-24 md:py-32 px-4">

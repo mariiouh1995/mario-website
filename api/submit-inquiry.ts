@@ -1,0 +1,116 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { google } from "googleapis";
+
+/**
+ * Vercel Serverless Function: Log Inquiry to Google Sheets
+ *
+ * Appends a new row to the "Anfragen" tab whenever a contact form submission comes in.
+ * This runs IN ADDITION to the email (send-email.ts) – the frontend calls both endpoints.
+ *
+ * Required Environment Variables in Vercel:
+ *   GOOGLE_SERVICE_ACCOUNT_EMAIL  – Service Account Email
+ *   GOOGLE_SERVICE_ACCOUNT_KEY    – Service Account Private Key (PEM, with \n)
+ *   GOOGLE_SHEET_ID               – The Google Sheet ID
+ *
+ * Sheet Tab expected:
+ *   "Anfragen" – Columns: Zeitstempel | Name | Email | Telefon | Gefunden über | Seite/Interesse | Datum | Wedding Guide | Nachricht | DSGVO
+ *
+ * Endpoint: POST /api/submit-inquiry
+ */
+
+function getAuth() {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+
+  if (!email || !key) {
+    throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_KEY");
+  }
+
+  const privateKey = key.replace(/\\n/g, "\n");
+
+  return new google.auth.JWT(email, undefined, privateKey, [
+    "https://www.googleapis.com/auth/spreadsheets",
+  ]);
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheetId) {
+    return res.status(500).json({
+      error: "Server configuration incomplete",
+      hint: "Set GOOGLE_SHEET_ID in Vercel Environment Variables",
+    });
+  }
+
+  const { name, email, phone, foundVia, interests, date, weddingGuide, message } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
+
+  try {
+    const auth = getAuth();
+    const sheets = google.sheets({ version: "v4", auth });
+
+    // Format timestamp in German timezone
+    const now = new Date();
+    const timestamp = now.toLocaleString("de-AT", {
+      timeZone: "Europe/Vienna",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+
+    const interestsText = Array.isArray(interests) ? interests.join(", ") : interests || "";
+
+    // Append row to "Anfragen" tab
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: "'Anfragen'!A:J",
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [
+          [
+            timestamp,
+            name,
+            email,
+            phone || "",
+            foundVia || "",
+            interestsText,
+            date || "",
+            weddingGuide ? "Ja" : "Nein",
+            message || "",
+            "Ja", // DSGVO consent (they can't submit without it)
+          ],
+        ],
+      },
+    });
+
+    return res.status(200).json({ success: true, message: "Inquiry logged to Google Sheets" });
+  } catch (error: any) {
+    console.error("Google Sheets API Error:", error?.message || error);
+    // Don't fail the whole submission – the email is more important
+    return res.status(200).json({
+      success: false,
+      warning: "Failed to log to Google Sheets, but email may still have been sent",
+      details: error?.message,
+    });
+  }
+}

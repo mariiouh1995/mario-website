@@ -18,26 +18,37 @@ const ContactModalContext = createContext<ContactModalContextType>({
 
 export const useContactModal = () => useContext(ContactModalContext);
 
-// ── Send emails via Vercel serverless function ──
+// ── Send emails via Vercel serverless function + log to Google Sheets ──
 async function sendEmails(formData: FormState): Promise<boolean> {
-  try {
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        foundVia: formData.foundVia,
-        interests: formData.interests,
-        date: formData.date,
-        weddingGuide: formData.weddingGuide,
-        message: formData.message,
-      }),
-    });
+  const payload = {
+    name: formData.name,
+    email: formData.email,
+    phone: formData.phone,
+    foundVia: formData.foundVia,
+    interests: formData.interests,
+    date: formData.date,
+    weddingGuide: formData.weddingGuide,
+    message: formData.message,
+  };
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+  try {
+    // Send email AND log to Google Sheets in parallel
+    const [emailResponse] = await Promise.all([
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+      // Log to Google Sheets (fire-and-forget, don't block on failure)
+      fetch("/api/submit-inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch((err) => console.warn("Sheets logging failed:", err)),
+    ]);
+
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json().catch(() => ({}));
       console.error("API Error:", errorData);
       return false;
     }

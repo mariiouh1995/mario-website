@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Camera, Film, Heart, Mail, Phone, Star, MapPin, Clock, ChevronDown, Users, Award, Mountain } from "lucide-react";
+import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useLanguage } from "../LanguageContext";
+import { useState } from "react";
+import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, ChevronDown, Users, Award, Mountain } from "lucide-react";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -436,57 +437,10 @@ export function AboutPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
-        <div className="max-w-6xl mx-auto">
-          <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                {lang === "de" ? "KUNDENSTIMMEN" : "TESTIMONIALS"}
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {content.testimonialsTitle}
-              </h2>
-            </div>
-          </SectionReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {content.testimonials.map((review, i) => (
-              <SectionReveal key={review.name} delay={i * 0.12}>
-                <div className="bg-white p-8 h-full flex flex-col">
-                  <div className="flex gap-1 mb-5">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} size={14} className="text-black/70 fill-black/70" />
-                    ))}
-                  </div>
-                  <p
-                    className="text-black/60 text-[0.88rem] flex-1 mb-6"
-                    style={{ lineHeight: 1.75, fontWeight: 300, fontStyle: "italic" }}
-                  >
-                    "{review.text}"
-                  </p>
-                  <div>
-                    <p className="text-[0.85rem]" style={{ fontWeight: 500 }}>
-                      {review.name}
-                    </p>
-                    <p className="text-black/40 text-[0.78rem]" style={{ fontWeight: 300 }}>
-                      {review.detail}
-                    </p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <GoogleReviewsGrid
+        count={3}
+        title={content.testimonialsTitle}
+      />
 
       {/* FAQ Section */}
       <section className="py-24 md:py-32 px-4">
