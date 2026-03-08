@@ -68,9 +68,16 @@ export default async function handler(
   const placeId = process.env.GOOGLE_PLACE_ID;
 
   if (!apiKey || !placeId) {
-    console.error("Missing GOOGLE_PLACES_API_KEY or GOOGLE_PLACE_ID env vars");
+    console.error("Missing env vars:", {
+      GOOGLE_PLACES_API_KEY: apiKey ? "SET" : "MISSING",
+      GOOGLE_PLACE_ID: placeId ? "SET" : "MISSING",
+    });
     return res.status(500).json({
       error: "Server configuration incomplete",
+      details: {
+        GOOGLE_PLACES_API_KEY: apiKey ? "set" : "MISSING",
+        GOOGLE_PLACE_ID: placeId ? "set" : "MISSING",
+      },
       hint: "Set GOOGLE_PLACES_API_KEY and GOOGLE_PLACE_ID in Vercel Environment Variables",
     });
   }
@@ -81,13 +88,30 @@ export default async function handler(
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,rating,user_ratings_total,reviews&reviews_sort=newest&language=de&key=${apiKey}`;
 
     const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error("Google Places API HTTP error:", response.status, response.statusText);
+      return res.status(502).json({
+        error: "Google Places API HTTP error",
+        status: response.status,
+        statusText: response.statusText,
+      });
+    }
+
     const data: GooglePlaceResult = await response.json();
 
     if (data.status !== "OK") {
-      console.error("Google Places API error:", data.status);
+      console.error("Google Places API error:", data.status, JSON.stringify(data));
       return res.status(502).json({
         error: "Google Places API error",
-        status: data.status,
+        googleStatus: data.status,
+        hint: data.status === "REQUEST_DENIED"
+          ? "API key is invalid or Places API is not enabled in Google Cloud Console"
+          : data.status === "INVALID_REQUEST"
+          ? "Check GOOGLE_PLACE_ID – it may be incorrect"
+          : data.status === "OVER_QUERY_LIMIT"
+          ? "API quota exceeded – check billing in Google Cloud Console"
+          : "Check Google Places API documentation for this status code",
       });
     }
 
