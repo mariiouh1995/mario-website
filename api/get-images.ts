@@ -47,7 +47,11 @@ async function getAuth() {
     throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_KEY");
   }
 
-  const privateKey = key.replace(/\\n/g, "\n");
+  // Robust key parsing: handles both single-line (literal \n) and multi-line (real newlines)
+  let privateKey = key;
+  if (privateKey.includes("\\n")) {
+    privateKey = privateKey.replace(/\\n/g, "\n");
+  }
 
   const auth = new google.auth.JWT(email, undefined, privateKey, [
     "https://www.googleapis.com/auth/spreadsheets.readonly",

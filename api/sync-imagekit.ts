@@ -388,8 +388,13 @@ async function getSheetsAuth() {
     );
   }
 
-  // The private key comes from Vercel env vars with literal \n – replace to real newlines
-  const privateKey = key.replace(/\\n/g, "\n");
+  // Robust key parsing: handles both single-line (literal \n) and multi-line (real newlines)
+  let privateKey = key;
+  if (privateKey.includes("\\n")) {
+    // Key has literal \n characters → replace with real newlines
+    privateKey = privateKey.replace(/\\n/g, "\n");
+  }
+  // If key was pasted as multi-line in Vercel, it already has real newlines → works as-is
 
   // Validate it looks like a PEM key
   if (!privateKey.includes("-----BEGIN") || !privateKey.includes("PRIVATE KEY")) {
