@@ -7,6 +7,8 @@ import { SEO } from "../SEO";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { ParallaxHero } from "../ParallaxHero";
+import { FAQSection } from "../FAQSection";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   portrait: "https://ik.imagekit.io/r2yqrg6np/68e54c497a9dde9d00252dcb_WhatsApp%20Image%202025-09-16%20at%2022.32.17.avif",
@@ -443,68 +445,10 @@ export function AboutPage() {
       />
 
       {/* FAQ Section */}
-      <section className="py-24 md:py-32 px-4">
-        <div className="max-w-3xl mx-auto">
-          <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                FAQ
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {content.faqTitle}
-              </h2>
-            </div>
-          </SectionReveal>
-
-          <div className="flex flex-col">
-            {content.faqs.map((faq, i) => (
-              <SectionReveal key={i} delay={i * 0.08}>
-                <div className="border-b border-black/10">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between py-5 px-1 bg-transparent border-none cursor-pointer text-left group"
-                  >
-                    <span
-                      className="text-[0.92rem] pr-4 group-hover:text-black transition-colors"
-                      style={{ fontWeight: 400, color: openFaq === i ? "black" : "rgba(0,0,0,0.7)" }}
-                    >
-                      {faq.q}
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className="flex-shrink-0 text-black/30 transition-transform duration-300"
-                      style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
-                  </button>
-                  <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{
-                      maxHeight: openFaq === i ? "300px" : "0px",
-                      opacity: openFaq === i ? 1 : 0,
-                    }}
-                  >
-                    <p
-                      className="text-black/50 text-[0.87rem] pb-5 px-1"
-                      style={{ lineHeight: 1.75, fontWeight: 300 }}
-                    >
-                      {faq.a}
-                    </p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection
+        categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.about)}
+        title={{ de: "Häufig gestellte Fragen", en: "Frequently Asked Questions" }}
+      />
 
       {/* Contact Section */}
       <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">

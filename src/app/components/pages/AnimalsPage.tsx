@@ -11,6 +11,8 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { ParallaxHero } from "../ParallaxHero";
 import { MasonryGrid } from "../MasonryGrid";
+import { FAQSection } from "../FAQSection";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3474_(WebRes).jpg?updatedAt=1772999916029",
@@ -463,77 +465,11 @@ export function AnimalsPage() {
       </section>
 
       {/* Animal FAQ */}
-      <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
-        <div className="max-w-3xl mx-auto">
-          <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                FAQ
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {lang === "de" ? "Häufige Fragen" : "Frequently Asked Questions"}
-              </h2>
-            </div>
-          </SectionReveal>
-          <div className="flex flex-col">
-            {(lang === "de"
-              ? [
-                  { q: "Mein Tier ist sehr unruhig – geht das trotzdem?", a: "Klar! Ich bin sehr geduldig und habe Erfahrung mit allen Temperamenten. Wir lassen uns Zeit, und oft entstehen die besten Bilder gerade aus der Energie heraus." },
-                  { q: "Kann ich auch mit auf die Bilder?", a: "Ja, sehr gerne! Mensch-Tier-Shootings sind sogar besonders schön, weil sie die Verbindung zwischen euch zeigen." },
-                  { q: "Wie lange dauert ein Shooting?", a: "Im Studio ca. 30 Minuten, Outdoor ca. 1 Stunde. Aber es gibt keinen Zeitdruck – wir machen so lange, bis alles perfekt ist." },
-                  { q: "Wo findet das Shooting statt?", a: "Entweder im hellen Tageslichtstudio in Innsbruck oder an eurem Wunschort: Wald, Wiese, Berge, euer Zuhause – ihr entscheidet." },
-                ]
-              : [
-                  { q: "My pet is very restless – is that okay?", a: "Of course! I'm very patient and experienced with all temperaments. We take our time, and often the best photos come from that energy." },
-                  { q: "Can I be in the photos too?", a: "Yes, absolutely! Human-animal shoots are especially beautiful because they show the bond between you." },
-                  { q: "How long does a shoot take?", a: "In the studio about 30 minutes, outdoor about 1 hour. But there's no time pressure – we continue until everything is perfect." },
-                  { q: "Where does the shoot take place?", a: "Either in the bright daylight studio in Innsbruck or at your desired location: forest, meadow, mountains, your home – you decide." },
-                ]
-            ).map((faq, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <div className="border-b border-black/10">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between py-5 px-1 bg-transparent border-none cursor-pointer text-left group"
-                  >
-                    <span
-                      className="text-[0.92rem] pr-4 group-hover:text-black transition-colors"
-                      style={{ fontWeight: 400, color: openFaq === i ? "black" : "rgba(0,0,0,0.7)" }}
-                    >
-                      {faq.q}
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className="flex-shrink-0 text-black/30 transition-transform duration-300"
-                      style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
-                  </button>
-                  <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{ maxHeight: openFaq === i ? "300px" : "0px", opacity: openFaq === i ? 1 : 0 }}
-                  >
-                    <p
-                      className="text-black/50 text-[0.87rem] pb-5 px-1"
-                      style={{ lineHeight: 1.75, fontWeight: 300 }}
-                    >
-                      {faq.a}
-                    </p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection
+        categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.animals)}
+        title={{ de: "Häufige Fragen zur Tierfotografie", en: "Animal Photography FAQ" }}
+        bg="cream"
+      />
 
       {/* CTA */}
       <section className="py-24 md:py-32 bg-black text-white">

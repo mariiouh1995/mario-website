@@ -11,6 +11,8 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { MasonryGrid } from "../MasonryGrid";
+import { FAQSection } from "../FAQSection";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://images.unsplash.com/photo-1761334859630-611bdf32e3e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBzaG9vdGluZyUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -298,77 +300,10 @@ export function PortraitPage() {
       <GoogleReviewSingle bg="cream" reviewIndex={4} />
 
       {/* Portrait FAQ */}
-      <section className="py-24 md:py-32 px-4">
-        <div className="max-w-3xl mx-auto">
-          <SectionReveal>
-            <div className="text-center mb-16">
-              <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                FAQ
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  fontWeight: 300,
-                }}
-              >
-                {lang === "de" ? "Häufige Fragen" : "Frequently Asked Questions"}
-              </h2>
-            </div>
-          </SectionReveal>
-          <div className="flex flex-col">
-            {(lang === "de"
-              ? [
-                  { q: "Wie läuft ein Shooting ab?", a: "Wir treffen uns am vereinbarten Ort, lernen uns kurz kennen und legen dann entspannt los. Ich gebe euch Posing-Tipps, aber das meiste passiert ganz natürlich." },
-                  { q: "Was soll ich anziehen?", a: "Schlichte, zeitlose Kleidung funktioniert am besten. Vermeidet große Logos oder sehr grelle Farben. Gerne könnt ihr 2–3 Outfits mitbringen." },
-                  { q: "Können wir unsere Haustiere mitbringen?", a: "Na klar! Hunde, Katzen oder Pferde machen jedes Familienshooting noch besonderer." },
-                  { q: "Ab welchem Alter fotografierst du Babys?", a: "Ab Geburt! Für Neugeborene empfehle ich die ersten 2 Wochen, für andere Baby-Shootings bin ich flexibel." },
-                ]
-              : [
-                  { q: "How does a shoot work?", a: "We meet at the agreed location, get to know each other briefly and then start relaxed. I give posing tips, but most happens naturally." },
-                  { q: "What should I wear?", a: "Simple, timeless clothing works best. Avoid large logos or very bright colors. Feel free to bring 2-3 outfits." },
-                  { q: "Can we bring our pets?", a: "Of course! Dogs, cats or horses make every family shoot even more special." },
-                  { q: "From what age do you photograph babies?", a: "From birth! For newborns I recommend the first 2 weeks, for other baby shoots I'm flexible." },
-                ]
-            ).map((faq, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <div className="border-b border-black/10">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between py-5 px-1 bg-transparent border-none cursor-pointer text-left group"
-                  >
-                    <span
-                      className="text-[0.92rem] pr-4 group-hover:text-black transition-colors"
-                      style={{ fontWeight: 400, color: openFaq === i ? "black" : "rgba(0,0,0,0.7)" }}
-                    >
-                      {faq.q}
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className="flex-shrink-0 text-black/30 transition-transform duration-300"
-                      style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
-                  </button>
-                  <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{ maxHeight: openFaq === i ? "300px" : "0px", opacity: openFaq === i ? 1 : 0 }}
-                  >
-                    <p
-                      className="text-black/50 text-[0.87rem] pb-5 px-1"
-                      style={{ lineHeight: 1.75, fontWeight: 300 }}
-                    >
-                      {faq.a}
-                    </p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FAQSection
+        categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.portrait)}
+        title={{ de: "Häufige Fragen zu Portrait & Shootings", en: "Portrait & Shooting FAQ" }}
+      />
 
       {/* CTA */}
       <section className="py-24 md:py-32 bg-black text-white">

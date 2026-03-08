@@ -4,7 +4,7 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useState, useMemo, useCallback } from "react";
-import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, ChevronDown } from "lucide-react";
+import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, ChevronDown, Download } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -13,6 +13,8 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { MasonryGrid } from "../MasonryGrid";
+import { FAQSection } from "../FAQSection";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://images.unsplash.com/photo-1765615197726-6d2a157620fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwb3V0ZG9vciUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc4OXww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -531,77 +533,71 @@ export function WeddingsPage() {
       />
 
       {/* Wedding FAQ */}
-      <section className="py-24 md:py-32 px-4">
+      <FAQSection
+        categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.weddings)}
+        title={{ de: "Häufige Fragen zur Hochzeitsfotografie", en: "Wedding Photography FAQ" }}
+      />
+
+      {/* Wedding Guide Download CTA */}
+      <section className="py-20 md:py-28 bg-[#f8f7f5] px-4">
         <div className="max-w-3xl mx-auto">
           <SectionReveal>
-            <div className="text-center mb-16">
+            <div className="relative border border-black/10 bg-white p-8 sm:p-12 md:p-16 text-center overflow-hidden">
+              {/* Decorative corner accents */}
+              <div className="absolute top-4 left-4 w-8 h-8 border-t border-l border-black/15" />
+              <div className="absolute top-4 right-4 w-8 h-8 border-t border-r border-black/15" />
+              <div className="absolute bottom-4 left-4 w-8 h-8 border-b border-l border-black/15" />
+              <div className="absolute bottom-4 right-4 w-8 h-8 border-b border-r border-black/15" />
+
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.7rem] tracking-[0.35em] uppercase text-black/35 mb-4"
                 style={{ fontWeight: 400 }}
               >
-                FAQ
+                {lang === "de" ? "Kostenloser Download" : "Free Download"}
               </p>
               <h2
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
+                  fontSize: "clamp(1.6rem, 3.5vw, 2.5rem)",
                   fontWeight: 300,
+                  lineHeight: 1.15,
+                  marginBottom: "1rem",
                 }}
               >
-                {lang === "de" ? "Häufige Fragen zur Hochzeitsfotografie" : "Wedding Photography FAQ"}
+                Wedding Guide
               </h2>
+              <p
+                className="text-black/35 text-[0.82rem] mb-2"
+                style={{ fontWeight: 300, fontStyle: "italic" }}
+              >
+                {lang === "de" ? "Saison 2026/27" : "Season 2026/27"}
+              </p>
+              <p
+                className="text-black/50 text-[0.88rem] max-w-md mx-auto mb-10"
+                style={{ lineHeight: 1.75, fontWeight: 300 }}
+              >
+                {lang === "de"
+                  ? "Alle Infos zu meinen Paketen, meinem Stil und wertvolle Tipps für eure Hochzeitsplanung \u2013 kompakt zusammengefasst."
+                  : "All the info about my packages, my style and valuable tips for your wedding planning \u2013 in one compact guide."}
+              </p>
+              <a
+                href="https://ik.imagekit.io/r2yqrg6np/WeddingGuide_MarioSchubert_Saison26_27_compressed.pdf?updatedAt=1773007904883"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-black text-white px-10 py-4 text-[0.8rem] tracking-[0.15em] uppercase no-underline hover:bg-black/80 transition-all duration-300"
+                style={{ fontWeight: 400 }}
+              >
+                <Download size={16} />
+                {lang === "de" ? "Guide herunterladen" : "Download Guide"}
+              </a>
+              <p
+                className="text-black/25 text-[0.72rem] mt-6"
+                style={{ fontWeight: 300 }}
+              >
+                PDF · {lang === "de" ? "Kostenlos & unverbindlich" : "Free & no strings attached"}
+              </p>
             </div>
           </SectionReveal>
-          <div className="flex flex-col">
-            {(lang === "de"
-              ? [
-                  { q: "Wie viele Bilder erhalte ich?", a: "Das hängt vom Paket ab – bei einer 8-stündigen Reportage erhaltet ihr ca. 600+ bearbeitete Bilder. Jedes einzelne wird von mir persönlich bearbeitet." },
-                  { q: "Können wir ein Probshooting machen?", a: "Ja, sehr gerne! Ein Engagement- oder Kennenlernshooting empfehle ich sogar, damit ihr euch vor der Kamera wohlfühlt und wir uns kennenlernen." },
-                  { q: "Fotografierst du auch im Ausland?", a: "Auf jeden Fall! Destination Weddings sind etwas Besonderes. Ob Italien, Kroatien oder die Schweiz – ich bin überall dabei." },
-                  { q: "Wann bekommen wir die Bilder?", a: "Sneak Peeks innerhalb von 48–72 Stunden, die vollständige Galerie innerhalb von 4–6 Wochen." },
-                  { q: "Können wir Foto und Video kombinieren?", a: "Ja! Das Signature Plus+ Paket beinhaltet beides. Alternativ könnt ihr jedes Video-Paket separat dazubuchen – fragt einfach an." },
-                ]
-              : [
-                  { q: "How many photos will I receive?", a: "That depends on the package – for an 8-hour reportage you'll receive about 600+ edited images. Each one is personally edited by me." },
-                  { q: "Can we do a trial shoot?", a: "Yes, absolutely! I actually recommend an engagement or get-to-know shoot so you feel comfortable in front of the camera." },
-                  { q: "Do you shoot abroad?", a: "Definitely! Destination weddings are something special. Whether Italy, Croatia or Switzerland – I'm there." },
-                  { q: "When do we get the photos?", a: "Sneak peeks within 48–72 hours, the complete gallery within 4–6 weeks." },
-                  { q: "Can we combine photo and video?", a: "Yes! The Signature Plus+ package includes both. Alternatively, you can add any video package separately – just ask." },
-                ]
-            ).map((faq, i) => (
-              <SectionReveal key={i} delay={i * 0.06}>
-                <div className="border-b border-black/10">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full flex items-center justify-between py-5 px-1 bg-transparent border-none cursor-pointer text-left group"
-                  >
-                    <span
-                      className="text-[0.92rem] pr-4 group-hover:text-black transition-colors"
-                      style={{ fontWeight: 400, color: openFaq === i ? "black" : "rgba(0,0,0,0.7)" }}
-                    >
-                      {faq.q}
-                    </span>
-                    <ChevronDown
-                      size={18}
-                      className="flex-shrink-0 text-black/30 transition-transform duration-300"
-                      style={{ transform: openFaq === i ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
-                  </button>
-                  <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{ maxHeight: openFaq === i ? "300px" : "0px", opacity: openFaq === i ? 1 : 0 }}
-                  >
-                    <p
-                      className="text-black/50 text-[0.87rem] pb-5 px-1"
-                      style={{ lineHeight: 1.75, fontWeight: 300 }}
-                    >
-                      {faq.a}
-                    </p>
-                  </div>
-                </div>
-              </SectionReveal>
-            ))}
-          </div>
         </div>
       </section>
 
