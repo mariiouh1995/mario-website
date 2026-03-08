@@ -23,7 +23,7 @@ interface ImagesState {
 }
 
 const CACHE_KEY = "marioschub_images";
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches API cache)
 
 // ── Helper to generate entries ──
 function w(category: string, src: string, altDe: string, altEn: string): ImageEntry {
@@ -96,7 +96,7 @@ const FALLBACK_IMAGES: ImageEntry[] = [
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0191.jpg?updatedAt=1773003721836", "Kirchliche Hochzeit – Hochzeitsfotograf Tirol", "Church wedding – Wedding photographer Tyrol"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0138.jpg?updatedAt=1773003721751", "Trauung in der Kirche – Mario Schubert Fotografie", "Church ceremony – Mario Schubert Photography"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0293.jpg?updatedAt=1773003721528", "Kirchliche Trauung Tirol – Hochzeitsfotografie Alpen", "Church ceremony Tyrol – Alpine wedding photography"),
-  w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0251.jpg?updatedAt=1773003721533", "Hochzeit Kirche – Hochzeitsfotograf Innsbruck Tirol", "Church wedding – Wedding photographer Innsbruck Tyrol"),
+  w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0251.jpg?updatedAt=1773003721533", "Hochzeit Kirche – Hochzeitsfotograf Innsbruck Tirol", "Church wedding – Wedding photographer Innsbruck Tirol"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0278.jpg?updatedAt=1773003721450", "Kirchliche Zeremonie – Hochzeitsfotografie Bayern", "Church ceremony – Wedding photography Bavaria"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0283.jpg?updatedAt=1773003721352", "Trauung Kirche – Hochzeitsfotograf Mario Schubert", "Church ceremony – Wedding photographer Mario Schubert"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0276.jpg?updatedAt=1773003721438", "Kirchliche Hochzeit Innsbruck – Hochzeitsfotografie", "Church wedding Innsbruck – Wedding photography"),
@@ -172,6 +172,18 @@ function setCachedData(data: ImageEntry[]) {
     );
   } catch {
     // localStorage might be full or unavailable
+  }
+}
+
+/**
+ * Clear the images localStorage cache.
+ * Call this after a sync so new images are fetched on next load.
+ */
+export function clearImagesCache() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {
+    // ignore
   }
 }
 

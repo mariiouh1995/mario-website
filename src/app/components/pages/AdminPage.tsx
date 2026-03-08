@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { RefreshCw, Lock, Check, AlertTriangle, LogOut, ImageIcon } from "lucide-react";
+import { clearImagesCache } from "../useImages";
 
 /**
  * Admin Page – Password-protected, server-side auth.
@@ -91,6 +92,9 @@ export function AdminPage() {
       }
 
       setSyncResult(data);
+
+      // Clear frontend image cache so new images show up immediately
+      clearImagesCache();
     } catch {
       setSyncError("Verbindungsfehler – bitte erneut versuchen");
     } finally {
