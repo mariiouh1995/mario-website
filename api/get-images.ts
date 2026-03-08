@@ -39,7 +39,7 @@ export interface ImagesResponse {
 }
 
 // ── Auth helper ──
-function getAuth() {
+async function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
@@ -49,9 +49,12 @@ function getAuth() {
 
   const privateKey = key.replace(/\\n/g, "\n");
 
-  return new google.auth.JWT(email, undefined, privateKey, [
+  const auth = new google.auth.JWT(email, undefined, privateKey, [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
   ]);
+
+  await auth.authorize();
+  return auth;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -78,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const auth = getAuth();
+    const auth = await getAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
     const response = await sheets.spreadsheets.values.get({

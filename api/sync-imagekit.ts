@@ -373,21 +373,48 @@ function getAltTag(
 }
 
 // ── Google Sheets Auth (read+write) ──
-function getSheetsAuth() {
+async function getSheetsAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
-  if (!email || !key) {
+  if (!email) {
     throw new Error(
-      "Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_KEY"
+      "Missing GOOGLE_SERVICE_ACCOUNT_EMAIL environment variable"
+    );
+  }
+  if (!key) {
+    throw new Error(
+      "Missing GOOGLE_SERVICE_ACCOUNT_KEY environment variable"
     );
   }
 
+  // The private key comes from Vercel env vars with literal \n – replace to real newlines
   const privateKey = key.replace(/\\n/g, "\n");
 
-  return new google.auth.JWT(email, undefined, privateKey, [
+  // Validate it looks like a PEM key
+  if (!privateKey.includes("-----BEGIN") || !privateKey.includes("PRIVATE KEY")) {
+    throw new Error(
+      "GOOGLE_SERVICE_ACCOUNT_KEY does not look like a valid PEM private key. " +
+      "Make sure to paste the FULL key including -----BEGIN PRIVATE KEY----- and -----END PRIVATE KEY-----"
+    );
+  }
+
+  const auth = new google.auth.JWT(email, undefined, privateKey, [
     "https://www.googleapis.com/auth/spreadsheets",
   ]);
+
+  // Explicitly authorize to catch auth errors early
+  try {
+    await auth.authorize();
+  } catch (authErr: any) {
+    throw new Error(
+      `Google Service Account auth failed: ${authErr?.message}. ` +
+      "Check that GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_KEY are correct, " +
+      "and that the key hasn't expired."
+    );
+  }
+
+  return auth;
 }
 
 // ── Main Handler ──
@@ -483,7 +510,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── Step 2: Write to Google Sheets ──
-    const auth = getSheetsAuth();
+    const auth = await getSheetsAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
     // Clear existing data (keep header row)

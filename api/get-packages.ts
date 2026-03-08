@@ -53,7 +53,7 @@ interface PackagesResponse {
 }
 
 // ── Auth helper ──
-function getAuth() {
+async function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
@@ -64,9 +64,12 @@ function getAuth() {
   // The key comes from env var with literal \n – replace with actual newlines
   const privateKey = key.replace(/\\n/g, "\n");
 
-  return new google.auth.JWT(email, undefined, privateKey, [
+  const auth = new google.auth.JWT(email, undefined, privateKey, [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
   ]);
+
+  await auth.authorize();
+  return auth;
 }
 
 // ── Parse a sheet tab into PackageData[] ──
@@ -119,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const auth = getAuth();
+    const auth = await getAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
     // Fetch all tabs in parallel
