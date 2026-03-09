@@ -13,7 +13,7 @@ import { google } from "googleapis";
  *   GOOGLE_SHEET_ID               – The Google Sheet ID
  *
  * Sheet Tab expected:
- *   "Anfragen" – Columns: Zeitstempel | Name | Email | Telefon | Gefunden über | Seite/Interesse | Datum | Wedding Guide | Nachricht | DSGVO
+ *   "Anfragen" – Columns: Zeitstempel | Name | Email | Telefon | Gefunden über | Seite/Interesse | Datum | Wedding Guide | Nachricht | DSGVO | Pakete | Preis
  *
  * Endpoint: POST /api/submit-inquiry
  */
@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const { name, email, phone, foundVia, interests, date, weddingGuide, message } = req.body;
+  const { name, email, phone, foundVia, interests, date, weddingGuide, message, selectedPackages, selectedAddons, estimatedTotal } = req.body;
 
   if (!name || !email) {
     return res.status(400).json({ error: "Name and email are required" });
@@ -89,10 +89,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const interestsText = Array.isArray(interests) ? interests.join(", ") : interests || "";
 
+    // Build package summary text for the sheet
+    const pkgNames = Array.isArray(selectedPackages) ? selectedPackages.map((p: any) => `${p.name} (${p.price})`).join(", ") : "";
+    const addonNames = Array.isArray(selectedAddons) ? selectedAddons.join(", ") : "";
+    const packageSummary = [pkgNames, addonNames].filter(Boolean).join(" + ");
+    const priceSummary = estimatedTotal || "";
+
     // Append row to "Anfragen" tab
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: "'Anfragen'!A:J",
+      range: "'Anfragen'!A:L",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [
@@ -107,6 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             weddingGuide ? "Ja" : "Nein",
             message || "",
             "Ja", // DSGVO consent (they can't submit without it)
+            packageSummary,
+            priceSummary,
           ],
         ],
       },

@@ -1,7 +1,8 @@
-import { useState, createContext, useContext, useCallback } from "react";
-import { X, Send, CheckCircle, Loader2 } from "lucide-react";
+import { useState, useMemo, createContext, useContext, useCallback } from "react";
+import { X, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Calculator } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
+import { usePackages, type PackageData, type AddOnData } from "./usePackages";
 
 // ── Types ──
 export type InquiryCategory = "wedding" | "animal" | "portrait" | "general";
@@ -18,6 +19,36 @@ const ContactModalContext = createContext<ContactModalContextType>({
 
 export const useContactModal = () => useContext(ContactModalContext);
 
+// ── Price parser ──
+function parsePrice(priceStr: string): number {
+  // Extract numeric value from strings like "890€", "ab 2.090€", "from 260 €"
+  const cleaned = priceStr.replace(/[^\d.,]/g, "").replace(/\.$/, "");
+  // Handle German number format (2.090 = 2090, but 2,50 = 2.50)
+  if (cleaned.includes(".") && cleaned.includes(",")) {
+    return parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
+  }
+  if (cleaned.includes(".") && cleaned.split(".").pop()!.length === 3) {
+    // Likely German thousands separator: 2.090 → 2090
+    return parseFloat(cleaned.replace(/\./g, ""));
+  }
+  if (cleaned.includes(",")) {
+    return parseFloat(cleaned.replace(",", "."));
+  }
+  return parseFloat(cleaned) || 0;
+}
+
+function parseAddonPrice(addonText: string): number {
+  // Extract price from add-on text like "After-Wedding-Shooting (ca. 3h, 80 Bilder): 520€"
+  const match = addonText.match(/(\d[\d.,]*)\s*€/);
+  if (!match) return 0;
+  return parsePrice(match[1] + "€");
+}
+
+// ── Format price for display ──
+function formatPrice(amount: number): string {
+  return amount.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " €";
+}
+
 // ── Send emails via Vercel serverless function + log to Google Sheets ──
 async function sendEmails(formData: FormState): Promise<boolean> {
   const payload = {
@@ -29,17 +60,19 @@ async function sendEmails(formData: FormState): Promise<boolean> {
     date: formData.date,
     weddingGuide: formData.weddingGuide,
     message: formData.message,
+    // New package/price data
+    selectedPackages: formData.selectedPackages,
+    selectedAddons: formData.selectedAddonTexts,
+    estimatedTotal: formData.estimatedTotal,
   };
 
   try {
-    // Send email AND log to Google Sheets in parallel
     const [emailResponse] = await Promise.all([
       fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-      // Log to Google Sheets (fire-and-forget, don't block on failure)
       fetch("/api/submit-inquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,6 +104,16 @@ interface FormState {
   weddingGuide: boolean;
   message: string;
   privacyConsent: boolean;
+  // Package selections
+  selectedPhotoPackage: string | null;
+  selectedVideoPackage: string | null;
+  selectedPortraitPackage: string | null;
+  selectedAnimalPackage: string | null;
+  selectedAddonKeys: string[];
+  // Computed for sending
+  selectedPackages: { name: string; price: string }[];
+  selectedAddonTexts: string[];
+  estimatedTotal: string;
 }
 
 const initialForm: FormState = {
@@ -83,45 +126,15 @@ const initialForm: FormState = {
   weddingGuide: false,
   message: "",
   privacyConsent: false,
+  selectedPhotoPackage: null,
+  selectedVideoPackage: null,
+  selectedPortraitPackage: null,
+  selectedAnimalPackage: null,
+  selectedAddonKeys: [],
+  selectedPackages: [],
+  selectedAddonTexts: [],
+  estimatedTotal: "",
 };
-
-// ── Interest options per category ──
-function getInterestOptions(category: InquiryCategory, lang: string) {
-  const isDE = lang === "de";
-  switch (category) {
-    case "wedding":
-      return [
-        { value: "Hochzeit Foto", label: isDE ? "Hochzeit Foto" : "Wedding Photo" },
-        { value: "Hochzeit Video", label: isDE ? "Hochzeit Video" : "Wedding Video" },
-        { value: "Kombi: Foto & Mini Video", label: isDE ? "Kombi: Foto & Mini Video" : "Combo: Photo & Mini Video" },
-        { value: "Andere", label: isDE ? "Andere" : "Other" },
-      ];
-    case "animal":
-      return [
-        { value: "Tierfotografie Studio", label: isDE ? "Tierfotografie Studio" : "Animal Photo Studio" },
-        { value: "Tierfotografie Outdoor", label: isDE ? "Tierfotografie Outdoor" : "Animal Photo Outdoor" },
-        { value: "Kombi Tier + Besitzer", label: isDE ? "Kombi Tier + Besitzer" : "Combo Pet + Owner" },
-        { value: "Andere", label: isDE ? "Andere" : "Other" },
-      ];
-    case "portrait":
-      return [
-        { value: "Couple Shooting", label: "Couple Shooting" },
-        { value: "Familienshooting", label: isDE ? "Familienshooting" : "Family Shooting" },
-        { value: "Taufe", label: isDE ? "Taufe" : "Baptism" },
-        { value: "Privater Anlass", label: isDE ? "Privater Anlass" : "Private Occasion" },
-        { value: "Andere", label: isDE ? "Andere" : "Other" },
-      ];
-    default:
-      return [
-        { value: "Hochzeit Foto", label: isDE ? "Hochzeit Foto" : "Wedding Photo" },
-        { value: "Hochzeit Video", label: isDE ? "Hochzeit Video" : "Wedding Video" },
-        { value: "Tierfotografie", label: isDE ? "Tierfotografie" : "Animal Photography" },
-        { value: "Couple Shooting", label: "Couple Shooting" },
-        { value: "Familienshooting", label: isDE ? "Familienshooting" : "Family Shooting" },
-        { value: "Andere", label: isDE ? "Andere" : "Other" },
-      ];
-  }
-}
 
 // ── Provider ──
 export function ContactModalProvider({ children }: { children: React.ReactNode }) {
@@ -147,6 +160,97 @@ export function ContactModalProvider({ children }: { children: React.ReactNode }
   );
 }
 
+// ── Package Card ──
+function PackageCard({
+  pkg,
+  isDE,
+  selected,
+  onSelect,
+}: {
+  pkg: PackageData;
+  isDE: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`text-left p-4 border transition-all cursor-pointer bg-transparent w-full ${
+        selected
+          ? "border-black bg-black/[0.03] ring-1 ring-black"
+          : pkg.highlight
+          ? "border-black/30 hover:border-black/60"
+          : "border-black/15 hover:border-black/40"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <span
+          className="text-[0.7rem] tracking-[0.15em] uppercase"
+          style={{ fontWeight: 600 }}
+        >
+          {pkg.name}
+        </span>
+        {pkg.highlight && !selected && (
+          <span className="text-[0.6rem] tracking-[0.1em] uppercase bg-black text-white px-2 py-0.5 shrink-0" style={{ fontWeight: 400 }}>
+            {isDE ? "Beliebt" : "Popular"}
+          </span>
+        )}
+        {selected && (
+          <CheckCircle size={16} className="text-black shrink-0" />
+        )}
+      </div>
+      <p
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: "1.3rem",
+          fontWeight: 600,
+          lineHeight: 1.2,
+        }}
+      >
+        {pkg.price}
+      </p>
+      <p className="text-black/45 text-[0.75rem] mt-1" style={{ fontWeight: 300 }}>
+        {isDE ? pkg.subtitle : pkg.subtitleEn}
+      </p>
+    </button>
+  );
+}
+
+// ── Addon Chip ──
+function AddonChip({
+  addon,
+  isDE,
+  checked,
+  onToggle,
+}: {
+  addon: AddOnData;
+  isDE: boolean;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const text = isDE ? addon.textDe : addon.textEn;
+  return (
+    <label
+      className={`flex items-center gap-2 py-2 px-3 border cursor-pointer transition-all text-[0.8rem] ${
+        checked
+          ? "border-black bg-black/[0.03]"
+          : "border-black/10 hover:border-black/30"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="accent-black cursor-pointer shrink-0"
+      />
+      <span className="text-black/70" style={{ fontWeight: 300, lineHeight: 1.4 }}>
+        {text}
+      </span>
+    </label>
+  );
+}
+
 // ── Modal ──
 function ContactModalInner({
   isOpen,
@@ -158,31 +262,159 @@ function ContactModalInner({
   category: InquiryCategory;
 }) {
   const { lang } = useLanguage();
+  const { packages } = usePackages();
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [showPackages, setShowPackages] = useState(true);
 
   const isDE = lang === "de";
-  const interestOptions = getInterestOptions(category, lang);
-  const showWeddingGuide = category === "wedding" || form.interests.some((i) => i.includes("Hochzeit") || i.includes("Wedding"));
 
-  const handleChange = (field: keyof FormState, value: string | boolean) => {
+  // Determine which packages to show
+  const showWeddingPackages = category === "wedding" || category === "general";
+  const showPortraitPackages = category === "portrait" || category === "general";
+  const showAnimalPackages = category === "animal";
+  const showWeddingGuide = category === "wedding" || form.selectedPhotoPackage !== null || form.selectedVideoPackage !== null;
+
+  // ── Price calculation ──
+  const priceBreakdown = useMemo(() => {
+    const items: { name: string; price: string; amount: number }[] = [];
+    let total = 0;
+
+    // Photo package
+    if (form.selectedPhotoPackage) {
+      const pkg = packages.weddingPhoto.find((p) => p.name === form.selectedPhotoPackage);
+      if (pkg) {
+        const amount = parsePrice(pkg.price);
+        items.push({ name: `Foto: ${pkg.name}`, price: pkg.price, amount });
+        total += amount;
+      }
+    }
+
+    // Video package
+    if (form.selectedVideoPackage) {
+      const pkg = packages.weddingVideo.find((p) => p.name === form.selectedVideoPackage);
+      if (pkg) {
+        const amount = parsePrice(pkg.price);
+        items.push({ name: `Video: ${pkg.name}`, price: pkg.price, amount });
+        total += amount;
+      }
+    }
+
+    // Portrait package
+    if (form.selectedPortraitPackage) {
+      const pkg = packages.portrait.find((p) => p.name === form.selectedPortraitPackage);
+      if (pkg) {
+        const amount = parsePrice(pkg.price);
+        items.push({ name: `Portrait: ${pkg.name}`, price: pkg.price, amount });
+        total += amount;
+      }
+    }
+
+    // Animal package (no sheet data yet, but handle if present)
+    if (form.selectedAnimalPackage && packages.animals?.length > 0) {
+      const pkg = packages.animals.find((p) => p.name === form.selectedAnimalPackage);
+      if (pkg) {
+        const amount = parsePrice(pkg.price);
+        items.push({ name: `Tier: ${pkg.name}`, price: pkg.price, amount });
+        total += amount;
+      }
+    }
+
+    // Add-ons
+    for (const key of form.selectedAddonKeys) {
+      const addon = packages.weddingAddons[parseInt(key)];
+      if (addon) {
+        const text = isDE ? addon.textDe : addon.textEn;
+        const amount = parseAddonPrice(text);
+        items.push({ name: text.split(":")[0].trim(), price: formatPrice(amount), amount });
+        total += amount;
+      }
+    }
+
+    const hasAb = items.some(
+      (i) =>
+        (form.selectedPhotoPackage &&
+          packages.weddingPhoto.find((p) => p.name === form.selectedPhotoPackage)?.price.includes("ab")) ||
+        (form.selectedPortraitPackage &&
+          packages.portrait.find((p) => p.name === form.selectedPortraitPackage)?.price.includes("ab"))
+    );
+
+    return { items, total, hasAb };
+  }, [form.selectedPhotoPackage, form.selectedVideoPackage, form.selectedPortraitPackage, form.selectedAnimalPackage, form.selectedAddonKeys, packages, isDE]);
+
+  const handleChange = (field: keyof FormState, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const toggleInterest = (value: string) => {
+  const toggleAddonKey = (key: string) => {
     setForm((prev) => ({
       ...prev,
-      interests: prev.interests.includes(value)
-        ? prev.interests.filter((i) => i !== value)
-        : [...prev.interests, value],
+      selectedAddonKeys: prev.selectedAddonKeys.includes(key)
+        ? prev.selectedAddonKeys.filter((k) => k !== key)
+        : [...prev.selectedAddonKeys, key],
+    }));
+  };
+
+  const selectPhotoPackage = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedPhotoPackage: prev.selectedPhotoPackage === name ? null : name,
+    }));
+  };
+
+  const selectVideoPackage = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedVideoPackage: prev.selectedVideoPackage === name ? null : name,
+    }));
+  };
+
+  const selectPortraitPackage = (name: string) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedPortraitPackage: prev.selectedPortraitPackage === name ? null : name,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.privacyConsent) return;
+
+    // Build package summary for email
+    const selectedPkgs = priceBreakdown.items.map((i) => ({ name: i.name, price: i.price }));
+    const addonTexts = form.selectedAddonKeys.map((key) => {
+      const addon = packages.weddingAddons[parseInt(key)];
+      return addon ? (isDE ? addon.textDe : addon.textEn) : "";
+    }).filter(Boolean);
+
+    const totalStr = priceBreakdown.total > 0
+      ? `${priceBreakdown.hasAb ? "ab " : ""}${formatPrice(priceBreakdown.total)}`
+      : "";
+
+    // Build interests from selections
+    const interests: string[] = [];
+    if (form.selectedPhotoPackage) interests.push(`Hochzeit Foto (${form.selectedPhotoPackage})`);
+    if (form.selectedVideoPackage) interests.push(`Hochzeit Video (${form.selectedVideoPackage})`);
+    if (form.selectedPortraitPackage) interests.push(`Portrait (${form.selectedPortraitPackage})`);
+    if (form.selectedAnimalPackage) interests.push(`Tierfotografie (${form.selectedAnimalPackage})`);
+    if (interests.length === 0) {
+      // Fallback for general inquiries
+      if (category === "animal") interests.push("Tierfotografie");
+      else if (category === "portrait") interests.push("Portrait");
+      else if (category === "wedding") interests.push("Hochzeit");
+      else interests.push("Allgemeine Anfrage");
+    }
+
+    const finalForm: FormState = {
+      ...form,
+      interests,
+      selectedPackages: selectedPkgs,
+      selectedAddonTexts: addonTexts,
+      estimatedTotal: totalStr,
+    };
+
     setStatus("sending");
-    const success = await sendEmails(form);
+    const success = await sendEmails(finalForm);
     setStatus(success ? "success" : "error");
     if (success) {
       setTimeout(() => {
@@ -204,24 +436,33 @@ function ContactModalInner({
     title: isDE ? "Eure Reise beginnt" : "Your journey begins",
     titleItalic: isDE ? "hier" : "here",
     subtitle: isDE
-      ? "Erzählt mir von euren Vorstellungen und Plänen. Ich bin gespannt, mehr über euch zu erfahren. Ihr hört in der Regel innerhalb von 48 Stunden von mir."
-      : "Tell me about your ideas and plans. I'm excited to learn more about you. You'll usually hear from me within 48 hours.",
+      ? "Stellt euch euer Wunschpaket zusammen und erzaehlt mir von euren Plaenen. Ihr hoert in der Regel innerhalb von 48 Stunden von mir."
+      : "Put together your dream package and tell me about your plans. You'll usually hear from me within 48 hours.",
     name: isDE ? "Vorname, Nachname*" : "First name, Last name*",
     email: "E-Mail*",
     phone: isDE ? "Telefon*" : "Phone*",
     foundVia: isDE ? "Wie habt ihr mich gefunden?" : "How did you find me?",
-    interest: isDE ? "Wofür interessiert ihr euch?" : "What are you interested in?",
     date: isDE ? "Voraussichtliches Datum" : "Estimated Date",
-    weddingGuide: isDE ? "Ich möchte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
-    message: isDE ? "Erzählt mir von euren Plänen!" : "Tell me about your plans!",
+    weddingGuide: isDE ? "Ich moechte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
+    message: isDE ? "Erzaehlt mir von euren Plaenen!" : "Tell me about your plans!",
     messagePlaceholder: isDE ? "Was stellt ihr euch genau vor?" : "What exactly do you have in mind?",
     submit: isDE ? "Absenden" : "Send",
     sending: isDE ? "Wird gesendet..." : "Sending...",
     success: isDE ? "Vielen Dank! Ich melde mich bald bei euch." : "Thank you! I'll get back to you soon.",
     error: isDE ? "Etwas ist schiefgelaufen. Bitte versucht es erneut." : "Something went wrong. Please try again.",
     privacy: isDE
-      ? "Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.*"
+      ? "Ich stimme der Verarbeitung meiner Daten gemaess der Datenschutzerklaerung zu.*"
       : "I agree to the processing of my data according to the privacy policy.*",
+    packages: isDE ? "Paketauswahl" : "Package Selection",
+    photoPackages: isDE ? "Foto-Pakete" : "Photo Packages",
+    videoPackages: isDE ? "Video-Pakete" : "Video Packages",
+    portraitPackages: isDE ? "Portrait-Pakete" : "Portrait Packages",
+    animalPackages: isDE ? "Tier-Pakete" : "Animal Packages",
+    addons: isDE ? "Extras & Add-ons" : "Extras & Add-ons",
+    estimatedPrice: isDE ? "Geschaetzter Preis" : "Estimated Price",
+    from: isDE ? "ab" : "from",
+    hidePackages: isDE ? "Pakete ausblenden" : "Hide packages",
+    showPackages: isDE ? "Pakete anzeigen" : "Show packages",
   };
 
   return (
@@ -321,10 +562,7 @@ function ContactModalInner({
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.name}
                       </label>
                       <input
@@ -339,10 +577,7 @@ function ContactModalInner({
 
                     {/* Email */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.email}
                       </label>
                       <input
@@ -357,10 +592,7 @@ function ContactModalInner({
 
                     {/* Phone */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.phone}
                       </label>
                       <input
@@ -375,10 +607,7 @@ function ContactModalInner({
 
                     {/* Found via */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.foundVia}
                       </label>
                       <input
@@ -390,43 +619,197 @@ function ContactModalInner({
                       />
                     </div>
 
-                    {/* Interests */}
-                    <div>
-                      <label
-                        className="block text-[0.82rem] mb-3"
-                        style={{ fontWeight: 600 }}
+                    {/* ═══════════════════════════════════════════ */}
+                    {/* PACKAGE SELECTION */}
+                    {/* ═══════════════════════════════════════════ */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowPackages(!showPackages)}
+                        className="flex items-center gap-2 w-full text-left bg-transparent border-none cursor-pointer p-0 mb-4"
                       >
-                        {t.interest}
-                      </label>
-                      <div className="flex flex-wrap gap-x-6 gap-y-2">
-                        {interestOptions.map((opt) => (
-                          <label
-                            key={opt.value}
-                            className="flex items-center gap-2 cursor-pointer"
+                        <Calculator size={16} className="text-black/50" />
+                        <span className="text-[0.82rem]" style={{ fontWeight: 600 }}>
+                          {t.packages}
+                        </span>
+                        <span className="text-[0.72rem] text-black/40 ml-1" style={{ fontWeight: 300 }}>
+                          ({isDE ? "optional" : "optional"})
+                        </span>
+                        <span className="ml-auto text-black/40">
+                          {showPackages ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </span>
+                      </button>
+
+                      <AnimatePresence>
+                        {showPackages && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
                           >
-                            <input
-                              type="checkbox"
-                              checked={form.interests.includes(opt.value)}
-                              onChange={() => toggleInterest(opt.value)}
-                              className="accent-black cursor-pointer"
-                            />
-                            <span
-                              className="text-[0.82rem] text-black/70"
-                              style={{ fontWeight: 300 }}
-                            >
-                              {opt.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                            <div className="space-y-6 pb-2">
+                              {/* Wedding Photo Packages */}
+                              {showWeddingPackages && packages.weddingPhoto.length > 0 && (
+                                <div>
+                                  <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
+                                    {t.photoPackages}
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {packages.weddingPhoto.map((pkg) => (
+                                      <PackageCard
+                                        key={pkg.name}
+                                        pkg={pkg}
+                                        isDE={isDE}
+                                        selected={form.selectedPhotoPackage === pkg.name}
+                                        onSelect={() => selectPhotoPackage(pkg.name)}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Wedding Video Packages */}
+                              {showWeddingPackages && packages.weddingVideo.length > 0 && (
+                                <div>
+                                  <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
+                                    {t.videoPackages}
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {packages.weddingVideo.map((pkg) => (
+                                      <PackageCard
+                                        key={pkg.name}
+                                        pkg={pkg}
+                                        isDE={isDE}
+                                        selected={form.selectedVideoPackage === pkg.name}
+                                        onSelect={() => selectVideoPackage(pkg.name)}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Wedding Add-ons */}
+                              {showWeddingPackages && packages.weddingAddons.length > 0 && (form.selectedPhotoPackage || form.selectedVideoPackage) && (
+                                <div>
+                                  <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
+                                    {t.addons}
+                                  </p>
+                                  <div className="space-y-2">
+                                    {packages.weddingAddons.map((addon, i) => (
+                                      <AddonChip
+                                        key={i}
+                                        addon={addon}
+                                        isDE={isDE}
+                                        checked={form.selectedAddonKeys.includes(String(i))}
+                                        onToggle={() => toggleAddonKey(String(i))}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Portrait Packages */}
+                              {showPortraitPackages && packages.portrait.length > 0 && (
+                                <div>
+                                  <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
+                                    {t.portraitPackages}
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {packages.portrait.map((pkg) => (
+                                      <PackageCard
+                                        key={pkg.name}
+                                        pkg={pkg}
+                                        isDE={isDE}
+                                        selected={form.selectedPortraitPackage === pkg.name}
+                                        onSelect={() => selectPortraitPackage(pkg.name)}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Animal Packages (if data exists) */}
+                              {showAnimalPackages && packages.animals && packages.animals.length > 0 && (
+                                <div>
+                                  <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-3" style={{ fontWeight: 400 }}>
+                                    {t.animalPackages}
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {packages.animals.map((pkg) => (
+                                      <PackageCard
+                                        key={pkg.name}
+                                        pkg={pkg}
+                                        isDE={isDE}
+                                        selected={form.selectedAnimalPackage === pkg.name}
+                                        onSelect={() => handleChange("selectedAnimalPackage", form.selectedAnimalPackage === pkg.name ? null : pkg.name)}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* ── Price Calculator ── */}
+                              {priceBreakdown.total > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="bg-[#f8f7f5] border border-black/10 p-5"
+                                >
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Calculator size={14} className="text-black/40" />
+                                    <span className="text-[0.75rem] tracking-[0.15em] uppercase text-black/50" style={{ fontWeight: 400 }}>
+                                      {t.estimatedPrice}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {priceBreakdown.items.map((item, i) => (
+                                      <div key={i} className="flex justify-between items-baseline gap-4">
+                                        <span className="text-[0.8rem] text-black/60" style={{ fontWeight: 300 }}>
+                                          {item.name}
+                                        </span>
+                                        <span className="text-[0.8rem] text-black/80 shrink-0" style={{ fontWeight: 400 }}>
+                                          {item.price}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="flex justify-between items-baseline gap-4 mt-3 pt-3 border-t border-black/10">
+                                    <span className="text-[0.82rem]" style={{ fontWeight: 600 }}>
+                                      {isDE ? "Gesamt" : "Total"}
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        fontSize: "1.4rem",
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      {priceBreakdown.hasAb && (
+                                        <span className="text-[0.7rem] text-black/40 mr-1" style={{ fontWeight: 300, fontFamily: "inherit" }}>
+                                          {t.from}
+                                        </span>
+                                      )}
+                                      {formatPrice(priceBreakdown.total)}
+                                    </span>
+                                  </div>
+                                  <p className="text-[0.7rem] text-black/35 mt-2" style={{ lineHeight: 1.5, fontWeight: 300 }}>
+                                    {isDE
+                                      ? "* Unverbindliche Schaetzung. Der finale Preis wird individuell besprochen."
+                                      : "* Non-binding estimate. The final price will be discussed individually."}
+                                  </p>
+                                </motion.div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Date */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.date}
                       </label>
                       <input
@@ -458,10 +841,7 @@ function ContactModalInner({
 
                     {/* Message */}
                     <div>
-                      <label
-                        className="block text-[0.82rem] mb-2"
-                        style={{ fontWeight: 600 }}
-                      >
+                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.message}
                       </label>
                       <textarea
@@ -514,6 +894,11 @@ function ContactModalInner({
                         <>
                           <Send size={14} />
                           {t.submit}
+                          {priceBreakdown.total > 0 && (
+                            <span className="ml-1 opacity-60">
+                              ({priceBreakdown.hasAb ? `${t.from} ` : ""}{formatPrice(priceBreakdown.total)})
+                            </span>
+                          )}
                         </>
                       )}
                     </button>
