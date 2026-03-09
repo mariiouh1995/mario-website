@@ -409,15 +409,15 @@ function ContactModalInner({
   };
 
   // Determine which packages to show based on activeCategory
-  const showWeddingPackages = activeCategory === "wedding" || activeCategory === "general";
-  const showPortraitPackages = activeCategory === "portrait" || activeCategory === "general";
+  const showWeddingPackages = activeCategory === "wedding";
+  const showPortraitPackages = activeCategory === "portrait";
   const showAnimalPackages = activeCategory === "animal";
   const showWeddingGuide = activeCategory === "wedding" || form.selectedPhotoPackage !== null || form.selectedVideoPackage !== null;
 
   const hasAnyPackages =
     (showWeddingPackages && (packages.weddingPhoto.length > 0 || packages.weddingVideo.length > 0)) ||
     (showPortraitPackages && packages.portrait.length > 0) ||
-    (showAnimalPackages && packages.animals && packages.animals.length > 0);
+    (showAnimalPackages && packages.animals?.length > 0);
 
   // ── Price calculation ──
   const priceBreakdown = useMemo(() => {
