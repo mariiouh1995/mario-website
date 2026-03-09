@@ -54,7 +54,7 @@ function buildPackageSummaryHtml(
   if (estimatedTotal) {
     html += `
       <tr>
-        <td style="padding:12px 0 4px;font-size:14px;font-weight:700;color:#111;border-top:2px solid rgba(0,0,0,0.1)">Geschaetzter Gesamtpreis</td>
+        <td style="padding:12px 0 4px;font-size:14px;font-weight:700;color:#111;border-top:2px solid rgba(0,0,0,0.1)">Geschätzter Gesamtpreis</td>
         <td style="padding:12px 0 4px;font-size:18px;font-weight:700;color:#111;text-align:right;border-top:2px solid rgba(0,0,0,0.1);white-space:nowrap;font-family:Georgia,serif">${estimatedTotal}</td>
       </tr>
     `;
@@ -63,7 +63,7 @@ function buildPackageSummaryHtml(
   html += `
       </table>
       <p style="margin:10px 0 0;font-size:11px;color:#aaa;font-style:italic">
-        * Unverbindliche Schaetzung. Der finale Preis wird individuell besprochen.
+        * Unverbindliche Schätzung. Der finale Preis wird individuell besprochen.
       </p>
     </div>
   `;
@@ -93,6 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     selectedPackages,
     selectedAddons,
     estimatedTotal,
+    meetingDate,
+    meetingType,
   } = req.body;
 
   if (!name || !email || !phone) {
@@ -128,20 +130,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subject: `Neue Anfrage von ${name} \u2013 ${interestsText}${estimatedTotal ? ` (\u2248 ${estimatedTotal})` : ""}`,
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:650px;margin:0 auto;color:#333">
-        <h2 style="font-family:Georgia,serif;font-weight:300;font-size:24px;border-bottom:1px solid #eee;padding-bottom:16px">Neue Anfrage ueber die Website</h2>
+        <h2 style="font-family:Georgia,serif;font-weight:300;font-size:24px;border-bottom:1px solid #eee;padding-bottom:16px">Neue Anfrage über die Website</h2>
         <table style="border-collapse:collapse;width:100%;margin:20px 0">
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;width:180px;vertical-align:top">Name</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${name}</td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">E-Mail</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0"><a href="mailto:${email}" style="color:#333">${email}</a></td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Telefon</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${phone}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Gefunden ueber</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${foundVia || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Gefunden über</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${foundVia || "\u2013"}</td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Interesse</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${interestsText}</td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Datum</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${date || "\u2013"}</td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Wedding Guide</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${weddingGuide ? "Ja, bitte zusenden" : "Nein"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Termin</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${meetingDate || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Terminart</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${meetingType || "\u2013"}</td></tr>
         </table>
         ${packageSummaryMario}
         <h3 style="font-family:Georgia,serif;font-weight:400;font-size:18px;margin-top:24px">Nachricht:</h3>
         <div style="white-space:pre-wrap;background:#f8f7f5;padding:20px;border-left:3px solid #333;margin:12px 0;line-height:1.7;color:#555">${message || "\u2013 keine Nachricht \u2013"}</div>
-        <p style="color:#999;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:16px">Diese Anfrage wurde ueber das Kontaktformular auf marioschub.com gesendet.</p>
+        <p style="color:#999;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:16px">Diese Anfrage wurde über das Kontaktformular auf marioschub.com gesendet.</p>
       </div>
     `,
   };
@@ -154,7 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mailToCustomer = {
     from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: "Danke fuer deine Anfrage! \u2013 Mario Schubert Photography",
+    subject: "Danke für deine Anfrage! \u2013 Mario Schubert Photography",
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
         <div style="text-align:center;padding:40px 20px 30px;border-bottom:1px solid #eee">
@@ -163,10 +167,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         <div style="padding:40px 24px">
           <h1 style="font-family:Georgia,serif;font-weight:300;font-size:28px;margin-bottom:8px;color:#111">Servus ${firstName}!</h1>
           <p style="line-height:1.8;color:#555;font-size:15px;margin-top:16px">
-            Vielen Dank fuer deine Anfrage! Ich habe deine Nachricht erhalten und melde mich so schnell wie moeglich bei dir \u2013 in der Regel innerhalb von <strong>48 Stunden</strong>.
+            Vielen Dank für deine Anfrage! Ich habe deine Nachricht erhalten und melde mich so schnell wie möglich bei dir \u2013 in der Regel innerhalb von <strong>48 Stunden</strong>.
           </p>
           <p style="line-height:1.8;color:#555;font-size:15px">
-            Ich freue mich schon darauf, mehr ueber eure Plaene zu erfahren und gemeinsam etwas Besonderes zu schaffen.
+            Ich freue mich schon darauf, mehr über eure Pläne zu erfahren und gemeinsam etwas Besonderes zu schaffen.
           </p>
 
           ${packageInfo}
@@ -186,7 +190,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>
         <div style="text-align:center;padding:24px 20px;border-top:1px solid #eee;color:#aaa;font-size:12px;line-height:1.6">
           <p style="margin:4px 0">Mario Schubert Fotografie</p>
-          <p style="margin:4px 0">Baeckerbuehel\u00ADgasse 14, 6020 Innsbruck</p>
+          <p style="margin:4px 0">Bäckerbühelgasse 14, 6020 Innsbruck</p>
           <p style="margin:4px 0">servus@marioschub.com</p>
         </div>
       </div>

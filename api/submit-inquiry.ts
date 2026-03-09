@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  const { name, email, phone, foundVia, interests, date, weddingGuide, message, selectedPackages, selectedAddons, estimatedTotal } = req.body;
+  const { name, email, phone, foundVia, interests, date, weddingGuide, message, selectedPackages, estimatedTotal } = req.body;
 
   if (!name || !email) {
     return res.status(400).json({ error: "Name and email are required" });
@@ -90,9 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const interestsText = Array.isArray(interests) ? interests.join(", ") : interests || "";
 
     // Build package summary text for the sheet
+    // selectedPackages already contains both packages AND addons (from priceBreakdown.items)
     const pkgNames = Array.isArray(selectedPackages) ? selectedPackages.map((p: any) => `${p.name} (${p.price})`).join(", ") : "";
-    const addonNames = Array.isArray(selectedAddons) ? selectedAddons.join(", ") : "";
-    const packageSummary = [pkgNames, addonNames].filter(Boolean).join(" + ");
+    const packageSummary = pkgNames;
     const priceSummary = estimatedTotal || "";
 
     // Append row to "Anfragen" tab

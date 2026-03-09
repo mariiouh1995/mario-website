@@ -4,7 +4,7 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useState, useMemo, useCallback } from "react";
-import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download, Sun, Palette, Contrast, Clock, MessageCircle, FileText, CalendarCheck, CameraIcon, Gift, Smartphone } from "lucide-react";
+import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download, Sun, Palette, Contrast, Clock, MessageCircle, FileText, CalendarCheck, CameraIcon, Gift, Smartphone, Play } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -34,6 +34,7 @@ export function WeddingsPage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const [galleryCategory, setGalleryCategory] = useState<string>("all");
+  const [galleryMode, setGalleryMode] = useState<"fotos" | "videos">("fotos");
   const { getImagesForPage } = useImages();
   const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
 
@@ -667,45 +668,104 @@ export function WeddingsPage() {
             </h2>
           </SectionReveal>
 
-          {/* Subtle Category Filter */}
+          {/* Fotos / Videos Top-Level Tabs */}
           <SectionReveal>
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-14">
-              {galleryCategories.map((category) => (
-                <button
-                  key={category.key}
-                  onClick={() => handleCategoryChange(category.key)}
-                  className="bg-transparent border-none cursor-pointer px-1 py-2 transition-all duration-300"
-                  style={{
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: "0.78rem",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    fontWeight: galleryCategory === category.key ? 500 : 300,
-                    color: galleryCategory === category.key ? "black" : "rgba(0,0,0,0.35)",
-                    borderBottom: galleryCategory === category.key ? "1px solid black" : "1px solid transparent",
-                  }}
-                >
-                  {lang === "de" ? category.label.de : category.label.en}
-                </button>
-              ))}
+            <div className="flex justify-center gap-4 mb-8">
+              <button
+                onClick={() => setGalleryMode("fotos")}
+                className={`inline-flex items-center gap-2 px-6 py-3 text-[0.8rem] tracking-[0.1em] uppercase transition-all duration-300 cursor-pointer ${
+                  galleryMode === "fotos"
+                    ? "bg-black text-white border border-black"
+                    : "bg-transparent text-black border border-black/20 hover:border-black"
+                }`}
+                style={{ fontWeight: 400 }}
+              >
+                <Camera size={14} />
+                {lang === "de" ? "Fotos" : "Photos"}
+              </button>
+              <button
+                onClick={() => setGalleryMode("videos")}
+                className={`inline-flex items-center gap-2 px-6 py-3 text-[0.8rem] tracking-[0.1em] uppercase transition-all duration-300 cursor-pointer ${
+                  galleryMode === "videos"
+                    ? "bg-black text-white border border-black"
+                    : "bg-transparent text-black border border-black/20 hover:border-black"
+                }`}
+                style={{ fontWeight: 400 }}
+              >
+                <Play size={14} />
+                Videos
+              </button>
             </div>
           </SectionReveal>
 
-          <MasonryGrid
-            images={visibleGallery}
-            openLightbox={openLightbox}
-          />
+          {galleryMode === "fotos" ? (
+            <>
+              {/* Subtle Category Filter */}
+              <SectionReveal>
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-14">
+                  {galleryCategories.map((category) => (
+                    <button
+                      key={category.key}
+                      onClick={() => handleCategoryChange(category.key)}
+                      className="bg-transparent border-none cursor-pointer px-1 py-2 transition-all duration-300"
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "0.78rem",
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        fontWeight: galleryCategory === category.key ? 500 : 300,
+                        color: galleryCategory === category.key ? "black" : "rgba(0,0,0,0.35)",
+                        borderBottom: galleryCategory === category.key ? "1px solid black" : "1px solid transparent",
+                      }}
+                    >
+                      {lang === "de" ? category.label.de : category.label.en}
+                    </button>
+                  ))}
+                </div>
+              </SectionReveal>
 
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="text-center mt-8">
-              <button
-                onClick={handleLoadMore}
-                className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
-                style={{ fontWeight: 400 }}
-              >
-                {t.weddings.loadMore}
-              </button>
+              <MasonryGrid
+                images={visibleGallery}
+                openLightbox={openLightbox}
+              />
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={handleLoadMore}
+                    className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
+                    style={{ fontWeight: 400 }}
+                  >
+                    {t.weddings.loadMore}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Video Gallery */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {[
+                { id: "B5ncNtkQkKs", title: "Wedding Film" },
+                { id: "aD9G344Yt_o", title: "Wedding Film" },
+                { id: "OskCUn4h2cU", title: "Wedding Film" },
+                { id: "87Ryj3JSUJc", title: "Wedding Film" },
+                { id: "EOk9GpvVlRk", title: "Wedding Film" },
+                { id: "5QN0bcnPFFY", title: "Wedding Film" },
+              ].map((video, i) => (
+                <SectionReveal key={video.id} delay={i * 0.08}>
+                  <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "16/9" }}>
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1`}
+                      title={`${video.title} ${i + 1}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full border-0"
+                    />
+                  </div>
+                </SectionReveal>
+              ))}
             </div>
           )}
         </div>

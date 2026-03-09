@@ -66,8 +66,11 @@ async function sendEmails(formData: FormState): Promise<boolean> {
     message: formData.message,
     // New package/price data
     selectedPackages: formData.selectedPackages,
-    selectedAddons: formData.selectedAddonTexts,
+    selectedAddons: [], // addons are already included in selectedPackages via priceBreakdown.items
     estimatedTotal: formData.estimatedTotal,
+    // Kennenlern-Termin
+    meetingDate: formData.meetingDate,
+    meetingType: formData.meetingType,
   };
 
   try {
@@ -114,6 +117,9 @@ interface FormState {
   selectedPortraitPackage: string | null;
   selectedAnimalPackage: string | null;
   selectedAddonKeys: string[];
+  // Kennenlern-Termin
+  meetingDate: string;
+  meetingType: "" | "online" | "vor-ort";
   // Computed for sending
   selectedPackages: { name: string; price: string }[];
   selectedAddonTexts: string[];
@@ -135,6 +141,8 @@ const initialForm: FormState = {
   selectedPortraitPackage: null,
   selectedAnimalPackage: null,
   selectedAddonKeys: [],
+  meetingDate: "",
+  meetingType: "",
   selectedPackages: [],
   selectedAddonTexts: [],
   estimatedTotal: "",
@@ -856,6 +864,70 @@ function ContactModalInner({
                         className="w-full border border-black/15 focus:border-black outline-none p-3 text-[0.9rem] bg-transparent transition-colors resize-y"
                         style={{ fontWeight: 300 }}
                       />
+                    </div>
+
+                    {/* ═══════════════════════════════════════════ */}
+                    {/* KENNENLERN-TERMIN (optional) */}
+                    {/* ═══════════════════════════════════════════ */}
+                    <div className="bg-[#f8f7f5] border border-black/10 p-5">
+                      <p className="text-[0.75rem] tracking-[0.15em] uppercase text-black/40 mb-1" style={{ fontWeight: 400 }}>
+                        {isDE ? "Kennenlern-Termin" : "Get-to-know meeting"}
+                      </p>
+                      <p className="text-[0.78rem] text-black/45 mb-4" style={{ fontWeight: 300, lineHeight: 1.5 }}>
+                        {isDE
+                          ? "Optional: Schlagt einen Termin für ein unverbindliches Kennenlernen vor."
+                          : "Optional: Suggest a date for a non-binding introductory meeting."}
+                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[0.78rem] mb-1.5 text-black/60" style={{ fontWeight: 400 }}>
+                            {isDE ? "Terminvorschlag" : "Suggested date"}
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={form.meetingDate}
+                            onChange={(e) => handleChange("meetingDate", e.target.value)}
+                            className="w-full border-b border-black/20 focus:border-black outline-none py-2 text-[0.9rem] bg-transparent transition-colors"
+                            style={{ fontWeight: 300 }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[0.78rem] mb-2 text-black/60" style={{ fontWeight: 400 }}>
+                            {isDE ? "Wie soll das Treffen stattfinden?" : "How should the meeting take place?"}
+                          </label>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleChange("meetingType", form.meetingType === "online" ? "" : "online")}
+                              className={`flex-1 py-2.5 px-3 text-[0.8rem] border transition-all cursor-pointer ${
+                                form.meetingType === "online"
+                                  ? "border-black bg-black text-white"
+                                  : "border-black/15 bg-transparent text-black/60 hover:border-black/40"
+                              }`}
+                              style={{ fontWeight: form.meetingType === "online" ? 500 : 300 }}
+                            >
+                              Online
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleChange("meetingType", form.meetingType === "vor-ort" ? "" : "vor-ort")}
+                              className={`flex-1 py-2.5 px-3 text-[0.8rem] border transition-all cursor-pointer ${
+                                form.meetingType === "vor-ort"
+                                  ? "border-black bg-black text-white"
+                                  : "border-black/15 bg-transparent text-black/60 hover:border-black/40"
+                              }`}
+                              style={{ fontWeight: form.meetingType === "vor-ort" ? 500 : 300 }}
+                            >
+                              {isDE ? "Vor Ort" : "In person"}
+                            </button>
+                          </div>
+                          {form.meetingType === "vor-ort" && (
+                            <p className="text-[0.72rem] text-black/35 mt-2" style={{ fontWeight: 300, lineHeight: 1.4 }}>
+                              📍 Bäckerbühelgasse 14, 6020 Innsbruck
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Privacy consent */}
