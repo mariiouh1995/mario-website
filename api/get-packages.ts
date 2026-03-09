@@ -78,6 +78,11 @@ async function getAuth() {
 }
 
 // ── Parse a sheet tab into PackageData[] ──
+// Split features by semicolon, " / " (with spaces), or newline (supports all common separators)
+function splitFeatures(text: string): string[] {
+  return text.split(/;| \/ |\n/).map(f => f.trim()).filter(Boolean);
+}
+
 function parsePackages(rows: string[][] | undefined): PackageData[] {
   if (!rows || rows.length < 2) return [];
 
@@ -87,8 +92,8 @@ function parsePackages(rows: string[][] | undefined): PackageData[] {
     price: row[1]?.trim() || "",
     subtitle: row[2]?.trim() || "",
     subtitleEn: row[3]?.trim() || "",
-    features: (row[4] || "").split(";").map((f: string) => f.trim()).filter(Boolean),
-    featuresEn: (row[5] || "").split(";").map((f: string) => f.trim()).filter(Boolean),
+    features: splitFeatures(row[4] || ""),
+    featuresEn: splitFeatures(row[5] || ""),
     highlight: (row[6] || "").toLowerCase().trim() === "ja",
   }));
 }
