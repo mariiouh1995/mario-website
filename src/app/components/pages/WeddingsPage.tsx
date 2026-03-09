@@ -35,6 +35,7 @@ export function WeddingsPage() {
   const { openContact } = useContactModal();
   const [galleryCategory, setGalleryCategory] = useState<string>("all");
   const { getImagesForPage } = useImages();
+  const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
 
   // Reset visibleCount when category changes
   const GALLERY_PAGE_SIZE = 20;
@@ -79,6 +80,10 @@ export function WeddingsPage() {
     setVisibleCount(GALLERY_PAGE_SIZE);
   }, []);
 
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + GALLERY_PAGE_SIZE);
+  }, []);
+
   const seo = lang === "de"
     ? {
         title: "Hochzeitsfotograf Innsbruck & Tirol | Mario Schubert Photography",
@@ -90,12 +95,6 @@ export function WeddingsPage() {
         description: "Wedding photography & videography in Innsbruck, Tyrol and Bavaria. Timeless, authentic wedding reportages. Natural, cinematic, emotional. Inquire now!",
         keywords: "wedding photographer Innsbruck, wedding photography Tyrol, wedding videographer Bavaria, wedding photographer Munich, destination wedding Alps",
       };
-
-  const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
-
-  const handleLoadMore = useCallback(() => {
-    setVisibleCount((prev) => prev + GALLERY_PAGE_SIZE);
-  }, []);
 
   return (
     <>

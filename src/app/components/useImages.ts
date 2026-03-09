@@ -275,6 +275,8 @@ export function useImages() {
 
         const data = await response.json();
 
+        console.log(`[useImages] API response: ${data.images?.length ?? 0} images, source: ${data.source}`);
+
         if (!cancelled && data.images && data.images.length > 0) {
           // Merge: API images take priority, fallback fills missing categories
           const apiCategories = new Set(
@@ -284,14 +286,16 @@ export function useImages() {
             (img) => !apiCategories.has(`${img.page}:${img.category}`)
           );
           const merged = [...data.images, ...fallbackFill];
+          console.log(`[useImages] Merged: ${data.images.length} API + ${fallbackFill.length} fallback = ${merged.length} total`);
           setCachedData(merged);
           setState({ images: merged, loading: false, error: null });
         } else if (!cancelled) {
           // API returned empty – keep fallback
+          console.warn("[useImages] API returned empty, keeping fallback data");
           setState((prev) => ({ ...prev, loading: false }));
         }
       } catch (err: any) {
-        console.warn("Failed to fetch images from API, using fallback:", err.message);
+        console.warn("[useImages] API failed, using fallback:", err.message);
         if (!cancelled) {
           setState((prev) => ({ ...prev, loading: false, error: err.message }));
         }
