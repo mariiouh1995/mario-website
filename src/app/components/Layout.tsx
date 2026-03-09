@@ -341,6 +341,15 @@ export function Layout() {
               >
                 {lang === "de" ? "Datenschutz" : "Privacy"}
               </Link>
+              <a
+                href="https://ik.imagekit.io/r2yqrg6np/Allgemeine%20Gescha%CC%88ftsbedingungen%20_%20Stand%20Januar%202026.pdf?updatedAt=1773009281173"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/25 text-[0.75rem] no-underline hover:text-white/50 transition-colors"
+                style={{ fontWeight: 300 }}
+              >
+                AGB
+              </a>
             </div>
           </div>
         </div>
