@@ -4,7 +4,7 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useState, useMemo, useCallback } from "react";
-import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download } from "lucide-react";
+import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download, Sun, Palette, Contrast, Clock, MessageCircle, FileText, CalendarCheck, CameraIcon, Gift, Smartphone } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -294,8 +294,100 @@ export function WeddingsPage() {
         </div>
       </section>
 
+      {/* Photography Styles – from Wedding Guide */}
+      <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
+        <div className="max-w-5xl mx-auto">
+          <SectionReveal>
+            <div className="text-center mb-16">
+              <p
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "BILDSPRACHE" : "VISUAL LANGUAGE"}
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(2rem, 4vw, 3rem)",
+                  fontWeight: 300,
+                }}
+              >
+                {lang === "de" ? "Mein Stil. Euer Look." : "My Style. Your Look."}
+              </h2>
+              <p
+                className="text-black/45 text-[0.88rem] max-w-2xl mx-auto mt-4"
+                style={{ lineHeight: 1.8, fontWeight: 300 }}
+              >
+                {lang === "de"
+                  ? "Wir jagen keinen Pinterest-Trends hinterher, die in zwei Jahren veraltet sind. Wir jagen dem Gefühl hinterher. Eure Bilder sollen in zehn, zwanzig oder dreißig Jahren noch genau denselben Herzschlag auslösen wie heute."
+                  : "We don't chase Pinterest trends that will be outdated in two years. We chase the feeling. Your images should trigger the exact same heartbeat in ten, twenty or thirty years as they do today."}
+              </p>
+            </div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Sun,
+                title: "True to Life",
+                de: "So, wie es wirklich war. Die Farben bleiben natürlich und zeitlos. Das Gras ist grün, der Himmel blau und eure Hauttöne sind genau so, wie sie in echt aussehen.",
+                en: "Just as it really was. Colors stay natural and timeless. The grass is green, the sky is blue and your skin tones are exactly as they look in real life.",
+              },
+              {
+                icon: Sparkles,
+                title: "Bright & Airy",
+                de: "Lichtdurchflutet, weich und freundlich. Dieser Look zaubert Leichtigkeit in die Bilder. Schatten werden aufgehellt, alles wirkt strahlender und pastelliger. Perfekt für Sommerhochzeiten und helle Locations.",
+                en: "Flooded with light, soft and friendly. This look adds airiness to the images. Shadows are lifted, everything looks brighter and more pastel. Perfect for summer weddings and bright venues.",
+              },
+              {
+                icon: Contrast,
+                title: "Editorial",
+                de: "Ein bisschen mehr Drama, bitte. Hier orientieren wir uns an Magazinen und Modefotografie. Der Look ist kontrastreicher, mutiger und spielt bewusst mit Licht und Schatten.",
+                en: "A little more drama, please. Here we draw inspiration from magazines and fashion photography. The look is more contrasted, bolder and deliberately plays with light and shadow.",
+              },
+            ].map((style, i) => (
+              <SectionReveal key={style.title} delay={i * 0.12}>
+                <div className="bg-white border border-black/8 p-8 md:p-10 text-center h-full">
+                  <div className="w-14 h-14 mx-auto mb-6 border border-black/10 flex items-center justify-center">
+                    <style.icon size={22} className="text-black/35" />
+                  </div>
+                  <h3
+                    className="mb-3"
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "1.15rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    {style.title}
+                  </h3>
+                  <p
+                    className="text-black/50 text-[0.84rem]"
+                    style={{ lineHeight: 1.75, fontWeight: 300 }}
+                  >
+                    {lang === "de" ? style.de : style.en}
+                  </p>
+                </div>
+              </SectionReveal>
+            ))}
+          </div>
+
+          <SectionReveal delay={0.4}>
+            <p
+              className="text-center text-black/35 text-[0.8rem] mt-10 max-w-lg mx-auto"
+              style={{ lineHeight: 1.7, fontWeight: 300, fontStyle: "italic" }}
+            >
+              {lang === "de"
+                ? "Wir stimmen den finalen Look gemeinsam ab. Licht und Wetter machen 90% der Bildstimmung aus \u2013 wir veredeln die echte Atmosphäre, statt die Realität zu verbiegen."
+                : "We decide on the final look together. Light and weather make up 90% of the mood \u2013 we enhance the real atmosphere instead of bending reality."}
+            </p>
+          </SectionReveal>
+        </div>
+      </section>
+
       {/* Packages */}
-      <section id="packages" className="py-24 md:py-32 bg-[#f8f7f5] px-4">
+      <section id="packages" className="py-24 md:py-32 px-4">
         <div className="max-w-7xl mx-auto">
           <SectionReveal>
             <h2
@@ -464,6 +556,101 @@ export function WeddingsPage() {
         </div>
       </section>
 
+      {/* Example Timeline – from Wedding Guide */}
+      <section className="py-24 md:py-32 bg-[#f8f7f5] px-4">
+        <div className="max-w-3xl mx-auto">
+          <SectionReveal>
+            <div className="text-center mb-16">
+              <p
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "BEISPIEL" : "EXAMPLE"}
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(2rem, 4vw, 3rem)",
+                  fontWeight: 300,
+                }}
+              >
+                {lang === "de" ? "So kann euer Tag aussehen" : "What your day could look like"}
+              </h2>
+              <p
+                className="text-black/45 text-[0.88rem] max-w-xl mx-auto mt-4"
+                style={{ lineHeight: 1.8, fontWeight: 300 }}
+              >
+                {lang === "de"
+                  ? "Dieser Ablauf ist ein Orientierungspunkt. Euer Tag ist individuell \u2013 wir passen die Timeline an euer Timing, eure Location und eure Wünsche an."
+                  : "This schedule is a guideline. Your day is unique \u2013 we adapt the timeline to your timing, your venue and your wishes."}
+              </p>
+            </div>
+          </SectionReveal>
+
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-[18px] md:left-[22px] top-0 bottom-0 w-[1px] bg-black/10" />
+
+            {(lang === "de"
+              ? [
+                  { time: "08:00 – 09:30", title: "Getting Ready", text: "Ich bin bei der Braut. Details, Anziehen, die ersten Emotionen. Bräutigam: Solo oder mit Assistent." },
+                  { time: "09:30 – 10:00", title: "First Look & Paar-Portraits", text: "Der große Moment. Danach entspannte Paarfotos, während das Licht noch schön ist." },
+                  { time: "10:00 – 11:00", title: "Kleine Pause", text: "Ihr könnt durchatmen, ich hole mir einen Kaffee. Oder: Gruppenfotos-Vorbereitungen." },
+                  { time: "11:00 – 12:00", title: "Trauung", text: "Ich bin im Ninja-Modus. Alle emotionalen Momente, keine Ablenkung." },
+                  { time: "12:00 – 12:30", title: "Gratulationen & Sektempfang", text: "Spontane Glückwünsche und Gäste-Reaktionen einfangen." },
+                  { time: "12:30 – 14:00", title: "Gruppenfotos & Dinner", text: "Gruppenbilder in max. 15–20 Minuten durch, dann seid ihr bei euren Gästen." },
+                  { time: "14:00 – 16:00", title: "Dinner & Reden", text: "Reden, Reaktionen, die ruhigen Momente zwischen den Gängen. Nicht aufdringlich." },
+                  { time: "16:00 – 17:30", title: "Golden Hour", text: "Ein letztes, entspanntes Shooting im schönen Licht. Oder die Übergänge zur Party." },
+                  { time: "17:30 – 22:00", title: "Party & Tanz", text: "Mittendrin. Direct Flash, Action, Spaß. So lange bis die beste Energie vorbei ist." },
+                ]
+              : [
+                  { time: "08:00 – 09:30", title: "Getting Ready", text: "I'm with the bride. Details, dressing up, the first emotions. Groom: solo or with assistant." },
+                  { time: "09:30 – 10:00", title: "First Look & Portraits", text: "The big moment. Then relaxed couple photos while the light is still beautiful." },
+                  { time: "10:00 – 11:00", title: "Short Break", text: "You can breathe, I'll grab a coffee. Or: group photo preparations." },
+                  { time: "11:00 – 12:00", title: "Ceremony", text: "I'm in ninja mode. All emotional moments, no distractions." },
+                  { time: "12:00 – 12:30", title: "Congratulations & Reception", text: "Capturing spontaneous well-wishes and guest reactions." },
+                  { time: "12:30 – 14:00", title: "Group Photos & Dinner", text: "Group photos done in max. 15–20 minutes, then you're with your guests." },
+                  { time: "14:00 – 16:00", title: "Dinner & Speeches", text: "Speeches, reactions, the quiet moments between courses. Non-intrusive." },
+                  { time: "16:00 – 17:30", title: "Golden Hour", text: "One last relaxed shoot in beautiful light. Or transitions to the party." },
+                  { time: "17:30 – 22:00", title: "Party & Dance", text: "Right in the middle. Direct flash, action, fun. Until the best energy is over." },
+                ]
+            ).map((item, i) => (
+              <SectionReveal key={item.time} delay={i * 0.06}>
+                <div className="flex gap-5 mb-8 relative">
+                  <div className="w-[38px] md:w-[46px] shrink-0 flex items-start justify-center pt-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-black/20 border-2 border-white ring-1 ring-black/10 z-10" />
+                  </div>
+                  <div className="flex-1 pb-2">
+                    <p
+                      className="text-[0.72rem] tracking-[0.15em] uppercase text-black/35 mb-1"
+                      style={{ fontWeight: 400 }}
+                    >
+                      {item.time}
+                    </p>
+                    <h4
+                      className="mb-1"
+                      style={{
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: "1rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.title}
+                    </h4>
+                    <p
+                      className="text-black/50 text-[0.84rem]"
+                      style={{ lineHeight: 1.7, fontWeight: 300 }}
+                    >
+                      {item.text}
+                    </p>
+                  </div>
+                </div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Wedding Gallery */}
       <section className="py-24 md:py-32 px-4">
         <div className="max-w-7xl mx-auto">
@@ -536,6 +723,82 @@ export function WeddingsPage() {
         categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.weddings)}
         title={{ de: "Häufige Fragen zur Hochzeitsfotografie", en: "Wedding Photography FAQ" }}
       />
+
+      {/* Booking Process – from Wedding Guide */}
+      <section className="py-24 md:py-32 px-4">
+        <div className="max-w-4xl mx-auto">
+          <SectionReveal>
+            <div className="text-center mb-16">
+              <p
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "PROZESS" : "PROCESS"}
+              </p>
+              <h2
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "clamp(2rem, 4vw, 3rem)",
+                  fontWeight: 300,
+                }}
+              >
+                {lang === "de" ? "So geht\u2019s los" : "How it works"}
+              </h2>
+            </div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {(lang === "de"
+              ? [
+                  { icon: MessageCircle, step: "01", title: "Anfrage", text: "Füllt das Kontaktformular aus und erzählt mir von euch. Je mehr Infos, desto besser kann ich euch eine erste Kosteneinschätzung geben." },
+                  { icon: Smartphone, step: "02", title: "Vibe Check", text: "Wir machen einen Video- oder Telefonanruf und lernen uns besser kennen. Wir sehen, ob die Chemie stimmt \u2013 denn das ist am Ende das Wichtigste." },
+                  { icon: FileText, step: "03", title: "Buchung & Vertrag", text: "Wenn alles passt, bekommt ihr einen Vertrag. 25% Anzahlung sichert euren Termin. Der Restbetrag ist 2 Wochen nach der Hochzeit fällig." },
+                  { icon: CalendarCheck, step: "04", title: "Catch-Up", text: "4\u20136 Wochen vor der Hochzeit setzen wir uns zusammen und gehen den Ablaufplan durch. Der perfekte Moment für besondere Wünsche." },
+                  { icon: Camera, step: "05", title: "Euer großer Tag", text: "Euer Tag ist da! Ich begleite eure Hochzeit so lange wie besprochen und fange all die wunderschönen Momente für immer ein." },
+                  { icon: Gift, step: "06", title: "Bildübergabe", text: "Nach 72h bekommt ihr die ersten Sneak Peeks. Die vollständige Galerie folgt innerhalb von 6\u20138 Wochen \u2013 handbearbeitet in eurem gewählten Stil." },
+                ]
+              : [
+                  { icon: MessageCircle, step: "01", title: "Inquiry", text: "Fill out the contact form and tell me about yourselves. The more info, the better I can give you an initial estimate." },
+                  { icon: Smartphone, step: "02", title: "Vibe Check", text: "We do a video or phone call and get to know each other. We'll see if the chemistry is right \u2013 because that's what matters most." },
+                  { icon: FileText, step: "03", title: "Booking & Contract", text: "If everything fits, you'll get a contract. 25% deposit secures your date. The balance is due 2 weeks after the wedding." },
+                  { icon: CalendarCheck, step: "04", title: "Catch-Up", text: "4\u20136 weeks before the wedding we sit down and go through the schedule. The perfect moment for special requests." },
+                  { icon: Camera, step: "05", title: "Your Big Day", text: "Your day is here! I'll accompany your wedding as long as discussed and capture all those beautiful moments forever." },
+                  { icon: Gift, step: "06", title: "Image Delivery", text: "After 72h you get the first sneak peeks. The complete gallery follows within 6\u20138 weeks \u2013 hand-edited in your chosen style." },
+                ]
+            ).map((item, i) => (
+              <SectionReveal key={item.step} delay={i * 0.08}>
+                <div className="text-center">
+                  <div className="w-14 h-14 mx-auto mb-5 border border-black/10 flex items-center justify-center">
+                    <item.icon size={22} className="text-black/35" />
+                  </div>
+                  <p
+                    className="text-[0.7rem] tracking-[0.25em] text-black/25 mb-2"
+                    style={{ fontWeight: 400 }}
+                  >
+                    {item.step}
+                  </p>
+                  <h3
+                    className="mb-2"
+                    style={{
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: "1.05rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p
+                    className="text-black/50 text-[0.84rem]"
+                    style={{ lineHeight: 1.7, fontWeight: 300 }}
+                  >
+                    {item.text}
+                  </p>
+                </div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Wedding Guide Download CTA */}
       <section className="py-20 md:py-28 bg-[#f8f7f5] px-4">
