@@ -437,43 +437,43 @@ export function HomePage() {
 
       {/* Wyldworks – Corporate CTA */}
       <section className="py-14 md:py-16 bg-[#f8f7f5] px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <SectionReveal>
-            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
-              <div className="flex-shrink-0 w-12 h-12 border border-black/10 flex items-center justify-center">
-                <img
-                  src="https://ik.imagekit.io/r2yqrg6np/6851b6da73c459c55e3e5dd9_WYLDWORKS..svg"
-                  alt="WYLDWORKS Logo"
-                  className="w-8 h-8 object-contain"
-                />
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <p
-                  className="text-[0.9rem] text-black/70 mb-1"
-                  style={{ fontWeight: 400 }}
-                >
-                  {lang === "de"
-                    ? "Foto & Video für Unternehmen?"
-                    : "Photo & video for businesses?"}
-                </p>
-                <p
-                  className="text-black/55 text-[0.82rem]"
-                  style={{ lineHeight: 1.6, fontWeight: 300 }}
-                >
-                  {lang === "de"
-                    ? "Employer Branding, Imagefilme, Events & Social Media Content – das läuft über meine Agentur."
-                    : "Employer branding, image films, events & social media content – that's handled by my agency."}
-                </p>
-              </div>
+            <div className="flex flex-col items-center text-center gap-5">
+              <p
+                className="text-[0.9rem] text-black/70"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de"
+                  ? "Foto & Video für Unternehmen?"
+                  : "Photo & video for businesses?"}
+              </p>
+              <p
+                className="text-black/55 text-[0.82rem] max-w-lg"
+                style={{ lineHeight: 1.6, fontWeight: 300 }}
+              >
+                {lang === "de"
+                  ? "Employer Branding, Imagefilme, Events & Social Media Content – das läuft über meine Agentur."
+                  : "Employer branding, image films, events & social media content – that's handled by my agency."}
+              </p>
               <a
                 href="https://www.wyldworks.de/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 inline-flex items-center gap-2 text-[0.78rem] tracking-[0.12em] uppercase text-black/75 no-underline border-b border-black/20 pb-1 hover:text-black hover:border-black transition-colors"
-                style={{ fontWeight: 400 }}
+                className="inline-flex flex-col items-center gap-3 no-underline group mt-1"
               >
-                wyldworks.de
-                <ArrowRight size={13} />
+                <img
+                  src="https://ik.imagekit.io/r2yqrg6np/6851b6da73c459c55e3e5dd9_WYLDWORKS..svg"
+                  alt="WYLDWORKS Logo"
+                  className="h-6 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity"
+                />
+                <span
+                  className="inline-flex items-center gap-2 text-[0.78rem] tracking-[0.12em] uppercase text-black/60 border-b border-black/20 pb-1 group-hover:text-black group-hover:border-black transition-colors"
+                  style={{ fontWeight: 400 }}
+                >
+                  wyldworks.de
+                  <ArrowRight size={13} />
+                </span>
               </a>
             </div>
           </SectionReveal>
