@@ -128,10 +128,13 @@
     @apply bg-background text-foreground;
   }
 
-  /* Global 12px border-radius for all buttons and button-like links */
-  button,
-  a[class*="px-"][class*="py-"],
-  a[class*="inline-flex"] {
+  /* Global 12px border-radius for styled CTA buttons only */
+  button[class*="border-black"],
+  button[class*="bg-black"],
+  a[class*="border-black"][class*="px-"],
+  a[class*="bg-black"][class*="px-"],
+  button[class*="border-white"],
+  a[class*="border-white"][class*="px-"] {
     border-radius: 12px;
   }
 

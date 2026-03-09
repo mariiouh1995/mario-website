@@ -1,5 +1,5 @@
 import { useState, useMemo, createContext, useContext, useCallback } from "react";
-import { X, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Calculator } from "lucide-react";
+import { X, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Calculator, Heart, Camera, User, ArrowRight, ArrowLeft, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
 import { usePackages, type PackageData, type AddOnData } from "./usePackages";
@@ -21,14 +21,11 @@ export const useContactModal = () => useContext(ContactModalContext);
 
 // ── Price parser ──
 function parsePrice(priceStr: string): number {
-  // Extract numeric value from strings like "890€", "ab 2.090€", "from 260 €"
   const cleaned = priceStr.replace(/[^\d.,]/g, "").replace(/\.$/, "");
-  // Handle German number format (2.090 = 2090, but 2,50 = 2.50)
   if (cleaned.includes(".") && cleaned.includes(",")) {
     return parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
   }
   if (cleaned.includes(".") && cleaned.split(".").pop()!.length === 3) {
-    // Likely German thousands separator: 2.090 → 2090
     return parseFloat(cleaned.replace(/\./g, ""));
   }
   if (cleaned.includes(",")) {
@@ -38,17 +35,13 @@ function parsePrice(priceStr: string): number {
 }
 
 function parseAddonPrice(addonText: string): number {
-  // Extract price from add-on text like "Second Shooter ab €400" or "Hochzeitsalbum: 520€"
-  // Try €XXX format first (euro before number)
   const matchBefore = addonText.match(/€\s*(\d[\d.,]*)/);
   if (matchBefore) return parsePrice(matchBefore[1] + "€");
-  // Then try XXX€ format (euro after number)
   const matchAfter = addonText.match(/(\d[\d.,]*)\s*€/);
   if (matchAfter) return parsePrice(matchAfter[1] + "€");
   return 0;
 }
 
-// ── Format price for display ──
 function formatPrice(amount: number): string {
   return amount.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " €";
 }
@@ -64,11 +57,9 @@ async function sendEmails(formData: FormState): Promise<boolean> {
     date: formData.date,
     weddingGuide: formData.weddingGuide,
     message: formData.message,
-    // New package/price data
     selectedPackages: formData.selectedPackages,
-    selectedAddons: [], // addons are already included in selectedPackages via priceBreakdown.items
+    selectedAddons: [],
     estimatedTotal: formData.estimatedTotal,
-    // Kennenlern-Termin
     meetingDate: formData.meetingDate,
     meetingType: formData.meetingType,
   };
@@ -111,16 +102,13 @@ interface FormState {
   weddingGuide: boolean;
   message: string;
   privacyConsent: boolean;
-  // Package selections
   selectedPhotoPackage: string | null;
   selectedVideoPackage: string | null;
   selectedPortraitPackage: string | null;
   selectedAnimalPackage: string | null;
   selectedAddonKeys: string[];
-  // Kennenlern-Termin
   meetingDate: string;
   meetingType: "" | "online" | "vor-ort";
-  // Computed for sending
   selectedPackages: { name: string; price: string }[];
   selectedAddonTexts: string[];
   estimatedTotal: string;
@@ -263,6 +251,122 @@ function AddonChip({
   );
 }
 
+// ── Category Selection Screen ──
+function CategorySelect({
+  isDE,
+  onSelect,
+}: {
+  isDE: boolean;
+  onSelect: (cat: InquiryCategory) => void;
+}) {
+  const categories: {
+    key: InquiryCategory;
+    icon: typeof Heart;
+    titleDe: string;
+    titleEn: string;
+    descDe: string;
+    descEn: string;
+  }[] = [
+    {
+      key: "wedding",
+      icon: Heart,
+      titleDe: "Hochzeit",
+      titleEn: "Wedding",
+      descDe: "Fotografie, Videografie & Komplettpakete fur euren grossen Tag",
+      descEn: "Photography, videography & complete packages for your big day",
+    },
+    {
+      key: "animal",
+      icon: Camera,
+      titleDe: "Tierfotografie",
+      titleEn: "Animal Photography",
+      descDe: "Professionelle Portraits eurer Vierbeiner im Studio oder Outdoor",
+      descEn: "Professional portraits of your furry friends in studio or outdoors",
+    },
+    {
+      key: "portrait",
+      icon: User,
+      titleDe: "Portrait & Mehr",
+      titleEn: "Portrait & More",
+      descDe: "Couple Shootings, Business Portraits, Familienfotos & Events",
+      descEn: "Couple shootings, business portraits, family photos & events",
+    },
+    {
+      key: "general",
+      icon: MessageCircle,
+      titleDe: "Sonstiges",
+      titleEn: "Other",
+      descDe: "Allgemeine Frage oder noch unsicher? Schreibt mir einfach!",
+      descEn: "General question or not sure yet? Just write to me!",
+    },
+  ];
+
+  return (
+    <div className="p-8 md:p-12">
+      <div className="mb-10">
+        <h2
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
+            fontWeight: 700,
+            lineHeight: 1.1,
+            marginBottom: "1rem",
+          }}
+        >
+          {isDE ? "Worum geht's?" : "What's it about?"}
+        </h2>
+        <p
+          className="text-black/60 text-[0.85rem]"
+          style={{ lineHeight: 1.7, fontWeight: 300 }}
+        >
+          {isDE
+            ? "Wahlt euer Thema und ich zeige euch direkt die passenden Optionen."
+            : "Choose your topic and I'll show you the right options straight away."}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {categories.map((cat) => (
+          <motion.button
+            key={cat.key}
+            type="button"
+            onClick={() => onSelect(cat.key)}
+            className="group text-left p-5 border border-black/12 bg-transparent cursor-pointer transition-all hover:border-black/40 hover:bg-black/[0.02]"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 shrink-0 border border-black/10 flex items-center justify-center group-hover:border-black/30 transition-colors">
+                <cat.icon size={18} className="text-black/40 group-hover:text-black/70 transition-colors" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h3
+                    className="text-[0.9rem]"
+                    style={{ fontWeight: 600, fontFamily: "'Montserrat', sans-serif" }}
+                  >
+                    {isDE ? cat.titleDe : cat.titleEn}
+                  </h3>
+                  <ArrowRight
+                    size={14}
+                    className="text-black/20 group-hover:text-black/60 transition-all group-hover:translate-x-0.5 shrink-0"
+                  />
+                </div>
+                <p
+                  className="text-black/45 text-[0.78rem]"
+                  style={{ lineHeight: 1.5, fontWeight: 300 }}
+                >
+                  {isDE ? cat.descDe : cat.descEn}
+                </p>
+              </div>
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Modal ──
 function ContactModalInner({
   isOpen,
@@ -279,15 +383,37 @@ function ContactModalInner({
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [showPackages, setShowPackages] = useState(true);
 
+  // Step management: "category-select" or "form"
+  const [step, setStep] = useState<"category-select" | "form">(
+    category === "general" ? "category-select" : "form"
+  );
+  const [activeCategory, setActiveCategory] = useState<InquiryCategory>(category);
+
+  // Sync when category prop changes (e.g., opening from different page)
+  const [prevCategory, setPrevCategory] = useState(category);
+  if (category !== prevCategory) {
+    setPrevCategory(category);
+    setActiveCategory(category);
+    setStep(category === "general" ? "category-select" : "form");
+  }
+
   const isDE = lang === "de";
 
-  // Determine which packages to show
-  const showWeddingPackages = category === "wedding" || category === "general";
-  const showPortraitPackages = category === "portrait" || category === "general";
-  const showAnimalPackages = category === "animal";
-  const showWeddingGuide = category === "wedding" || form.selectedPhotoPackage !== null || form.selectedVideoPackage !== null;
+  const handleCategorySelect = (cat: InquiryCategory) => {
+    setActiveCategory(cat);
+    setStep("form");
+  };
 
-  // Check if there are any packages to show at all
+  const handleBackToCategories = () => {
+    setStep("category-select");
+  };
+
+  // Determine which packages to show based on activeCategory
+  const showWeddingPackages = activeCategory === "wedding" || activeCategory === "general";
+  const showPortraitPackages = activeCategory === "portrait" || activeCategory === "general";
+  const showAnimalPackages = activeCategory === "animal";
+  const showWeddingGuide = activeCategory === "wedding" || form.selectedPhotoPackage !== null || form.selectedVideoPackage !== null;
+
   const hasAnyPackages =
     (showWeddingPackages && (packages.weddingPhoto.length > 0 || packages.weddingVideo.length > 0)) ||
     (showPortraitPackages && packages.portrait.length > 0) ||
@@ -298,7 +424,6 @@ function ContactModalInner({
     const items: { name: string; price: string; amount: number }[] = [];
     let total = 0;
 
-    // Photo package
     if (form.selectedPhotoPackage) {
       const pkg = packages.weddingPhoto.find((p) => p.name === form.selectedPhotoPackage);
       if (pkg) {
@@ -308,7 +433,6 @@ function ContactModalInner({
       }
     }
 
-    // Video package
     if (form.selectedVideoPackage) {
       const pkg = packages.weddingVideo.find((p) => p.name === form.selectedVideoPackage);
       if (pkg) {
@@ -318,7 +442,6 @@ function ContactModalInner({
       }
     }
 
-    // Portrait package
     if (form.selectedPortraitPackage) {
       const pkg = packages.portrait.find((p) => p.name === form.selectedPortraitPackage);
       if (pkg) {
@@ -328,7 +451,6 @@ function ContactModalInner({
       }
     }
 
-    // Animal package (no sheet data yet, but handle if present)
     if (form.selectedAnimalPackage && packages.animals?.length > 0) {
       const pkg = packages.animals.find((p) => p.name === form.selectedAnimalPackage);
       if (pkg) {
@@ -338,7 +460,6 @@ function ContactModalInner({
       }
     }
 
-    // Add-ons
     for (const key of form.selectedAddonKeys) {
       const addon = packages.weddingAddons[parseInt(key)];
       if (addon) {
@@ -398,7 +519,6 @@ function ContactModalInner({
     e.preventDefault();
     if (!form.privacyConsent) return;
 
-    // Build package summary for email
     const selectedPkgs = priceBreakdown.items.map((i) => ({ name: i.name, price: i.price }));
     const addonTexts = form.selectedAddonKeys.map((key) => {
       const addon = packages.weddingAddons[parseInt(key)];
@@ -409,17 +529,15 @@ function ContactModalInner({
       ? `${priceBreakdown.hasAb ? "ab " : ""}${formatPrice(priceBreakdown.total)}`
       : "";
 
-    // Build interests from selections
     const interests: string[] = [];
     if (form.selectedPhotoPackage) interests.push(`Hochzeit Foto (${form.selectedPhotoPackage})`);
     if (form.selectedVideoPackage) interests.push(`Hochzeit Video (${form.selectedVideoPackage})`);
     if (form.selectedPortraitPackage) interests.push(`Portrait (${form.selectedPortraitPackage})`);
     if (form.selectedAnimalPackage) interests.push(`Tierfotografie (${form.selectedAnimalPackage})`);
     if (interests.length === 0) {
-      // Fallback for general inquiries
-      if (category === "animal") interests.push("Tierfotografie");
-      else if (category === "portrait") interests.push("Portrait");
-      else if (category === "wedding") interests.push("Hochzeit");
+      if (activeCategory === "animal") interests.push("Tierfotografie");
+      else if (activeCategory === "portrait") interests.push("Portrait");
+      else if (activeCategory === "wedding") interests.push("Hochzeit");
       else interests.push("Allgemeine Anfrage");
     }
 
@@ -438,6 +556,8 @@ function ContactModalInner({
       setTimeout(() => {
         setForm(initialForm);
         setStatus("idle");
+        setStep(category === "general" ? "category-select" : "form");
+        setActiveCategory(category);
         onClose();
       }, 3000);
     }
@@ -447,29 +567,39 @@ function ContactModalInner({
     if (status === "sending") return;
     setForm(initialForm);
     setStatus("idle");
+    setStep(category === "general" ? "category-select" : "form");
+    setActiveCategory(category);
     onClose();
+  };
+
+  // Category label for the "back" button
+  const categoryLabel = {
+    wedding: isDE ? "Hochzeit" : "Wedding",
+    animal: isDE ? "Tierfotografie" : "Animal Photography",
+    portrait: isDE ? "Portrait & Mehr" : "Portrait & More",
+    general: isDE ? "Sonstiges" : "Other",
   };
 
   const t = {
     title: isDE ? "Eure Reise beginnt" : "Your journey begins",
     titleItalic: isDE ? "hier" : "here",
     subtitle: isDE
-      ? "Stellt euch euer Wunschpaket zusammen und erzählt mir von euren Plänen. Ihr hört in der Regel innerhalb von 48 Stunden von mir."
+      ? "Stellt euch euer Wunschpaket zusammen und erzahlt mir von euren Planen. Ihr hort in der Regel innerhalb von 48 Stunden von mir."
       : "Put together your dream package and tell me about your plans. You'll usually hear from me within 48 hours.",
     name: isDE ? "Vorname, Nachname*" : "First name, Last name*",
     email: "E-Mail*",
     phone: isDE ? "Telefon*" : "Phone*",
     foundVia: isDE ? "Wie habt ihr mich gefunden?" : "How did you find me?",
     date: isDE ? "Voraussichtliches Datum" : "Estimated Date",
-    weddingGuide: isDE ? "Ich möchte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
-    message: isDE ? "Erzählt mir von euren Plänen!" : "Tell me about your plans!",
+    weddingGuide: isDE ? "Ich mochte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
+    message: isDE ? "Erzahlt mir von euren Planen!" : "Tell me about your plans!",
     messagePlaceholder: isDE ? "Was stellt ihr euch genau vor?" : "What exactly do you have in mind?",
     submit: isDE ? "Absenden" : "Send",
     sending: isDE ? "Wird gesendet..." : "Sending...",
     success: isDE ? "Vielen Dank! Ich melde mich bald bei euch." : "Thank you! I'll get back to you soon.",
     error: isDE ? "Etwas ist schiefgelaufen. Bitte versucht es erneut." : "Something went wrong. Please try again.",
     privacy: isDE
-      ? "Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.*"
+      ? "Ich stimme der Verarbeitung meiner Daten gemaess der Datenschutzerklaerung zu.*"
       : "I agree to the processing of my data according to the privacy policy.*",
     packages: isDE ? "Paketauswahl" : "Package Selection",
     photoPackages: isDE ? "Foto-Pakete" : "Photo Packages",
@@ -477,7 +607,7 @@ function ContactModalInner({
     portraitPackages: isDE ? "Portrait-Pakete" : "Portrait Packages",
     animalPackages: isDE ? "Tier-Pakete" : "Animal Packages",
     addons: isDE ? "Extras & Add-ons" : "Extras & Add-ons",
-    estimatedPrice: isDE ? "Geschätzter Preis" : "Estimated Price",
+    estimatedPrice: isDE ? "Geschatzter Preis" : "Estimated Price",
     from: isDE ? "ab" : "from",
     hidePackages: isDE ? "Pakete ausblenden" : "Hide packages",
     showPackages: isDE ? "Pakete anzeigen" : "Show packages",
@@ -519,9 +649,24 @@ function ContactModalInner({
               <X size={20} />
             </button>
 
-            {/* Success State */}
             <AnimatePresence mode="wait">
-              {status === "success" ? (
+              {/* ═══════════════════════════════════════════ */}
+              {/* STEP 1: Category Selection (only for "general") */}
+              {/* ═══════════════════════════════════════════ */}
+              {step === "category-select" ? (
+                <motion.div
+                  key="category-select"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <CategorySelect isDE={isDE} onSelect={handleCategorySelect} />
+                </motion.div>
+              ) : status === "success" ? (
+                /* ═══════════════════════════════════════════ */
+                /* Success State */
+                /* ═══════════════════════════════════════════ */
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -553,7 +698,31 @@ function ContactModalInner({
                   </p>
                 </motion.div>
               ) : (
-                <motion.div key="form" className="p-8 md:p-12">
+                /* ═══════════════════════════════════════════ */
+                /* STEP 2: Contact Form */
+                /* ═══════════════════════════════════════════ */
+                <motion.div
+                  key="form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="p-8 md:p-12"
+                >
+                  {/* Back button (only if we came from category selection) */}
+                  {category === "general" && (
+                    <button
+                      type="button"
+                      onClick={handleBackToCategories}
+                      className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0 mb-6 text-black/40 hover:text-black transition-colors"
+                    >
+                      <ArrowLeft size={14} />
+                      <span className="text-[0.78rem] tracking-[0.08em] uppercase" style={{ fontWeight: 400 }}>
+                        {categoryLabel[activeCategory]}
+                      </span>
+                    </button>
+                  )}
+
                   {/* Header */}
                   <div className="mb-8">
                     <h2
@@ -569,7 +738,7 @@ function ContactModalInner({
                       <span style={{ fontStyle: "italic" }}>{t.titleItalic}</span>
                     </h2>
                     <p
-                      className="text-black/50 text-[0.85rem]"
+                      className="text-black/60 text-[0.85rem]"
                       style={{ lineHeight: 1.7, fontWeight: 300 }}
                     >
                       {t.subtitle}
@@ -640,7 +809,7 @@ function ContactModalInner({
                     {/* ═══════════════════════════════════════════ */}
                     {/* PACKAGE SELECTION */}
                     {/* ═══════════════════════════════════════════ */}
-                    {hasAnyPackages && (
+                    {hasAnyPackages && activeCategory !== "portrait" && (
                     <div className="pt-2">
                       <button
                         type="button"
@@ -815,7 +984,7 @@ function ContactModalInner({
                                   </div>
                                   <p className="text-[0.7rem] text-black/35 mt-2" style={{ lineHeight: 1.5, fontWeight: 300 }}>
                                     {isDE
-                                      ? "* Unverbindliche Schätzung. Der finale Preis wird individuell besprochen."
+                                      ? "* Unverbindliche Schatzung. Der finale Preis wird individuell besprochen."
                                       : "* Non-binding estimate. The final price will be discussed individually."}
                                   </p>
                                 </motion.div>
@@ -883,7 +1052,7 @@ function ContactModalInner({
                       </p>
                       <p className="text-[0.78rem] text-black/45 mb-4" style={{ fontWeight: 300, lineHeight: 1.5 }}>
                         {isDE
-                          ? "Optional: Schlagt einen Termin für ein unverbindliches Kennenlernen vor."
+                          ? "Optional: Schlagt einen Termin fur ein unverbindliches Kennenlernen vor."
                           : "Optional: Suggest a date for a non-binding introductory meeting."}
                       </p>
                       <div className="space-y-4">
@@ -957,7 +1126,7 @@ function ContactModalInner({
                           </div>
                           {form.meetingType === "vor-ort" && (
                             <p className="text-[0.72rem] text-black/35 mt-2" style={{ fontWeight: 300, lineHeight: 1.4 }}>
-                              📍 Bäckerbühelgasse 14, 6020 Innsbruck
+                              {"\u{1F4CD}"} Backerbuhelgasse 14, 6020 Innsbruck
                             </p>
                           )}
                         </div>
