@@ -143,8 +143,8 @@ export function PortraitPage() {
                   </p>
                   <button
                     onClick={() => openContact("portrait")}
-                    className="inline-flex items-center gap-2 text-[0.8rem] tracking-[0.12em] uppercase text-black border-b border-black/30 pb-1 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer hover:border-black transition-colors"
-                    style={{ fontWeight: 400 }}
+                    className="inline-flex items-center gap-2 text-[0.8rem] tracking-[0.12em] uppercase text-black bg-transparent cursor-pointer hover:opacity-70 transition-opacity border-none p-0"
+                    style={{ fontWeight: 400, borderBottom: "1px solid rgba(0,0,0,0.3)", paddingBottom: "4px" }}
                   >
                     {lang === "de" ? "Jetzt anfragen" : "Inquire now"} →
                   </button>
