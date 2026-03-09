@@ -322,6 +322,30 @@ export function AnimalsPage() {
         </div>
       </section>
 
+      {/* Mid-page CTA */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <SectionReveal>
+            <p
+              className="text-black/45 text-[0.92rem] mb-6"
+              style={{ lineHeight: 1.8, fontWeight: 300 }}
+            >
+              {lang === "de"
+                ? "Bereit für unvergessliche Bilder von eurem Vierbeiner? Schreibt mir – ich freue mich auf euch!"
+                : "Ready for unforgettable photos of your furry friend? Drop me a message – I look forward to hearing from you!"}
+            </p>
+            <button
+              onClick={() => openContact("animal")}
+              className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
+              style={{ fontWeight: 400 }}
+            >
+              {lang === "de" ? "Shooting anfragen" : "Inquire now"}
+              <ArrowRight size={14} />
+            </button>
+          </SectionReveal>
+        </div>
+      </section>
+
       {/* Categories */}
       {categories.map((cat, i) => (
         <section

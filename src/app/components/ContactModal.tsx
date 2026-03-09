@@ -287,6 +287,12 @@ function ContactModalInner({
   const showAnimalPackages = category === "animal";
   const showWeddingGuide = category === "wedding" || form.selectedPhotoPackage !== null || form.selectedVideoPackage !== null;
 
+  // Check if there are any packages to show at all
+  const hasAnyPackages =
+    (showWeddingPackages && (packages.weddingPhoto.length > 0 || packages.weddingVideo.length > 0)) ||
+    (showPortraitPackages && packages.portrait.length > 0) ||
+    (showAnimalPackages && packages.animals && packages.animals.length > 0);
+
   // ── Price calculation ──
   const priceBreakdown = useMemo(() => {
     const items: { name: string; price: string; amount: number }[] = [];
@@ -634,6 +640,7 @@ function ContactModalInner({
                     {/* ═══════════════════════════════════════════ */}
                     {/* PACKAGE SELECTION */}
                     {/* ═══════════════════════════════════════════ */}
+                    {hasAnyPackages && (
                     <div className="pt-2">
                       <button
                         type="button"
@@ -818,6 +825,7 @@ function ContactModalInner({
                         )}
                       </AnimatePresence>
                     </div>
+                    )}
 
                     {/* Date */}
                     <div>
@@ -883,13 +891,39 @@ function ContactModalInner({
                           <label className="block text-[0.78rem] mb-1.5 text-black/60" style={{ fontWeight: 400 }}>
                             {isDE ? "Terminvorschlag" : "Suggested date"}
                           </label>
-                          <input
-                            type="datetime-local"
-                            value={form.meetingDate}
-                            onChange={(e) => handleChange("meetingDate", e.target.value)}
-                            className="w-full border-b border-black/20 focus:border-black outline-none py-2 text-[0.9rem] bg-transparent transition-colors"
-                            style={{ fontWeight: 300 }}
-                          />
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[0.68rem] text-black/35 mb-1" style={{ fontWeight: 300 }}>
+                                {isDE ? "Datum" : "Date"}
+                              </label>
+                              <input
+                                type="date"
+                                value={form.meetingDate ? form.meetingDate.split("T")[0] : ""}
+                                onChange={(e) => {
+                                  const time = form.meetingDate ? form.meetingDate.split("T")[1] || "10:00" : "10:00";
+                                  handleChange("meetingDate", e.target.value ? `${e.target.value}T${time}` : "");
+                                }}
+                                min={new Date().toISOString().split("T")[0]}
+                                className="w-full border border-black/15 focus:border-black outline-none py-2.5 px-3 text-[0.85rem] bg-transparent transition-colors"
+                                style={{ fontWeight: 300 }}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[0.68rem] text-black/35 mb-1" style={{ fontWeight: 300 }}>
+                                {isDE ? "Uhrzeit" : "Time"}
+                              </label>
+                              <input
+                                type="time"
+                                value={form.meetingDate ? (form.meetingDate.split("T")[1] || "10:00") : ""}
+                                onChange={(e) => {
+                                  const date = form.meetingDate ? form.meetingDate.split("T")[0] : new Date().toISOString().split("T")[0];
+                                  handleChange("meetingDate", `${date}T${e.target.value}`);
+                                }}
+                                className="w-full border border-black/15 focus:border-black outline-none py-2.5 px-3 text-[0.85rem] bg-transparent transition-colors"
+                                style={{ fontWeight: 300 }}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div>
                           <label className="block text-[0.78rem] mb-2 text-black/60" style={{ fontWeight: 400 }}>

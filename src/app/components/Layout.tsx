@@ -7,6 +7,7 @@ import { ScrollToTop } from "./ScrollToTop";
 import { CookieBanner } from "./CookieBanner";
 import { StructuredData } from "./StructuredData";
 import { FloatingWhatsApp } from "./FloatingWhatsApp";
+import { useContactModal, type InquiryCategory } from "./ContactModal";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
@@ -14,6 +15,16 @@ export function Layout() {
   const { t, lang, toggleLanguage } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const { openContact } = useContactModal();
+
+  // Determine inquiry scope based on current route
+  const getInquiryScope = (): InquiryCategory => {
+    const path = location.pathname;
+    if (path.startsWith("/hochzeiten")) return "wedding";
+    if (path.startsWith("/tierfotografie")) return "animal";
+    if (path.startsWith("/portrait")) return "portrait";
+    return "general";
+  };
 
   const navItems = [
     { path: "/", label: t.nav.home },
@@ -74,6 +85,13 @@ export function Layout() {
                 aria-label={lang === "de" ? "Switch to English" : "Zu Deutsch wechseln"}
               >
                 {t.nav.language}
+              </button>
+              <button
+                onClick={() => openContact(getInquiryScope())}
+                className="text-[0.78rem] tracking-[0.12em] uppercase bg-black text-white px-5 py-2 cursor-pointer border border-black hover:bg-transparent hover:text-black transition-all duration-300"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "Anfrage" : "Inquire"}
               </button>
             </div>
 
@@ -156,6 +174,23 @@ export function Layout() {
                     style={{ fontWeight: 400, letterSpacing: "0.12em" }}
                   >
                     {lang === "de" ? "English" : "Deutsch"}
+                  </button>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: (navItems.length + 1) * 0.05, duration: 0.3 }}
+                  className="mt-3"
+                >
+                  <button
+                    onClick={() => {
+                      openContact(getInquiryScope());
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-[0.9rem] tracking-[0.12em] uppercase bg-black text-white py-3.5 cursor-pointer border border-black text-center"
+                    style={{ fontWeight: 400 }}
+                  >
+                    {lang === "de" ? "Anfrage" : "Inquire"}
                   </button>
                 </motion.div>
               </div>

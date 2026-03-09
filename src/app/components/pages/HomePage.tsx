@@ -1,5 +1,5 @@
 import { useRef, useMemo, useState, useCallback } from "react";
-import { ArrowRight, Camera, Film, Heart, Briefcase, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Camera, Film, Heart, MessageCircle, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
@@ -441,7 +441,11 @@ export function HomePage() {
           <SectionReveal>
             <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
               <div className="flex-shrink-0 w-12 h-12 border border-black/10 flex items-center justify-center">
-                <Briefcase size={20} className="text-black/35" />
+                <img
+                  src="https://ik.imagekit.io/r2yqrg6np/6851b6da73c459c55e3e5dd9_WYLDWORKS..svg"
+                  alt="WYLDWORKS Logo"
+                  className="w-8 h-8 object-contain"
+                />
               </div>
               <div className="flex-1 text-center sm:text-left">
                 <p

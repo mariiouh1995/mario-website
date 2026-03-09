@@ -383,6 +383,20 @@ export function WeddingsPage() {
                 : "We decide on the final look together. Light and weather make up 90% of the mood \u2013 we enhance the real atmosphere instead of bending reality."}
             </p>
           </SectionReveal>
+
+          {/* CTA after Styles */}
+          <SectionReveal delay={0.5}>
+            <div className="text-center mt-12">
+              <button
+                onClick={() => openContact("wedding")}
+                className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-black hover:text-white transition-all duration-300"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "Unverbindlich anfragen" : "Inquire now"}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </SectionReveal>
         </div>
       </section>
 
@@ -440,7 +454,7 @@ export function WeddingsPage() {
           {/* Package Cards */}
           <div
             className={`grid grid-cols-1 sm:grid-cols-2 ${
-              activeTab === "photo" ? "lg:grid-cols-4" : "lg:grid-cols-3"
+              activeTab === "photo" ? "lg:grid-cols-5" : "lg:grid-cols-3"
             } gap-6`}
           >
             {(activeTab === "photo" ? weddingPhotoPackages : weddingVideoPackages).map(
