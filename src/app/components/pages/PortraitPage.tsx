@@ -105,7 +105,7 @@ export function PortraitPage() {
         <div className="max-w-3xl mx-auto text-center">
           <SectionReveal>
             <p
-              className="text-black/55 text-[1rem] md:text-[1.1rem]"
+              className="text-black/70 text-[1rem] md:text-[1.1rem]"
               style={{ lineHeight: 1.9, fontWeight: 300 }}
             >
               {t.portrait.intro}
@@ -136,7 +136,7 @@ export function PortraitPage() {
                     {cat.title}
                   </h2>
                   <p
-                    className="text-black/55 text-[0.9rem] mb-6"
+                    className="text-black/70 text-[0.9rem] mb-6"
                     style={{ lineHeight: 1.8, fontWeight: 300 }}
                   >
                     {cat.text}
@@ -175,7 +175,7 @@ export function PortraitPage() {
         <div className="max-w-3xl mx-auto text-center">
           <SectionReveal>
             <p
-              className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+              className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
               style={{ fontWeight: 400 }}
             >
               {lang === "de" ? "INDIVIDUELL & PERSÖNLICH" : "INDIVIDUAL & PERSONAL"}
@@ -191,7 +191,7 @@ export function PortraitPage() {
               {lang === "de" ? "Jedes Shooting ist einzigartig" : "Every shoot is unique"}
             </h2>
             <p
-              className="text-black/55 text-[0.92rem] mb-4 max-w-2xl mx-auto"
+              className="text-black/70 text-[0.92rem] mb-4 max-w-2xl mx-auto"
               style={{ lineHeight: 1.9, fontWeight: 300 }}
             >
               {lang === "de"
@@ -199,7 +199,7 @@ export function PortraitPage() {
                 : "Whether it's a couple shoot, family portrait, baptism or a special occasion – I create a custom offer for every shoot that's perfectly tailored to you. No rigid packages, just exactly what you need."}
             </p>
             <p
-              className="text-black/40 text-[0.85rem] mb-10 max-w-xl mx-auto"
+              className="text-black/55 text-[0.85rem] mb-10 max-w-xl mx-auto"
               style={{ lineHeight: 1.8, fontWeight: 300, fontStyle: "italic" }}
             >
               {lang === "de"
@@ -252,7 +252,7 @@ export function PortraitPage() {
               <SectionReveal key={item.title} delay={i * 0.1}>
                 <div className="text-center">
                   <div className="w-14 h-14 mx-auto mb-4 border border-black/10 flex items-center justify-center">
-                    <item.icon size={20} className="text-black/35" />
+                    <item.icon size={20} className="text-black/50" />
                   </div>
                   <h3
                     className="mb-1"
@@ -260,7 +260,7 @@ export function PortraitPage() {
                   >
                     {item.title}
                   </h3>
-                  <p className="text-black/45 text-[0.8rem]" style={{ lineHeight: 1.6, fontWeight: 300 }}>
+                  <p className="text-black/60 text-[0.8rem]" style={{ lineHeight: 1.6, fontWeight: 300 }}>
                     {item.text}
                   </p>
                 </div>

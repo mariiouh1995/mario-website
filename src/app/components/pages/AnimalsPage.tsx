@@ -207,7 +207,7 @@ export function AnimalsPage() {
                 </div>
                 <div className="p-8 flex flex-col flex-1">
                   <p
-                    className="text-[0.7rem] tracking-[0.2em] uppercase text-black/40 mb-3"
+                    className="text-[0.7rem] tracking-[0.2em] uppercase text-black/55 mb-3"
                     style={{ fontWeight: 400 }}
                   >
                     STUDIO
@@ -237,9 +237,9 @@ export function AnimalsPage() {
                   <div className="flex flex-col gap-3 flex-1">
                     {studioPackage.features.map((feature, fi) => (
                       <div key={fi} className="flex gap-2">
-                        <Check size={14} className="text-black/30 mt-1 shrink-0" />
+                        <Check size={14} className="text-black/45 mt-1 shrink-0" />
                         <span
-                          className="text-black/60 text-[0.85rem]"
+                          className="text-black/75 text-[0.85rem]"
                           style={{ lineHeight: 1.5, fontWeight: 300 }}
                         >
                           {feature}
@@ -248,7 +248,7 @@ export function AnimalsPage() {
                     ))}
                   </div>
                   <p
-                    className="text-black/40 text-[0.78rem] mt-6 pt-4 border-t border-black/5"
+                    className="text-black/55 text-[0.78rem] mt-6 pt-4 border-t border-black/5"
                     style={{ lineHeight: 1.6, fontWeight: 300, fontStyle: "italic" }}
                   >
                     {studioPackage.note}
@@ -269,7 +269,7 @@ export function AnimalsPage() {
                 </div>
                 <div className="p-8 flex flex-col flex-1">
                   <p
-                    className="text-[0.7rem] tracking-[0.2em] uppercase text-black/40 mb-3"
+                    className="text-[0.7rem] tracking-[0.2em] uppercase text-black/55 mb-3"
                     style={{ fontWeight: 400 }}
                   >
                     OUTDOOR
@@ -299,9 +299,9 @@ export function AnimalsPage() {
                   <div className="flex flex-col gap-3 flex-1">
                     {outdoorPackage.features.map((feature, fi) => (
                       <div key={fi} className="flex gap-2">
-                        <Check size={14} className="text-black/30 mt-1 shrink-0" />
+                        <Check size={14} className="text-black/45 mt-1 shrink-0" />
                         <span
-                          className="text-black/60 text-[0.85rem]"
+                          className="text-black/75 text-[0.85rem]"
                           style={{ lineHeight: 1.5, fontWeight: 300 }}
                         >
                           {feature}
@@ -310,7 +310,7 @@ export function AnimalsPage() {
                     ))}
                   </div>
                   <p
-                    className="text-black/40 text-[0.78rem] mt-6 pt-4 border-t border-black/5"
+                    className="text-black/55 text-[0.78rem] mt-6 pt-4 border-t border-black/5"
                     style={{ lineHeight: 1.6, fontWeight: 300, fontStyle: "italic" }}
                   >
                     {outdoorPackage.note}
@@ -430,7 +430,7 @@ export function AnimalsPage() {
           <SectionReveal>
             <div className="text-center mb-16">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "TIPPS" : "TIPS"}
@@ -464,7 +464,7 @@ export function AnimalsPage() {
               <SectionReveal key={tip.title} delay={i * 0.1}>
                 <div className="text-center">
                   <div className="w-14 h-14 mx-auto mb-5 border border-black/10 flex items-center justify-center">
-                    <tip.icon size={20} className="text-black/35" />
+                    <tip.icon size={20} className="text-black/50" />
                   </div>
                   <h3
                     className="mb-2"
@@ -476,7 +476,7 @@ export function AnimalsPage() {
                   >
                     {tip.title}
                   </h3>
-                  <p className="text-black/50 text-[0.82rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
+                  <p className="text-black/65 text-[0.82rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
                     {tip.text}
                   </p>
                 </div>
@@ -509,7 +509,7 @@ export function AnimalsPage() {
               {t.animals.ctaTitle}
             </h2>
             <p
-              className="text-white/50 text-[0.9rem] mb-10"
+              className="text-white/65 text-[0.9rem] mb-10"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
               {t.animals.ctaText}

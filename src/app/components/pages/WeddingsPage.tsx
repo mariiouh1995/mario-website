@@ -123,7 +123,7 @@ export function WeddingsPage() {
             <SectionReveal>
               <div>
                 <p
-                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                   style={{ fontWeight: 400 }}
                 >
                   {t.weddings.photoTitle}
@@ -140,7 +140,7 @@ export function WeddingsPage() {
                   {t.weddings.photoHeading}
                 </h2>
                 <p
-                  className="text-black/55 text-[0.9rem] mb-8"
+                  className="text-black/70 text-[0.9rem] mb-8"
                   style={{ lineHeight: 1.8, fontWeight: 300 }}
                 >
                   {t.weddings.photoText}
@@ -193,7 +193,7 @@ export function WeddingsPage() {
             <SectionReveal delay={0.2}>
               <div className="order-1 lg:order-2">
                 <p
-                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                   style={{ fontWeight: 400 }}
                 >
                   {t.weddings.videoTitle}
@@ -210,7 +210,7 @@ export function WeddingsPage() {
                   {t.weddings.videoHeading}
                 </h2>
                 <p
-                  className="text-black/55 text-[0.9rem] mb-8"
+                  className="text-black/70 text-[0.9rem] mb-8"
                   style={{ lineHeight: 1.8, fontWeight: 300 }}
                 >
                   {t.weddings.videoText}
@@ -234,7 +234,7 @@ export function WeddingsPage() {
           <SectionReveal>
             <div className="text-center mb-16">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {t.weddings.shotListTitle}
@@ -256,7 +256,7 @@ export function WeddingsPage() {
               <SectionReveal key={item.title} delay={i * 0.08}>
                 <div className="flex gap-4">
                   <div className="w-10 h-10 shrink-0 border border-black/10 flex items-center justify-center mt-1">
-                    <item.icon size={18} className="text-black/35" />
+                    <item.icon size={18} className="text-black/50" />
                   </div>
                   <div>
                     <h3
@@ -270,7 +270,7 @@ export function WeddingsPage() {
                       {item.title}
                     </h3>
                     <p
-                      className="text-black/50 text-[0.82rem]"
+                      className="text-black/65 text-[0.82rem]"
                       style={{ lineHeight: 1.6, fontWeight: 300 }}
                     >
                       {item.text}
@@ -283,7 +283,7 @@ export function WeddingsPage() {
 
           <SectionReveal delay={0.5}>
             <p
-              className="text-center text-black/40 text-[0.82rem] mt-12 max-w-xl mx-auto"
+              className="text-center text-black/55 text-[0.82rem] mt-12 max-w-xl mx-auto"
               style={{ lineHeight: 1.7, fontWeight: 300, fontStyle: "italic" }}
             >
               {lang === "de"
@@ -300,7 +300,7 @@ export function WeddingsPage() {
           <SectionReveal>
             <div className="text-center mb-16">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "BILDSPRACHE" : "VISUAL LANGUAGE"}
@@ -315,7 +315,7 @@ export function WeddingsPage() {
                 {lang === "de" ? "Mein Stil. Euer Look." : "My Style. Your Look."}
               </h2>
               <p
-                className="text-black/45 text-[0.88rem] max-w-2xl mx-auto mt-4"
+                className="text-black/60 text-[0.88rem] max-w-2xl mx-auto mt-4"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
                 {lang === "de"
@@ -349,7 +349,7 @@ export function WeddingsPage() {
               <SectionReveal key={style.title} delay={i * 0.12}>
                 <div className="bg-white border border-black/8 p-8 md:p-10 text-center h-full">
                   <div className="w-14 h-14 mx-auto mb-6 border border-black/10 flex items-center justify-center">
-                    <style.icon size={22} className="text-black/35" />
+                    <style.icon size={22} className="text-black/50" />
                   </div>
                   <h3
                     className="mb-3"
@@ -363,7 +363,7 @@ export function WeddingsPage() {
                     {style.title}
                   </h3>
                   <p
-                    className="text-black/50 text-[0.84rem]"
+                    className="text-black/65 text-[0.84rem]"
                     style={{ lineHeight: 1.75, fontWeight: 300 }}
                   >
                     {lang === "de" ? style.de : style.en}
@@ -375,7 +375,7 @@ export function WeddingsPage() {
 
           <SectionReveal delay={0.4}>
             <p
-              className="text-center text-black/35 text-[0.8rem] mt-10 max-w-lg mx-auto"
+              className="text-center text-black/50 text-[0.8rem] mt-10 max-w-lg mx-auto"
               style={{ lineHeight: 1.7, fontWeight: 300, fontStyle: "italic" }}
             >
               {lang === "de"
@@ -576,7 +576,7 @@ export function WeddingsPage() {
           <SectionReveal>
             <div className="text-center mb-16">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "BEISPIEL" : "EXAMPLE"}
@@ -591,7 +591,7 @@ export function WeddingsPage() {
                 {lang === "de" ? "So kann euer Tag aussehen" : "What your day could look like"}
               </h2>
               <p
-                className="text-black/45 text-[0.88rem] max-w-xl mx-auto mt-4"
+                className="text-black/60 text-[0.88rem] max-w-xl mx-auto mt-4"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
                 {lang === "de"
@@ -803,7 +803,7 @@ export function WeddingsPage() {
           <SectionReveal>
             <div className="text-center mb-16">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "PROZESS" : "PROCESS"}
@@ -842,10 +842,10 @@ export function WeddingsPage() {
               <SectionReveal key={item.step} delay={i * 0.08}>
                 <div className="text-center">
                   <div className="w-14 h-14 mx-auto mb-5 border border-black/10 flex items-center justify-center">
-                    <item.icon size={22} className="text-black/35" />
+                    <item.icon size={22} className="text-black/50" />
                   </div>
                   <p
-                    className="text-[0.7rem] tracking-[0.25em] text-black/25 mb-2"
+                    className="text-[0.7rem] tracking-[0.25em] text-black/40 mb-2"
                     style={{ fontWeight: 400 }}
                   >
                     {item.step}
@@ -861,7 +861,7 @@ export function WeddingsPage() {
                     {item.title}
                   </h3>
                   <p
-                    className="text-black/50 text-[0.84rem]"
+                    className="text-black/65 text-[0.84rem]"
                     style={{ lineHeight: 1.7, fontWeight: 300 }}
                   >
                     {item.text}
@@ -885,7 +885,7 @@ export function WeddingsPage() {
               <div className="absolute bottom-4 right-4 w-8 h-8 border-b border-r border-black/15" />
 
               <p
-                className="text-[0.7rem] tracking-[0.35em] uppercase text-black/35 mb-4"
+                className="text-[0.7rem] tracking-[0.35em] uppercase text-black/50 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "Kostenloser Download" : "Free Download"}
@@ -902,13 +902,13 @@ export function WeddingsPage() {
                 Wedding Guide
               </h2>
               <p
-                className="text-black/35 text-[0.82rem] mb-2"
+                className="text-black/50 text-[0.82rem] mb-2"
                 style={{ fontWeight: 300, fontStyle: "italic" }}
               >
                 {lang === "de" ? "Saison 2026/27" : "Season 2026/27"}
               </p>
               <p
-                className="text-black/50 text-[0.88rem] max-w-md mx-auto mb-10"
+                className="text-black/65 text-[0.88rem] max-w-md mx-auto mb-10"
                 style={{ lineHeight: 1.75, fontWeight: 300 }}
               >
                 {lang === "de"
@@ -926,7 +926,7 @@ export function WeddingsPage() {
                 {lang === "de" ? "Guide herunterladen" : "Download Guide"}
               </a>
               <p
-                className="text-black/25 text-[0.72rem] mt-6"
+                className="text-black/40 text-[0.72rem] mt-6"
                 style={{ fontWeight: 300 }}
               >
                 PDF · {lang === "de" ? "Kostenlos & unverbindlich" : "Free & no strings attached"}
@@ -952,7 +952,7 @@ export function WeddingsPage() {
               {t.weddings.ctaTitle}
             </h2>
             <p
-              className="text-white/50 text-[0.9rem] mb-10"
+              className="text-white/65 text-[0.9rem] mb-10"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
               {t.weddings.ctaText}

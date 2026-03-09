@@ -128,6 +128,28 @@
     @apply bg-background text-foreground;
   }
 
+  /* Global 12px border-radius for all buttons and button-like links */
+  button,
+  a[class*="px-"][class*="py-"],
+  a[class*="inline-flex"] {
+    border-radius: 12px;
+  }
+
+  /* Camera shutter flash animation for buttons */
+  @keyframes camera-flash {
+    0% { opacity: 0; transform: scale(0.5) rotate(-15deg); }
+    20% { opacity: 1; transform: scale(1.3) rotate(0deg); }
+    40% { opacity: 1; transform: scale(1) rotate(0deg); }
+    60% { opacity: 0.8; transform: scale(1.1) rotate(0deg); }
+    100% { opacity: 0; transform: scale(0.3) rotate(10deg); }
+  }
+
+  @keyframes flash-overlay {
+    0% { opacity: 0; }
+    15% { opacity: 0.6; }
+    100% { opacity: 0; }
+  }
+
   /**
   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.

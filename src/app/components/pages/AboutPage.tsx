@@ -242,14 +242,14 @@ export function AboutPage() {
                     {content.expectTitle.split(" ").slice(-1)}
                   </span>
                 </h2>
-                <p className="text-black/60 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {content.expectText1}
+                <p className="text-black/75 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
+                  {t.about.text1}
                 </p>
-                <p className="text-black/60 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {content.expectText2}
+                <p className="text-black/75 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
+                  {t.about.text2}
                 </p>
-                <p className="text-black/60 text-[0.9rem] mb-8" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {content.expectText3}
+                <p className="text-black/75 text-[0.9rem] mb-8" style={{ lineHeight: 1.8, fontWeight: 300 }}>
+                  {t.about.text3}
                 </p>
                 <button
                   onClick={() => openContact()}
@@ -323,7 +323,7 @@ export function AboutPage() {
             <SectionReveal delay={0.2}>
               <div>
                 <p
-                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                  className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                   style={{ fontWeight: 400 }}
                 >
                   {lang === "de" ? "LEIDENSCHAFT" : "PASSION"}
@@ -339,10 +339,10 @@ export function AboutPage() {
                 >
                   {content.passionTitle}
                 </h2>
-                <p className="text-black/60 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
+                <p className="text-black/75 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
                   {content.passionText1}
                 </p>
-                <p className="text-black/60 text-[0.9rem] mb-8" style={{ lineHeight: 1.8, fontWeight: 300 }}>
+                <p className="text-black/75 text-[0.9rem] mb-8" style={{ lineHeight: 1.8, fontWeight: 300 }}>
                   {content.passionText2}
                 </p>
                 <a
@@ -381,8 +381,8 @@ export function AboutPage() {
               </h2>
             </div>
             <p
-              className="text-black/50 text-[0.9rem] text-center max-w-2xl mx-auto"
-              style={{ lineHeight: 1.8, fontWeight: 300 }}
+              className="text-black/65 text-[0.88rem] text-center max-w-2xl mx-auto"
+              style={{ lineHeight: 1.7, fontWeight: 300 }}
             >
               {content.taglineDesc}
             </p>
@@ -411,7 +411,7 @@ export function AboutPage() {
               <SectionReveal key={item.title} delay={i * 0.15}>
                 <div className="text-center">
                   <div className="w-16 h-16 mx-auto mb-6 border border-black/10 flex items-center justify-center">
-                    <item.icon size={24} className="text-black/40" />
+                    <item.icon size={24} className="text-black/55" />
                   </div>
                   <h3
                     className="mb-3"
@@ -424,7 +424,7 @@ export function AboutPage() {
                     {item.title}
                   </h3>
                   <p
-                    className="text-black/50 text-[0.85rem]"
+                    className="text-black/65 text-[0.85rem]"
                     style={{ lineHeight: 1.7, fontWeight: 300 }}
                   >
                     {item.text}
@@ -486,7 +486,7 @@ export function AboutPage() {
               </button>
 
               <p
-                className="text-black/35 text-[0.78rem] mb-6 tracking-wider uppercase"
+                className="text-black/50 text-[0.78rem] mb-6 tracking-wider uppercase"
                 style={{ fontWeight: 300 }}
               >
                 {content.contactOrText}

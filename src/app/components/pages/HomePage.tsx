@@ -211,7 +211,7 @@ export function HomePage() {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-500" />
                   </div>
                   <div className="flex items-center gap-3 mb-3">
-                    <service.icon size={18} className="text-black/40" />
+                    <service.icon size={18} className="text-black/55" />
                     <h3
                       className="text-[1.1rem] text-black"
                       style={{
@@ -224,13 +224,13 @@ export function HomePage() {
                     </h3>
                   </div>
                   <p
-                    className="text-black/50 text-[0.85rem] mb-4"
+                    className="text-black/65 text-[0.85rem] mb-4"
                     style={{ lineHeight: 1.7, fontWeight: 300 }}
                   >
                     {service.desc}
                   </p>
                   <span
-                    className="inline-flex items-center gap-2 text-[0.78rem] tracking-[0.15em] uppercase text-black/60 group-hover:text-black transition-colors"
+                    className="inline-flex items-center gap-2 text-[0.78rem] tracking-[0.15em] uppercase text-black/75 group-hover:text-black transition-colors"
                     style={{ fontWeight: 400 }}
                   >
                     {t.home.viewMore}
@@ -297,9 +297,9 @@ export function HomePage() {
               <SectionReveal key={item.step} delay={i * 0.12}>
                 <div className="text-center">
                   <div className="w-14 h-14 mx-auto mb-5 border border-white/15 flex items-center justify-center">
-                    <item.icon size={22} className="text-white/50" />
+                    <item.icon size={22} className="text-white/65" />
                   </div>
-                  <p className="text-white/30 text-[0.7rem] tracking-[0.3em] mb-2" style={{ fontWeight: 400 }}>
+                  <p className="text-white/55 text-[0.7rem] tracking-[0.3em] mb-2" style={{ fontWeight: 400 }}>
                     {item.step}
                   </p>
                   <h3
@@ -312,7 +312,7 @@ export function HomePage() {
                   >
                     {item.title}
                   </h3>
-                  <p className="text-white/40 text-[0.83rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
+                  <p className="text-white/55 text-[0.83rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
                     {item.text}
                   </p>
                 </div>
@@ -345,7 +345,7 @@ export function HomePage() {
 
             <SectionReveal delay={0.2} direction="right">
               <p
-                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 mb-4"
+                className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
                 {t.home.aboutPreTitle}
@@ -363,13 +363,13 @@ export function HomePage() {
                 <span style={{ fontWeight: 700 }}>Mario</span>
               </h2>
               <p
-                className="text-black/60 text-[0.9rem] mb-6"
+                className="text-black/75 text-[0.9rem] mb-6"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
                 {t.home.aboutText}
               </p>
               <p
-                className="text-black/60 text-[0.9rem] mb-8"
+                className="text-black/75 text-[0.9rem] mb-8"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
                 {t.home.philosophyText}
@@ -457,7 +457,7 @@ export function HomePage() {
                     : "Photo & video for businesses?"}
                 </p>
                 <p
-                  className="text-black/40 text-[0.82rem]"
+                  className="text-black/55 text-[0.82rem]"
                   style={{ lineHeight: 1.6, fontWeight: 300 }}
                 >
                   {lang === "de"
@@ -469,7 +469,7 @@ export function HomePage() {
                 href="https://www.wyldworks.de/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 inline-flex items-center gap-2 text-[0.78rem] tracking-[0.12em] uppercase text-black/60 no-underline border-b border-black/20 pb-1 hover:text-black hover:border-black transition-colors"
+                className="flex-shrink-0 inline-flex items-center gap-2 text-[0.78rem] tracking-[0.12em] uppercase text-black/75 no-underline border-b border-black/20 pb-1 hover:text-black hover:border-black transition-colors"
                 style={{ fontWeight: 400 }}
               >
                 wyldworks.de
@@ -496,7 +496,7 @@ export function HomePage() {
               {t.home.ctaTitle}
             </h2>
             <p
-              className="text-white/50 text-[0.9rem] mb-10 max-w-xl mx-auto"
+              className="text-white/65 text-[0.9rem] mb-10 max-w-xl mx-auto"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
               {t.home.ctaText}
