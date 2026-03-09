@@ -1,7 +1,6 @@
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewSingle } from "../GoogleReviews";
-import { useState } from "react";
-import { ArrowRight, Star, ChevronDown, Heart, Users, Baby, PartyPopper } from "lucide-react";
+import { ArrowRight, Star, Heart, Users, Baby, PartyPopper } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -29,7 +28,6 @@ export function PortraitPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const seo = lang === "de"
     ? {

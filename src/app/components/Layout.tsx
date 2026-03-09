@@ -238,6 +238,14 @@ export function Layout() {
               <Link to="/impressum" className="text-white/30 hover:text-white/60 text-[0.75rem] no-underline transition-colors">
                 {t.footer.imprint}
               </Link>
+              <a
+                href="https://ik.imagekit.io/r2yqrg6np/Allgemeine%20Gescha%CC%88ftsbedingungen%20_%20Stand%20Januar%202026.pdf?updatedAt=1773009281173"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/30 hover:text-white/60 text-[0.75rem] no-underline transition-colors"
+              >
+                {lang === "de" ? "AGB" : "Terms"}
+              </a>
               <Link to="/admin" className="text-white/[0.12] hover:text-white/30 text-[0.75rem] no-underline transition-colors">
                 Admin
               </Link>

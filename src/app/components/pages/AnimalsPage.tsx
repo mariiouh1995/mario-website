@@ -1,7 +1,6 @@
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
-import { useState } from "react";
-import { ArrowRight, Check, Star, ChevronDown, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";
+import { ArrowRight, Check, Star, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -27,7 +26,6 @@ export function AnimalsPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const seo = lang === "de"
     ? {

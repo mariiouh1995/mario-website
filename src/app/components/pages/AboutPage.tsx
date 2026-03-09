@@ -1,7 +1,6 @@
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useLanguage } from "../LanguageContext";
-import { useState } from "react";
-import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, ChevronDown, Users, Award, Video } from "lucide-react";
+import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, Users, Award, Video } from "lucide-react";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -19,7 +18,6 @@ const IMAGES = {
 export function AboutPage() {
   const { t, lang } = useLanguage();
   const { openContact } = useContactModal();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const seo = lang === "de"
     ? {

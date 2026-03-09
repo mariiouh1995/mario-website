@@ -4,7 +4,7 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useState, useMemo, useCallback } from "react";
-import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, ChevronDown, Download } from "lucide-react";
+import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
@@ -33,7 +33,6 @@ export function WeddingsPage() {
   const [activeTab, setActiveTab] = useState<"photo" | "video">("photo");
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [galleryCategory, setGalleryCategory] = useState<string>("all");
   const { getImagesForPage } = useImages();
 

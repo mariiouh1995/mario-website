@@ -145,6 +145,40 @@ const FALLBACK_IMAGES: ImageEntry[] = [
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0246.jpg?updatedAt=1773003710660", "Kirchliche Hochzeit – Hochzeitsfotograf Innsbruck Bayern", "Church wedding – Wedding photographer Innsbruck Bavaria"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0264.jpg?updatedAt=1773003710254", "Kirchliche Trauung Tirol – Hochzeitsfotograf Mario Schubert", "Church ceremony Tyrol – Wedding photographer Mario Schubert"),
   w("kirchliche-trauung", "https://ik.imagekit.io/r2yqrg6np/Wedding/kirchliche%20Trauung/250607_BobanElena_MidRes_0266.jpg?updatedAt=1773003710022", "Kirchliche Zeremonie Alpen – Hochzeitsfotografie Tirol Innsbruck", "Church ceremony Alps – Wedding photography Tyrol Innsbruck"),
+
+  // ═══════════════════════════════════════════════
+  // HOCHZEIT – Paarshooting (8 Fallback-Bilder)
+  // ═══════════════════════════════════════════════
+  w("paarshooting", "https://images.unsplash.com/photo-1680818508921-844425951e45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBwb3J0cmFpdCUyMG1vdW50YWluJTIwZ29sZGVuJTIwaG91cnxlbnwxfHx8fDE3NzMwMTQwMjl8MA&ixlib=rb-4.1.0&q=80&w=1080", "Romantisches Paarshooting in den Bergen – Hochzeitsfotograf Innsbruck", "Romantic couple shoot in the mountains – Wedding photographer Innsbruck"),
+  w("paarshooting", "https://images.unsplash.com/photo-1758565177415-33b15a0729de?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjB3YWxraW5nJTIwdG9nZXRoZXIlMjByb21hbnRpYyUyMGZpZWxkfGVufDF8fHx8MTc3MzAxNDAzNHww&ixlib=rb-4.1.0&q=80&w=1080", "Paarshooting bei Sonnenuntergang – Paarfotografie Tirol", "Couple shoot at sunset – Couple photography Tyrol"),
+  w("paarshooting", "https://images.unsplash.com/photo-1758524053982-dc0fc7cd651f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBsYXVnaGluZyUyMG91dGRvb3IlMjBuYXR1cmFsfGVufDF8fHx8MTc3MzAxNDAzNXww&ixlib=rb-4.1.0&q=80&w=1080", "Lachendes Paar beim Outdoor-Shooting – Hochzeitsfotografie Tirol", "Laughing couple during outdoor shoot – Wedding photography Tyrol"),
+  w("paarshooting", "https://images.unsplash.com/photo-1514846528774-8de9d4a07023?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBlbWJyYWNlJTIwcm9tYW50aWMlMjBvdXRkb29yfGVufDF8fHx8MTc3MzAxNDAzMHww&ixlib=rb-4.1.0&q=80&w=1080", "Romantische Umarmung – Paarshooting Innsbruck Tirol", "Romantic embrace – Couple shoot Innsbruck Tyrol"),
+  w("paarshooting", "https://images.unsplash.com/photo-1758810410699-2dc1daec82dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyb21hbnRpYyUyMGNvdXBsZSUyMHN1bnNldCUyMHNpbGhvdWV0dGV8ZW58MXx8fHwxNzcyOTY2ODY5fDA&ixlib=rb-4.1.0&q=80&w=1080", "Paar-Silhouette bei Sonnenuntergang – Hochzeitsfotograf Bayern", "Couple silhouette at sunset – Wedding photographer Bavaria"),
+  w("paarshooting", "https://images.unsplash.com/photo-1662049659925-6a732fc2909c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBraXNzJTIwbW91bnRhaW4lMjBsYW5kc2NhcGV8ZW58MXx8fHwxNzczMDE0MDM4fDA&ixlib=rb-4.1.0&q=80&w=1080", "Kuss in den Bergen – Paarshooting Alpen Mario Schubert", "Kiss in the mountains – Couple shoot Alps Mario Schubert"),
+  w("paarshooting", "https://images.unsplash.com/photo-1769050349380-7ee061d43ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBwb3J0cmFpdCUyMHN1bnNldCUyMHJvbWFudGljJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzcyOTk3NTMzfDA&ixlib=rb-4.1.0&q=80&w=1080", "Paarportrait bei Sonnenuntergang – Paarfotografie Tirol Bayern", "Couple portrait at sunset – Couple photography Tyrol Bavaria"),
+  w("paarshooting", "https://images.unsplash.com/photo-1768468104186-368aeb7a266a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBsYXVnaGluZyUyMG91dGRvb3IlMjBlbmdhZ2VtZW50JTIwcGhvdG98ZW58MXx8fHwxNzcyOTk3NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080", "Lachendes Paar beim Engagement-Shooting – Hochzeitsfotograf Innsbruck", "Laughing couple at engagement shoot – Wedding photographer Innsbruck"),
+
+  // ═══════════════════════════════════════════════
+  // HOCHZEIT – Freie Trauung (6 Fallback-Bilder)
+  // ═══════════════════════════════════════════════
+  w("freie-trauung", "https://images.unsplash.com/photo-1696271026740-4c0c1a367f03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvdXRkb29yJTIwd2VkZGluZyUyMGNlcmVtb255JTIwbmF0dXJlfGVufDF8fHx8MTc3MzAxNDAyOXww&ixlib=rb-4.1.0&q=80&w=1080", "Freie Trauung Outdoor – Hochzeitsfotografie Tirol", "Outdoor ceremony – Wedding photography Tyrol"),
+  w("freie-trauung", "https://images.unsplash.com/photo-1763560836989-d3636e2f82d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvdXRkb29yJTIwd2VkZGluZyUyMGNlcmVtb255JTIwYXJjaCUyMGZsb3dlcnN8ZW58MXx8fHwxNzczMDE0MDMwfDA&ixlib=rb-4.1.0&q=80&w=1080", "Freie Trauung mit Blumenbogen – Hochzeitsfotograf Innsbruck", "Outdoor ceremony with flower arch – Wedding photographer Innsbruck"),
+  w("freie-trauung", "https://images.unsplash.com/photo-1677677403344-029c7fcd7300?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwb3V0ZG9vciUyMGNlcmVtb255JTIwcnVzdGljfGVufDF8fHx8MTc3MzAxNDAzNnww&ixlib=rb-4.1.0&q=80&w=1080", "Rustikale freie Trauung – Hochzeitsfotografie Bayern", "Rustic outdoor ceremony – Wedding photography Bavaria"),
+  w("freie-trauung", "https://images.unsplash.com/photo-1740688055196-a836abca5518?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvdXRkb29yJTIwY2VyZW1vbnklMjB3ZWRkaW5nJTIwdm93cyUyMG5hdHVyZXxlbnwxfHx8fDE3NzMwMTQwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080", "Eheversprechen bei freier Trauung – Mario Schubert Fotografie", "Wedding vows at outdoor ceremony – Mario Schubert Photography"),
+  w("freie-trauung", "https://images.unsplash.com/photo-1772404245508-3d9902599c07?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY2VyZW1vbnklMjBvdXRkb29yJTIwZ2FyZGVuJTIwYWlzbGV8ZW58MXx8fHwxNzczMDE0MDMwfDA&ixlib=rb-4.1.0&q=80&w=1080", "Freie Trauung im Garten – Hochzeitsfotograf Tirol Alpen", "Garden ceremony – Wedding photographer Tyrol Alps"),
+  w("freie-trauung", "https://images.unsplash.com/photo-1769812344337-ec16a1b7cef8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY2VyZW1vbnklMjBvdXRkb29yJTIwZWxlZ2FudHxlbnwxfHx8fDE3NzI5OTc1MzF8MA&ixlib=rb-4.1.0&q=80&w=1080", "Elegante freie Trauung Outdoor – Hochzeitsfotografie Innsbruck", "Elegant outdoor ceremony – Wedding photography Innsbruck"),
+
+  // ═══════════════════════════════════════════════
+  // HOCHZEIT – Party (8 Fallback-Bilder)
+  // ═══════════════════════════════════════════════
+  w("party", "https://images.unsplash.com/photo-1764269719300-7094d6c00533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcGFydHklMjBjZWxlYnJhdGlvbiUyMGRhbmNlfGVufDF8fHx8MTc3MzAxNDAyOXww&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitsparty – Feier und Tanz – Hochzeitsfotograf Innsbruck", "Wedding party – Celebration and dance – Wedding photographer Innsbruck"),
+  w("party", "https://images.unsplash.com/photo-1765615201173-0ea7dcadc4bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcmVjZXB0aW9uJTIwcGFydHklMjBndWVzdHMlMjBkYW5jaW5nfGVufDF8fHx8MTc3MzAxNDAzMHww&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitsempfang – Gäste tanzen – Hochzeitsfotografie Tirol", "Wedding reception – Guests dancing – Wedding photography Tyrol"),
+  w("party", "https://images.unsplash.com/photo-1769230387364-8b0c2b63e18b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwZmlyc3QlMjBkYW5jZSUyMGxpZ2h0c3xlbnwxfHx8fDE3NzMwMTQwMzZ8MA&ixlib=rb-4.1.0&q=80&w=1080", "Erster Tanz – Hochzeitsfeier – Hochzeitsfotograf Mario Schubert", "First dance – Wedding celebration – Wedding photographer Mario Schubert"),
+  w("party", "https://images.unsplash.com/photo-1768508948986-a0cb8a3ca83b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdG9hc3QlMjBjZWxlYnJhdGlvbiUyMGV2ZW5pbmd8ZW58MXx8fHwxNzczMDE0MDMxfDA&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitstoast – Abendfeier – Hochzeitsfotografie Bayern", "Wedding toast – Evening celebration – Wedding photography Bavaria"),
+  w("party", "https://images.unsplash.com/photo-1758810411894-3c0f092f305f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwZ3Vlc3RzJTIwY2VsZWJyYXRpb24lMjBjb25mZXR0aXxlbnwxfHx8fDE3NzMwMTQwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080", "Konfetti-Regen – Hochzeitsfeier – Hochzeitsfotograf Tirol", "Confetti shower – Wedding celebration – Wedding photographer Tyrol"),
+  w("party", "https://images.unsplash.com/photo-1758810409984-aba17272627b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYm91cXVldCUyMHRvc3MlMjBjZWxlYnJhdGlvbnxlbnwxfHx8fDE3NzMwMTQwMzh8MA&ixlib=rb-4.1.0&q=80&w=1080", "Brautstraußwurf – Hochzeitsparty – Hochzeitsfotografie Innsbruck", "Bouquet toss – Wedding party – Wedding photography Innsbruck"),
+  w("party", "https://images.unsplash.com/photo-1633978555421-1e67d524b227?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwZGFuY2UlMjBmaXJzdCUyMHJlY2VwdGlvbnxlbnwxfHx8fDE3NzI5OTU3OTR8MA&ixlib=rb-4.1.0&q=80&w=1080", "Erster Tanz bei der Hochzeitsfeier – Hochzeitsfotograf Bayern Tirol", "First dance at wedding reception – Wedding photographer Bavaria Tyrol"),
+  w("party", "https://images.unsplash.com/photo-1704455308461-1e18a7e11d28?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwZmlyc3QlMjBkYW5jZSUyMHJlY2VwdGlvbnxlbnwxfHx8fDE3NzI5OTc1MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitstanz – Hochzeitsfeier – Mario Schubert Fotografie Innsbruck", "Wedding dance – Wedding reception – Mario Schubert Photography Innsbruck"),
 ];
 
 function getCachedData(): ImageEntry[] | null {
@@ -154,6 +188,12 @@ function getCachedData(): ImageEntry[] | null {
 
     const { data, timestamp } = JSON.parse(cached);
     if (Date.now() - timestamp > CACHE_DURATION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    // Don't use cache if it has suspiciously few images (stale/empty cache)
+    if (!data || data.length < FALLBACK_IMAGES.length * 0.5) {
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
@@ -209,14 +249,27 @@ export function useImages() {
 
     async function fetchImages() {
       try {
-        const response = await fetch("/api/get-images");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch("/api/get-images", { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
 
         if (!cancelled && data.images && data.images.length > 0) {
-          setCachedData(data.images);
-          setState({ images: data.images, loading: false, error: null });
+          // Merge: API images take priority, fallback fills missing categories
+          const apiCategories = new Set(
+            data.images.map((img: ImageEntry) => `${img.page}:${img.category}`)
+          );
+          const fallbackFill = FALLBACK_IMAGES.filter(
+            (img) => !apiCategories.has(`${img.page}:${img.category}`)
+          );
+          const merged = [...data.images, ...fallbackFill];
+          setCachedData(merged);
+          setState({ images: merged, loading: false, error: null });
         } else if (!cancelled) {
           // API returned empty – keep fallback
           setState((prev) => ({ ...prev, loading: false }));
