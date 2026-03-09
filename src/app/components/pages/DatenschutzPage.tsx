@@ -83,10 +83,11 @@ export function DatenschutzPage() {
             <h1
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: "clamp(2.5rem, 6vw, 4rem)",
+                fontSize: "clamp(1.8rem, 6vw, 4rem)",
                 fontWeight: 300,
                 lineHeight: 1.1,
               }}
+              className="overflow-wrap-anywhere"
             >
               {lang === "de" ? "Datenschutzerklärung" : "Privacy Policy"}
             </h1>
