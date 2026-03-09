@@ -272,7 +272,7 @@ function CategorySelect({
       icon: Heart,
       titleDe: "Hochzeit",
       titleEn: "Wedding",
-      descDe: "Fotografie, Videografie & Komplettpakete fur euren grossen Tag",
+      descDe: "Fotografie, Videografie & Komplettpakete für euren großen Tag",
       descEn: "Photography, videography & complete packages for your big day",
     },
     {
@@ -584,22 +584,22 @@ function ContactModalInner({
     title: isDE ? "Eure Reise beginnt" : "Your journey begins",
     titleItalic: isDE ? "hier" : "here",
     subtitle: isDE
-      ? "Stellt euch euer Wunschpaket zusammen und erzahlt mir von euren Planen. Ihr hort in der Regel innerhalb von 48 Stunden von mir."
+      ? "Stellt euch euer Wunschpaket zusammen und erzählt mir von euren Plänen. Ihr hört in der Regel innerhalb von 48 Stunden von mir."
       : "Put together your dream package and tell me about your plans. You'll usually hear from me within 48 hours.",
     name: isDE ? "Vorname, Nachname*" : "First name, Last name*",
     email: "E-Mail*",
     phone: isDE ? "Telefon*" : "Phone*",
     foundVia: isDE ? "Wie habt ihr mich gefunden?" : "How did you find me?",
     date: isDE ? "Voraussichtliches Datum" : "Estimated Date",
-    weddingGuide: isDE ? "Ich mochte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
-    message: isDE ? "Erzahlt mir von euren Planen!" : "Tell me about your plans!",
+    weddingGuide: isDE ? "Ich möchte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
+    message: isDE ? "Erzählt mir von euren Plänen!" : "Tell me about your plans!",
     messagePlaceholder: isDE ? "Was stellt ihr euch genau vor?" : "What exactly do you have in mind?",
     submit: isDE ? "Absenden" : "Send",
     sending: isDE ? "Wird gesendet..." : "Sending...",
     success: isDE ? "Vielen Dank! Ich melde mich bald bei euch." : "Thank you! I'll get back to you soon.",
     error: isDE ? "Etwas ist schiefgelaufen. Bitte versucht es erneut." : "Something went wrong. Please try again.",
     privacy: isDE
-      ? "Ich stimme der Verarbeitung meiner Daten gemaess der Datenschutzerklaerung zu.*"
+      ? "Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.*"
       : "I agree to the processing of my data according to the privacy policy.*",
     packages: isDE ? "Paketauswahl" : "Package Selection",
     photoPackages: isDE ? "Foto-Pakete" : "Photo Packages",
@@ -1052,7 +1052,7 @@ function ContactModalInner({
                       </p>
                       <p className="text-[0.78rem] text-black/45 mb-4" style={{ fontWeight: 300, lineHeight: 1.5 }}>
                         {isDE
-                          ? "Optional: Schlagt einen Termin fur ein unverbindliches Kennenlernen vor."
+                          ? "Optional: Schlagt einen Termin für ein unverbindliches Kennenlernen vor."
                           : "Optional: Suggest a date for a non-binding introductory meeting."}
                       </p>
                       <div className="space-y-4">
