@@ -11,7 +11,7 @@ export function ImpressumPage() {
       <SEO
         title={lang === "de" ? "Impressum | Mario Schubert Photography" : "Imprint | Mario Schubert Photography"}
         description={lang === "de"
-          ? "Impressum von Mario Schubert Fotografie, Innsbruck, Tirol. Angaben gemaess §5 TMG."
+          ? "Impressum von Mario Schubert Fotografie, Innsbruck, Tirol. Angaben gemäß §5 TMG."
           : "Legal notice of Mario Schubert Photography, Innsbruck, Tyrol."}
         canonical="/impressum"
         lang={lang}

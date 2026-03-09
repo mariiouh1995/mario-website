@@ -59,7 +59,7 @@ export function DatenschutzPage() {
       <SEO
         title={lang === "de" ? "Datenschutzerklärung | Mario Schubert Photography" : "Privacy Policy | Mario Schubert Photography"}
         description={lang === "de"
-          ? "Datenschutzerklaerung von Mario Schubert Fotografie. Informationen zur Verarbeitung personenbezogener Daten gemaess DSGVO."
+          ? "Datenschutzerklärung von Mario Schubert Fotografie. Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO."
           : "Privacy policy of Mario Schubert Photography. Information on processing personal data according to GDPR."}
         canonical="/datenschutz"
         lang={lang}

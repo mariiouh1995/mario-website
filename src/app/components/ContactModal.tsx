@@ -38,10 +38,14 @@ function parsePrice(priceStr: string): number {
 }
 
 function parseAddonPrice(addonText: string): number {
-  // Extract price from add-on text like "After-Wedding-Shooting (ca. 3h, 80 Bilder): 520€"
-  const match = addonText.match(/(\d[\d.,]*)\s*€/);
-  if (!match) return 0;
-  return parsePrice(match[1] + "€");
+  // Extract price from add-on text like "Second Shooter ab €400" or "Hochzeitsalbum: 520€"
+  // Try €XXX format first (euro before number)
+  const matchBefore = addonText.match(/€\s*(\d[\d.,]*)/);
+  if (matchBefore) return parsePrice(matchBefore[1] + "€");
+  // Then try XXX€ format (euro after number)
+  const matchAfter = addonText.match(/(\d[\d.,]*)\s*€/);
+  if (matchAfter) return parsePrice(matchAfter[1] + "€");
+  return 0;
 }
 
 // ── Format price for display ──
@@ -436,22 +440,22 @@ function ContactModalInner({
     title: isDE ? "Eure Reise beginnt" : "Your journey begins",
     titleItalic: isDE ? "hier" : "here",
     subtitle: isDE
-      ? "Stellt euch euer Wunschpaket zusammen und erzaehlt mir von euren Plaenen. Ihr hoert in der Regel innerhalb von 48 Stunden von mir."
+      ? "Stellt euch euer Wunschpaket zusammen und erzählt mir von euren Plänen. Ihr hört in der Regel innerhalb von 48 Stunden von mir."
       : "Put together your dream package and tell me about your plans. You'll usually hear from me within 48 hours.",
     name: isDE ? "Vorname, Nachname*" : "First name, Last name*",
     email: "E-Mail*",
     phone: isDE ? "Telefon*" : "Phone*",
     foundVia: isDE ? "Wie habt ihr mich gefunden?" : "How did you find me?",
     date: isDE ? "Voraussichtliches Datum" : "Estimated Date",
-    weddingGuide: isDE ? "Ich moechte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
-    message: isDE ? "Erzaehlt mir von euren Plaenen!" : "Tell me about your plans!",
+    weddingGuide: isDE ? "Ich möchte den kostenlosen Wedding Guide erhalten" : "I'd like to receive the free Wedding Guide",
+    message: isDE ? "Erzählt mir von euren Plänen!" : "Tell me about your plans!",
     messagePlaceholder: isDE ? "Was stellt ihr euch genau vor?" : "What exactly do you have in mind?",
     submit: isDE ? "Absenden" : "Send",
     sending: isDE ? "Wird gesendet..." : "Sending...",
     success: isDE ? "Vielen Dank! Ich melde mich bald bei euch." : "Thank you! I'll get back to you soon.",
     error: isDE ? "Etwas ist schiefgelaufen. Bitte versucht es erneut." : "Something went wrong. Please try again.",
     privacy: isDE
-      ? "Ich stimme der Verarbeitung meiner Daten gemaess der Datenschutzerklaerung zu.*"
+      ? "Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.*"
       : "I agree to the processing of my data according to the privacy policy.*",
     packages: isDE ? "Paketauswahl" : "Package Selection",
     photoPackages: isDE ? "Foto-Pakete" : "Photo Packages",
@@ -459,7 +463,7 @@ function ContactModalInner({
     portraitPackages: isDE ? "Portrait-Pakete" : "Portrait Packages",
     animalPackages: isDE ? "Tier-Pakete" : "Animal Packages",
     addons: isDE ? "Extras & Add-ons" : "Extras & Add-ons",
-    estimatedPrice: isDE ? "Geschaetzter Preis" : "Estimated Price",
+    estimatedPrice: isDE ? "Geschätzter Preis" : "Estimated Price",
     from: isDE ? "ab" : "from",
     hidePackages: isDE ? "Pakete ausblenden" : "Hide packages",
     showPackages: isDE ? "Pakete anzeigen" : "Show packages",
@@ -796,7 +800,7 @@ function ContactModalInner({
                                   </div>
                                   <p className="text-[0.7rem] text-black/35 mt-2" style={{ lineHeight: 1.5, fontWeight: 300 }}>
                                     {isDE
-                                      ? "* Unverbindliche Schaetzung. Der finale Preis wird individuell besprochen."
+                                      ? "* Unverbindliche Schätzung. Der finale Preis wird individuell besprochen."
                                       : "* Non-binding estimate. The final price will be discussed individually."}
                                   </p>
                                 </motion.div>
