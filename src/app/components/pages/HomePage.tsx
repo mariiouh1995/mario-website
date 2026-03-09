@@ -1,3 +1,4 @@
+import { useRef, useMemo, useState, useCallback } from "react";
 import { ArrowRight, Camera, Film, Heart, Briefcase, MessageCircle, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { useLanguage } from "../LanguageContext";
@@ -5,38 +6,32 @@ import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { Lightbox, useLightbox } from "../Lightbox";
 import { motion, useScroll, useTransform } from "motion/react";
-import { useRef } from "react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
+import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
 const IMAGES = {
-  hero: "https://images.unsplash.com/photo-1765615197726-6d2a157620fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwb3V0ZG9vciUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc4OXww&ixlib=rb-4.1.0&q=80&w=1080",
-  wedding: "https://images.unsplash.com/photo-1767986012138-4893f40932d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY2VyZW1vbnklMjBlbGVnYW50fGVufDF8fHx8MTc3Mjk2MzYwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
-  animals: "https://images.unsplash.com/photo-1767381392938-c95d24cd5873?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbCUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc3Mjk5NTc5MXww&ixlib=rb-4.1.0&q=80&w=1080",
-  portrait: "https://images.unsplash.com/photo-1761334859630-611bdf32e3e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBzaG9vdGluZyUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+  hero: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/E00A5635-2.jpg?updatedAt=1773007052923",
+  wedding: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_151924_0405(LowRes).jpg?updatedAt=1773007048480",
+  animals: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1038_(WebRes).jpg?updatedAt=1773000802084",
+  portrait: "https://ik.imagekit.io/r2yqrg6np/Other/R52_0832.jpg?updatedAt=1773014105220",
   about: "https://ik.imagekit.io/r2yqrg6np/68e54c497a9dde9d00252dcb_WhatsApp%20Image%202025-09-16%20at%2022.32.17.avif",
-  // Gallery: mix of all disciplines
-  gallery1: "https://images.unsplash.com/photo-1677691257001-8bfd91e288ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYnJpZGUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzI5ODc4OTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery2: "https://images.unsplash.com/photo-1763586756670-1326d8bea7d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2xkZW4lMjByZXRyaWV2ZXIlMjBvdXRkb29yJTIwbmF0dXJlJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzcyOTk3NTM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery3: "https://images.unsplash.com/photo-1769050349380-7ee061d43ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBwb3J0cmFpdCUyMHN1bnNldCUyMHJvbWFudGljJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzcyOTk3NTMzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery4: "https://images.unsplash.com/photo-1633978555421-1e67d524b227?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwZGFuY2UlMjBmaXJzdCUyMHJlY2VwdGlvbnxlbnwxfHx8fDE3NzI5OTU3OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery5: "https://images.unsplash.com/photo-1603367563698-67012943fd67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwb3J0cmFpdCUyMG91dGRvb3IlMjBuYXR1cmFsfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery6: "https://images.unsplash.com/photo-1733565823618-62dd88263bb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3JzZSUyMHBvcnRyYWl0JTIwY2xvc2UlMjBtYWplc3RpYyUyMGVxdWluZXxlbnwxfHx8fDE3NzI5OTc1MzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery7: "https://images.unsplash.com/photo-1769812344337-ec16a1b7cef8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY2VyZW1vbnklMjBvdXRkb29yJTIwZWxlZ2FudHxlbnwxfHx8fDE3NzI5OTc1MzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery8: "https://images.unsplash.com/photo-1768509196851-16084e78f6ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwb3J0cmFpdCUyMG91dGRvb3IlMjBhdXR1bW4lMjBuYXR1cmFsfGVufDF8fHx8MTc3Mjk5NzUzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
-  gallery9: "https://images.unsplash.com/photo-1768468104186-368aeb7a266a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBsYXVnaGluZyUyMG91dGRvb3IlMjBlbmdhZ2VtZW50JTIwcGhvdG98ZW58MXx8fHwxNzcyOTk3NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
 };
 
 export function HomePage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
+  const { getImagesForPage } = useImages();
+
+  const GALLERY_PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE_SIZE);
 
   const seo = lang === "de"
     ? {
@@ -74,17 +69,30 @@ export function HomePage() {
     },
   ];
 
-  const galleryImages = useShuffledGallery([
-    { src: IMAGES.gallery1, alt: "Brautportrait bei Hochzeit in Tirol – zeitlose Hochzeitsfotografie von Mario Schubert", tall: true },
-    { src: IMAGES.gallery2, alt: "Golden Retriever Outdoor Naturfotografie – Tierfotograf Innsbruck", tall: false },
-    { src: IMAGES.gallery3, alt: "Romantisches Couple Shooting bei Sonnenuntergang – Paarfotograf Tirol", tall: true },
-    { src: IMAGES.gallery4, alt: "Erster Tanz Hochzeitsreportage – Hochzeitsvideograf Bayern", tall: false },
-    { src: IMAGES.gallery5, alt: "Natuerliches Familienportrait Outdoor – Familienfotograf Innsbruck", tall: false },
-    { src: IMAGES.gallery6, alt: "Majestaetisches Pferdeportrait – Tierfotografie Alpen Mario Schubert", tall: true },
-    { src: IMAGES.gallery7, alt: "Elegante Hochzeitszeremonie Outdoor – Hochzeitsfotograf Innsbruck Tirol", tall: false },
-    { src: IMAGES.gallery8, alt: "Familie im Herbst Outdoor – Familienfotografie Tirol", tall: true },
-    { src: IMAGES.gallery9, alt: "Lachendes Paar beim Engagement Shooting – Couple Fotograf Bayern", tall: false },
-  ]);
+  // Home gallery: mix from all pages (hochzeit, tiere, portrait) with load more
+  const allGalleryImages = useMemo(() => {
+    const wedding = getImagesForPage("hochzeit", undefined, lang);
+    const animals = getImagesForPage("tiere", undefined, lang);
+    const portrait = getImagesForPage("portrait", undefined, lang);
+    // Interleave: take from each category in round-robin
+    const sources = [wedding, animals, portrait];
+    const mixed: typeof wedding = [];
+    const maxLen = Math.max(...sources.map(s => s.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const source of sources) {
+        if (i < source.length) mixed.push(source[i]);
+      }
+    }
+    return mixed;
+  }, [getImagesForPage, lang]);
+
+  const shuffledGallery = useShuffledGallery(allGalleryImages);
+  const visibleGallery = useMemo(() => shuffledGallery.slice(0, visibleCount), [shuffledGallery, visibleCount]);
+  const hasMoreGallery = visibleCount < shuffledGallery.length;
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount(prev => prev + GALLERY_PAGE_SIZE);
+  }, []);
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -397,15 +405,28 @@ export function HomePage() {
           </SectionReveal>
 
           <MasonryGrid
-            images={galleryImages}
+            images={visibleGallery}
             openLightbox={openLightbox}
-            initialPageSize={galleryImages.length}
+            initialPageSize={visibleCount}
           />
+
+          {hasMoreGallery && (
+            <div className="text-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                className="inline-flex items-center gap-2 text-[0.8rem] tracking-[0.15em] uppercase text-black border border-black px-8 py-3 no-underline hover:bg-black hover:text-white transition-all duration-300 bg-transparent cursor-pointer"
+                style={{ fontWeight: 400 }}
+              >
+                {lang === "de" ? "Mehr anzeigen" : "Load more"}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       <Lightbox
-        images={galleryImages}
+        images={shuffledGallery}
         initialIndex={index}
         open={open}
         onClose={closeLightbox}

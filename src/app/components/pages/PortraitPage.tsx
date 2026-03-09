@@ -9,15 +9,16 @@ import { motion } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { useShuffledGallery } from "../useShuffledGallery";
+import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
 import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
-  hero: "https://images.unsplash.com/photo-1761334859630-611bdf32e3e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBzaG9vdGluZyUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-  couple: "https://images.unsplash.com/photo-1765615197726-6d2a157620fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY291cGxlJTIwb3V0ZG9vciUyMHJvbWFudGljfGVufDF8fHx8MTc3Mjk5NTc4OXww&ixlib=rb-4.1.0&q=80&w=1080",
-  family: "https://images.unsplash.com/photo-1603367563698-67012943fd67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwb3J0cmFpdCUyMG91dGRvb3IlMjBuYXR1cmFsfGVufDF8fHx8MTc3Mjk5NTc5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-  baptism: "https://images.unsplash.com/photo-1765947383088-c05eeedbdba3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWJ5JTIwYmFwdGlzbSUyMGNlcmVtb255fGVufDF8fHx8MTc3Mjk5NTc5M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+  hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4431_(WebRes).jpg?updatedAt=1772999913745",
+  couple: "https://ik.imagekit.io/r2yqrg6np/Wedding/Getting%20Ready/20251004_8D2A0221_(WebRes).jpg?updatedAt=1773002917508",
+  family: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_153525_0450(LowRes).jpg?updatedAt=1773007047995",
+  baptism: "https://ik.imagekit.io/r2yqrg6np/Other/20251019_Hundeshooting-2363_(WebRes).jpg?updatedAt=1773014105249",
   coupleSunset: "https://images.unsplash.com/photo-1769050349380-7ee061d43ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBwb3J0cmFpdCUyMHN1bnNldCUyMHJvbWFudGljJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzcyOTk3NTMzfDA&ixlib=rb-4.1.0&q=80&w=1080",
   familyAutumn: "https://images.unsplash.com/photo-1768509196851-16084e78f6ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwb3J0cmFpdCUyMG91dGRvb3IlMjBhdXR1bW4lMjBuYXR1cmFsfGVufDF8fHx8MTc3Mjk5NzUzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
   baptismChurch: "https://images.unsplash.com/photo-1765947386414-5e63c7887830?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWJ5JTIwYmFwdGlzbSUyMGNocmlzdGVuaW5nJTIwY2VyZW1vbnklMjBjaHVyY2h8ZW58MXx8fHwxNzcyOTk3NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -28,6 +29,7 @@ export function PortraitPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
+  const { getImagesForPage } = useImages();
 
   const seo = lang === "de"
     ? {
@@ -62,7 +64,9 @@ export function PortraitPage() {
     },
   ];
 
-  const galleryImages = useShuffledGallery([
+  // Pull portrait images from Google Sheet (ImageKit "Other" folder → page "portrait")
+  // Falls back to hardcoded Unsplash images if API unavailable
+  const fallbackImages = [
     { src: IMAGES.coupleSunset, alt: "Romantisches Couple Shooting bei Sonnenuntergang – Paarfotograf Tirol" },
     { src: IMAGES.family, alt: "Natuerliches Familienshooting Outdoor – Familienfotograf Innsbruck" },
     { src: IMAGES.baptismChurch, alt: "Taufe Zeremonie in der Kirche – Taufe Fotograf Innsbruck" },
@@ -71,7 +75,11 @@ export function PortraitPage() {
     { src: IMAGES.couple, alt: "Romantisches Paar Outdoor in den Alpen – Paarshooting Mario Schubert" },
     { src: IMAGES.hero, alt: "Couple Shooting Outdoor – Portrait und Paarfotografie Innsbruck" },
     { src: IMAGES.baptism, alt: "Taufe Fotografie – Babyfotograf und Eventfotograf Tirol" },
-  ]);
+  ];
+
+  const apiImages = getImagesForPage("portrait", undefined, lang);
+  const rawGalleryImages = apiImages.length > 0 ? apiImages : fallbackImages;
+  const galleryImages = useShuffledGallery(rawGalleryImages);
 
   return (
     <>

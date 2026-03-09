@@ -19,7 +19,7 @@ const IMAGES = {
   horses: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8536.jpg?updatedAt=1773000811495",
   cats: "https://images.unsplash.com/photo-1643968479233-642460fdb9f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbCUyMHBob3RvZ3JhcGh5fGVufDF8fHx8MTc3MzAwMTEwMnww&ixlib=rb-4.1.0&q=80&w=1080",
   studio: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1552_(WebRes).jpg?updatedAt=1772999913736",
-  outdoor: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2039_(WebRes).jpg?updatedAt=1772999915959",
+  outdoor: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1054_(WebRes).jpg?updatedAt=1773000803645",
 };
 
 export function AnimalsPage() {
