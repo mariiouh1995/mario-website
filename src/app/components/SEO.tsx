@@ -11,6 +11,9 @@ interface SEOProps {
 
 const BASE_URL = "https://www.marioschubert.com";
 
+// Camera emoji favicon as SVG data URI
+const FAVICON_SVG = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📷</text></svg>`;
+
 export function SEO({
   title,
   description,
@@ -29,6 +32,7 @@ export function SEO({
       htmlAttributes={{ lang }}
     >
       <title>{fullTitle}</title>
+      <link rel="icon" type="image/svg+xml" href={FAVICON_SVG} />
       <meta name="description" content={description} />
       {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={url} />

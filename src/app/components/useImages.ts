@@ -24,6 +24,7 @@ interface ImagesState {
 
 const CACHE_KEY = "marioschub_images";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches API cache)
+const CACHE_BUST_KEY = "marioschub_images_bust"; // timestamp to bust CDN cache after sync
 
 // ── Helper to generate entries ──
 function w(category: string, src: string, altDe: string, altEn: string): ImageEntry {
@@ -222,6 +223,8 @@ function setCachedData(data: ImageEntry[]) {
 export function clearImagesCache() {
   try {
     localStorage.removeItem(CACHE_KEY);
+    // Set a cache-bust flag so the next fetch bypasses Vercel CDN
+    localStorage.setItem(CACHE_BUST_KEY, String(Date.now()));
   } catch {
     // ignore
   }
@@ -252,7 +255,20 @@ export function useImages() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const response = await fetch("/api/get-images", { signal: controller.signal });
+        // Add cache-buster to bypass Vercel CDN cache (especially after sync)
+        let apiUrl = "/api/get-images";
+        try {
+          const bustTs = localStorage.getItem(CACHE_BUST_KEY);
+          if (bustTs) {
+            apiUrl += `?_cb=${bustTs}`;
+            // Clear the bust flag after using it once
+            localStorage.removeItem(CACHE_BUST_KEY);
+          }
+        } catch {
+          // localStorage unavailable
+        }
+
+        const response = await fetch(apiUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);

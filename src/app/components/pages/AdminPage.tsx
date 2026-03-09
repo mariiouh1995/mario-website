@@ -248,6 +248,10 @@ export function AdminPage() {
               <p className="text-white/30 text-[0.75rem] mt-4">
                 {new Date(syncResult.syncedAt).toLocaleString("de-AT")}
               </p>
+
+              <p className="text-white/40 text-[0.78rem] mt-3 italic">
+                Cache wurde geleert. Beim nächsten Seitenaufruf werden die neuen Bilder geladen.
+              </p>
             </div>
           )}
 
