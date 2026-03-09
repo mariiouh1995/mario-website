@@ -18,7 +18,7 @@ const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4431_(WebRes).jpg?updatedAt=1772999913745",
   couple: "https://ik.imagekit.io/r2yqrg6np/Wedding/Getting%20Ready/20251004_8D2A0221_(WebRes).jpg?updatedAt=1773002917508",
   family: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_153525_0450(LowRes).jpg?updatedAt=1773007047995",
-  baptism: "https://ik.imagekit.io/r2yqrg6np/Other/20251019_Hundeshooting-2363_(WebRes).jpg?updatedAt=1773014105249",
+  baptism: "https://ik.imagekit.io/r2yqrg6np/Other/7561IG.jpg?updatedAt=1773014105229",
   coupleSunset: "https://images.unsplash.com/photo-1769050349380-7ee061d43ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3VwbGUlMjBwb3J0cmFpdCUyMHN1bnNldCUyMHJvbWFudGljJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzcyOTk3NTMzfDA&ixlib=rb-4.1.0&q=80&w=1080",
   familyAutumn: "https://images.unsplash.com/photo-1768509196851-16084e78f6ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYW1pbHklMjBwb3J0cmFpdCUyMG91dGRvb3IlMjBhdXR1bW4lMjBuYXR1cmFsfGVufDF8fHx8MTc3Mjk5NzUzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
   baptismChurch: "https://images.unsplash.com/photo-1765947386414-5e63c7887830?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYWJ5JTIwYmFwdGlzbSUyMGNocmlzdGVuaW5nJTIwY2VyZW1vbnklMjBjaHVyY2h8ZW58MXx8fHwxNzcyOTk3NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
