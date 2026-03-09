@@ -5,9 +5,12 @@ import { SectionReveal } from "../SectionReveal";
 import { SEO } from "../SEO";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
-import { ParallaxHero } from "../ParallaxHero";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { FAQSection } from "../FAQSection";
 import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
+
+const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Madeira%20Clip%20fu%CC%88r%20Webseite.mp4?updatedAt=1773024774420";
 
 const IMAGES = {
   portrait: "https://ik.imagekit.io/r2yqrg6np/68e54c497a9dde9d00252dcb_WhatsApp%20Image%202025-09-16%20at%2022.32.17.avif",
@@ -202,6 +205,14 @@ export function AboutPage() {
     { icon: Video, num: content.stat4Num, label: content.stat4Label },
   ];
 
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const heroTextY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
   return (
     <>
       <SEO
@@ -213,14 +224,57 @@ export function AboutPage() {
         ogImage={IMAGES.portrait}
       />
 
-      {/* Hero with Parallax */}
-      <ParallaxHero
-        imageSrc={IMAGES.landscape}
-        imageAlt="Alpenlandschaft Tirol – Fotografie-Location fuer Hochzeiten und Shootings bei Innsbruck"
-        preTitle={t.about.title}
-        title={<>{t.about.heading.split("Mario")[0]}<span style={{ fontWeight: 700 }}>Mario</span></>}
-        height="h-[60vh] min-h-[450px]"
-      />
+      {/* Video Hero */}
+      <section ref={heroRef} className="relative h-[40vh] min-h-[280px] md:h-[70vh] md:min-h-[500px] overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src={HERO_VIDEO}
+        />
+        <div className="absolute inset-0 bg-black/40" />
+        <motion.div
+          className="relative h-full flex flex-col items-center justify-center text-center px-4"
+          style={{ y: heroTextY, opacity: heroOpacity }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p
+              className="text-white/70 text-[0.75rem] tracking-[0.3em] uppercase mb-4"
+              style={{ fontWeight: 400 }}
+            >
+              {t.about.title}
+            </p>
+            <h1
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "clamp(2.5rem, 7vw, 5rem)",
+                fontWeight: 300,
+                lineHeight: 1,
+                color: "white",
+              }}
+            >
+              {t.about.heading.split("Mario")[0]}
+              <span style={{ fontWeight: 700 }}>Mario</span>
+            </h1>
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{ opacity: heroOpacity }}
+        >
+          <div className="w-[1px] h-12 bg-white/30" />
+        </motion.div>
+      </section>
 
       {/* What to Expect */}
       <section className="py-24 md:py-32 px-4">
