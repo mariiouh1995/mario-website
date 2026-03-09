@@ -115,7 +115,7 @@ export function HomePage() {
       />
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative h-[60vh] min-h-[400px] md:h-screen md:min-h-[600px] overflow-hidden">
+      <section ref={heroRef} className="relative h-[45vh] min-h-[350px] md:h-screen md:min-h-[600px] overflow-hidden">
         <motion.div className="absolute inset-0" style={{ y: heroImageY }}>
           <ImageWithFallback
             src={IMAGES.hero}

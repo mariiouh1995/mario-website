@@ -11,7 +11,7 @@ interface ParallaxHeroProps {
   children?: React.ReactNode;
 }
 
-export function ParallaxHero({ imageSrc, imageAlt, preTitle, title, height = "h-[50vh] min-h-[320px] md:h-[70vh] md:min-h-[500px]", children }: ParallaxHeroProps) {
+export function ParallaxHero({ imageSrc, imageAlt, preTitle, title, height = "h-[40vh] min-h-[280px] md:h-[70vh] md:min-h-[500px]", children }: ParallaxHeroProps) {
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
