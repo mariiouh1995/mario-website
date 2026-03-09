@@ -234,7 +234,6 @@ export function AboutPage() {
           className="absolute inset-0 w-full h-full object-cover"
           src={HERO_VIDEO}
         />
-        <div className="absolute inset-0 bg-black/40" />
         <motion.div
           className="relative h-full flex flex-col items-center justify-center text-center px-4"
           style={{ y: heroTextY, opacity: heroOpacity }}
