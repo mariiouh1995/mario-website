@@ -1,3 +1,4 @@
+import { usePageContent } from "../storyblok";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useLanguage } from "../LanguageContext";
 import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, Users, Award, Video } from "lucide-react";
@@ -8,7 +9,6 @@ import { useContactModal } from "../ContactModal";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { FAQSection } from "../FAQSection";
-import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Madeira%20Clip%20fu%CC%88r%20Webseite.mp4?updatedAt=1773024774420";
 
@@ -21,6 +21,7 @@ const IMAGES = {
 export function AboutPage() {
   const { t, lang } = useLanguage();
   const { openContact } = useContactModal();
+  const { getText } = usePageContent("about", lang);
 
   const seo = lang === "de"
     ? {
@@ -35,9 +36,9 @@ export function AboutPage() {
       };
 
   const philosophyItems = [
-    { icon: Camera, title: t.about.philosophy1, text: t.about.philosophy1Text },
-    { icon: Film, title: t.about.philosophy2, text: t.about.philosophy2Text },
-    { icon: Heart, title: t.about.philosophy3, text: t.about.philosophy3Text },
+    { icon: Camera, title: getText("philosophy1", t.about.philosophy1), text: getText("philosophy1_text", t.about.philosophy1Text) },
+    { icon: Film, title: getText("philosophy2", t.about.philosophy2), text: getText("philosophy2_text", t.about.philosophy2Text) },
+    { icon: Heart, title: getText("philosophy3", t.about.philosophy3), text: getText("philosophy3_text", t.about.philosophy3Text) },
   ];
 
   const content = lang === "de"
@@ -247,7 +248,7 @@ export function AboutPage() {
               className="text-white/70 text-[0.75rem] tracking-[0.3em] uppercase mb-4"
               style={{ fontWeight: 400 }}
             >
-              {t.about.title}
+              {getText("about_title", t.about.title)}
             </p>
             <h1
               style={{
@@ -258,7 +259,7 @@ export function AboutPage() {
                 color: "white",
               }}
             >
-              {t.about.heading.split("Mario")[0]}
+              {getText("heading", t.about.heading).split("Mario")[0]}
               <span style={{ fontWeight: 700 }}>Mario</span>
             </h1>
           </motion.div>
@@ -296,13 +297,13 @@ export function AboutPage() {
                   </span>
                 </h2>
                 <p className="text-black/75 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {t.about.text1}
+                  {getText("text1", t.about.text1)}
                 </p>
                 <p className="text-black/75 text-[0.9rem] mb-5" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {t.about.text2}
+                  {getText("text2", t.about.text2)}
                 </p>
                 <p className="text-black/75 text-[0.9rem] mb-8" style={{ lineHeight: 1.8, fontWeight: 300 }}>
-                  {t.about.text3}
+                  {getText("text3", t.about.text3)}
                 </p>
                 <button
                   onClick={() => openContact()}
@@ -455,7 +456,7 @@ export function AboutPage() {
                 fontWeight: 300,
               }}
             >
-              {t.about.philosophyTitle}
+              {getText("philosophy_title", t.about.philosophyTitle)}
             </h2>
           </SectionReveal>
 

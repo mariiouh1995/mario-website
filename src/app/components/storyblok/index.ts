@@ -24,3 +24,4 @@
 export { initStoryblok, isStoryblokConfigured } from "./storyblok-init";
 export { fetchStoryblokStories, fetchStoryblokStory, clearStoryblokCache } from "./storyblok-api";
 export { useStoryblokFAQs } from "./useStoryblokFAQs";
+export { usePageContent } from "./usePageContent";

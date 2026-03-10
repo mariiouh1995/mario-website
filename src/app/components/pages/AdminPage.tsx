@@ -15,6 +15,13 @@ interface SyncResult {
   folderStats: Record<string, number>;
   folderErrors?: Record<string, string>;
   totalImages: number;
+  storyblokResult?: {
+    created: number;
+    updated: number;
+    deleted: number;
+    skipped: number;
+    errors?: string[];
+  };
 }
 
 export function AdminPage() {
@@ -180,8 +187,8 @@ export function AdminPage() {
                 Bilder synchronisieren
               </h2>
               <p className="text-white/40 text-[0.85rem]" style={{ lineHeight: 1.6 }}>
-                Liest alle Bilder aus ImageKit aus und aktualisiert das Google Sheet
-                &bdquo;Bilder&ldquo;-Tab mit URLs und SEO Alt-Tags.
+                Liest alle Bilder aus ImageKit aus und aktualisiert Google Sheets
+                + Storyblok CMS mit URLs und SEO Alt-Tags.
               </p>
             </div>
           </div>
@@ -207,7 +214,7 @@ export function AdminPage() {
                 </span>
               </div>
               <p className="text-white/60 text-[0.85rem] mb-4">
-                {syncResult.totalImages} Bilder ins Google Sheet geschrieben
+                {syncResult.totalImages} Bilder synchronisiert
               </p>
 
               {/* Folder breakdown */}
@@ -242,6 +249,48 @@ export function AdminPage() {
                       )
                     )}
                   </ul>
+                </div>
+              )}
+
+              {/* Storyblok sync results */}
+              {syncResult.storyblokResult && (
+                <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                  <p className="text-white/50 text-[0.85rem] mb-2">
+                    Storyblok CMS:
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5 text-[0.8rem]">
+                    {syncResult.storyblokResult.created > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-emerald-400/70">Neu erstellt</span>
+                        <span className="text-emerald-400">{syncResult.storyblokResult.created}</span>
+                      </div>
+                    )}
+                    {syncResult.storyblokResult.updated > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-400/70">Aktualisiert</span>
+                        <span className="text-blue-400">{syncResult.storyblokResult.updated}</span>
+                      </div>
+                    )}
+                    {syncResult.storyblokResult.deleted > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-orange-400/70">Entfernt</span>
+                        <span className="text-orange-400">{syncResult.storyblokResult.deleted}</span>
+                      </div>
+                    )}
+                    {syncResult.storyblokResult.skipped > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/30">Unverändert</span>
+                        <span className="text-white/40">{syncResult.storyblokResult.skipped}</span>
+                      </div>
+                    )}
+                  </div>
+                  {syncResult.storyblokResult.errors?.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-red-400 text-[0.8rem]">
+                        {syncResult.storyblokResult.errors.length} Fehler bei Storyblok-Sync
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -1,3 +1,5 @@
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
+import { usePageContent } from "../storyblok";
 import { useWeddingPackages } from "../usePackagesFormatted";
 import { useImages } from "../useImages";
 import { useShuffledGallery } from "../useShuffledGallery";
@@ -14,7 +16,6 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
-import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_152738_0428(LowRes).jpg?updatedAt=1773007053353",
@@ -37,6 +38,7 @@ export function WeddingsPage() {
   const [galleryMode, setGalleryMode] = useState<"fotos" | "videos">("fotos");
   const { getImagesForPage } = useImages();
   const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
+  const { getText } = usePageContent("weddings", lang);
 
   // Reset visibleCount when category changes
   const GALLERY_PAGE_SIZE = 20;
@@ -112,8 +114,8 @@ export function WeddingsPage() {
       <ParallaxHero
         imageSrc={IMAGES.hero}
         imageAlt="Hochzeitspaar bei romantischem Outdoor-Shooting in den Tiroler Alpen – Hochzeitsfotograf Mario Schubert Innsbruck"
-        preTitle={t.weddings.heroTitle}
-        title={t.weddings.heroSubtitle}
+        preTitle={getText("hero_title", t.weddings.heroTitle)}
+        title={getText("hero_subtitle", t.weddings.heroSubtitle)}
       />
 
       {/* Wedding Photography */}
@@ -126,7 +128,7 @@ export function WeddingsPage() {
                   className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                   style={{ fontWeight: 400 }}
                 >
-                  {t.weddings.photoTitle}
+                  {getText("photo_title", t.weddings.photoTitle)}
                 </p>
                 <h2
                   style={{
@@ -137,20 +139,20 @@ export function WeddingsPage() {
                     marginBottom: "1.5rem",
                   }}
                 >
-                  {t.weddings.photoHeading}
+                  {getText("photo_heading", t.weddings.photoHeading)}
                 </h2>
                 <p
                   className="text-black/70 text-[0.9rem] mb-8"
                   style={{ lineHeight: 1.8, fontWeight: 300 }}
                 >
-                  {t.weddings.photoText}
+                  {getText("photo_text", t.weddings.photoText)}
                 </p>
                 <a
                   href="#packages"
                   className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase no-underline hover:bg-black hover:text-white transition-all duration-300"
                   style={{ fontWeight: 400 }}
                 >
-                  {t.weddings.photoPackages}
+                  {getText("photo_packages", t.weddings.photoPackages)}
                 </a>
               </div>
             </SectionReveal>
@@ -196,7 +198,7 @@ export function WeddingsPage() {
                   className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                   style={{ fontWeight: 400 }}
                 >
-                  {t.weddings.videoTitle}
+                  {getText("video_title", t.weddings.videoTitle)}
                 </p>
                 <h2
                   style={{
@@ -207,20 +209,20 @@ export function WeddingsPage() {
                     marginBottom: "1.5rem",
                   }}
                 >
-                  {t.weddings.videoHeading}
+                  {getText("video_heading", t.weddings.videoHeading)}
                 </h2>
                 <p
                   className="text-black/70 text-[0.9rem] mb-8"
                   style={{ lineHeight: 1.8, fontWeight: 300 }}
                 >
-                  {t.weddings.videoText}
+                  {getText("video_text", t.weddings.videoText)}
                 </p>
                 <a
                   href="#packages"
                   className="inline-flex items-center gap-2 text-black border border-black px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase no-underline hover:bg-black hover:text-white transition-all duration-300"
                   style={{ fontWeight: 400 }}
                 >
-                  {t.weddings.videoPackages}
+                  {getText("video_packages", t.weddings.videoPackages)}
                 </a>
               </div>
             </SectionReveal>
@@ -412,7 +414,7 @@ export function WeddingsPage() {
                 fontWeight: 300,
               }}
             >
-              {t.weddings.packagesTitle}
+              {getText("packages_title", t.weddings.packagesTitle)}
             </h2>
 
             {/* Tabs */}
@@ -949,20 +951,20 @@ export function WeddingsPage() {
                 marginBottom: "1.5rem",
               }}
             >
-              {t.weddings.ctaTitle}
+              {getText("cta_title", t.weddings.ctaTitle)}
             </h2>
             <p
               className="text-white/65 text-[0.9rem] mb-10"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
-              {t.weddings.ctaText}
+              {getText("cta_text", t.weddings.ctaText)}
             </p>
             <button
               onClick={() => openContact("wedding")}
               className="inline-flex items-center gap-2 text-white border border-white/40 px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-white hover:text-black transition-all duration-300"
               style={{ fontWeight: 400 }}
             >
-              {t.weddings.ctaButton}
+              {getText("cta_button", t.weddings.ctaButton)}
               <ArrowRight size={14} />
             </button>
           </SectionReveal>

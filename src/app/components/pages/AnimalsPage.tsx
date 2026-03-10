@@ -1,3 +1,4 @@
+import { usePageContent } from "../storyblok";
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { ArrowRight, Check, Star, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";
@@ -11,7 +12,6 @@ import { useContactModal } from "../ContactModal";
 import { ParallaxHero } from "../ParallaxHero";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
-import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3474_(WebRes).jpg?updatedAt=1772999916029",
@@ -26,6 +26,7 @@ export function AnimalsPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
+  const { getText } = usePageContent("animals", lang);
 
   const seo = lang === "de"
     ? {
@@ -91,20 +92,20 @@ export function AnimalsPage() {
 
   const categories = [
     {
-      title: t.animals.dogsTitle,
-      text: t.animals.dogsText,
+      title: getText("dogs_title", t.animals.dogsTitle),
+      text: getText("dogs_text", t.animals.dogsText),
       image: IMAGES.dogs,
       imageAlt: "Dog photography",
     },
     {
-      title: t.animals.horsesTitle,
-      text: t.animals.horsesText,
+      title: getText("horses_title", t.animals.horsesTitle),
+      text: getText("horses_text", t.animals.horsesText),
       image: IMAGES.horses,
       imageAlt: "Horse photography",
     },
     {
-      title: t.animals.otherTitle,
-      text: t.animals.otherText,
+      title: getText("other_title", t.animals.otherTitle),
+      text: getText("other_text", t.animals.otherText),
       image: IMAGES.cats,
       imageAlt: "Pet photography",
     },
@@ -160,8 +161,8 @@ export function AnimalsPage() {
       <ParallaxHero
         imageSrc={IMAGES.hero}
         imageAlt="Professionelle Tierfotografie – Hundeportrait Outdoor in Tirol"
-        preTitle={t.animals.heroTitle}
-        title={t.animals.heroSubtitle}
+        preTitle={getText("hero_title", t.animals.heroTitle)}
+        title={getText("hero_subtitle", t.animals.heroSubtitle)}
       />
 
       {/* Intro */}
@@ -172,7 +173,7 @@ export function AnimalsPage() {
               className="text-black/55 text-[1rem] md:text-[1.1rem]"
               style={{ lineHeight: 1.9, fontWeight: 300 }}
             >
-              {t.animals.intro}
+              {getText("intro", t.animals.intro)}
             </p>
           </SectionReveal>
         </div>
@@ -506,20 +507,20 @@ export function AnimalsPage() {
                 marginBottom: "1.5rem",
               }}
             >
-              {t.animals.ctaTitle}
+              {getText("cta_title", t.animals.ctaTitle)}
             </h2>
             <p
               className="text-white/65 text-[0.9rem] mb-10"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
-              {t.animals.ctaText}
+              {getText("cta_text", t.animals.ctaText)}
             </p>
             <button
               onClick={() => openContact("animal")}
               className="inline-flex items-center gap-2 text-white border border-white/40 px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-white hover:text-black transition-all duration-300"
               style={{ fontWeight: 400 }}
             >
-              {t.animals.ctaButton}
+              {getText("cta_button", t.animals.ctaButton)}
               <ArrowRight size={14} />
             </button>
           </SectionReveal>

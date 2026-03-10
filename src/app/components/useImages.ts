@@ -374,6 +374,244 @@ interface StoryblokGalleryContent {
   sort_order: number;
 }
 
+// ── Auto Alt-Tag Generator ──
+// Generates SEO-optimized alt tags based on page + category if not manually set
+
+const ALT_TEMPLATES: Record<string, { de: string[]; en: string[] }> = {
+  "hochzeit:standesamt": {
+    de: [
+      "Standesamtliche Trauung \u2013 Hochzeitsfotografie Innsbruck",
+      "Standesamt Hochzeit \u2013 Hochzeitsfotograf Tirol",
+      "Standesamtliche Trauung \u2013 Mario Schubert Fotografie",
+      "Standesamt Zeremonie \u2013 Hochzeitsfotograf Innsbruck Tirol",
+      "Standesamt Hochzeitsfotografie \u2013 Mario Schubert Tirol",
+    ],
+    en: [
+      "Civil ceremony \u2013 Wedding photography Innsbruck",
+      "Civil wedding \u2013 Wedding photographer Tyrol",
+      "Civil ceremony \u2013 Mario Schubert Photography",
+      "Civil ceremony \u2013 Wedding photographer Innsbruck Tyrol",
+      "Civil wedding photography \u2013 Mario Schubert Tyrol",
+    ],
+  },
+  "hochzeit:getting-ready": {
+    de: [
+      "Getting Ready \u2013 Hochzeitsfotografie Innsbruck",
+      "Braut Getting Ready \u2013 Hochzeitsfotograf Tirol",
+      "Getting Ready Details \u2013 Mario Schubert Fotografie",
+      "Hochzeit Vorbereitung \u2013 Hochzeitsfotograf Innsbruck",
+      "Getting Ready Momente \u2013 Hochzeitsfotografie Tirol",
+    ],
+    en: [
+      "Getting ready \u2013 Wedding photography Innsbruck",
+      "Bride getting ready \u2013 Wedding photographer Tyrol",
+      "Getting ready details \u2013 Mario Schubert Photography",
+      "Wedding preparation \u2013 Wedding photographer Innsbruck",
+      "Getting ready moments \u2013 Wedding photography Tyrol",
+    ],
+  },
+  "hochzeit:kirchliche-trauung": {
+    de: [
+      "Kirchliche Trauung \u2013 Hochzeitsfotografie Innsbruck",
+      "Kirchliche Hochzeit \u2013 Hochzeitsfotograf Tirol",
+      "Trauung in der Kirche \u2013 Mario Schubert Fotografie",
+      "Kirchliche Zeremonie \u2013 Hochzeitsfotografie Alpen",
+      "Kirchliche Trauung Tirol \u2013 Hochzeitsfotograf Innsbruck",
+    ],
+    en: [
+      "Church ceremony \u2013 Wedding photography Innsbruck",
+      "Church wedding \u2013 Wedding photographer Tyrol",
+      "Church ceremony \u2013 Mario Schubert Photography",
+      "Church ceremony \u2013 Alpine wedding photography",
+      "Church ceremony Tyrol \u2013 Wedding photographer Innsbruck",
+    ],
+  },
+  "hochzeit:paarshooting": {
+    de: [
+      "Romantisches Paarshooting \u2013 Hochzeitsfotograf Innsbruck",
+      "Paarshooting bei Sonnenuntergang \u2013 Paarfotografie Tirol",
+      "Paar-Portrait in den Bergen \u2013 Mario Schubert Fotografie",
+      "Hochzeit Paarshooting \u2013 Hochzeitsfotografie Tirol",
+      "Couple Shooting \u2013 Hochzeitsfotograf Mario Schubert",
+    ],
+    en: [
+      "Romantic couple shoot \u2013 Wedding photographer Innsbruck",
+      "Couple shoot at sunset \u2013 Couple photography Tyrol",
+      "Couple portrait in the mountains \u2013 Mario Schubert Photography",
+      "Wedding couple shoot \u2013 Wedding photography Tyrol",
+      "Couple shooting \u2013 Wedding photographer Mario Schubert",
+    ],
+  },
+  "hochzeit:empfang": {
+    de: [
+      "Hochzeitsempfang \u2013 Hochzeitsfotografie Innsbruck",
+      "Empfang & Feier \u2013 Hochzeitsfotograf Tirol",
+      "Hochzeitsfeier \u2013 Mario Schubert Fotografie",
+      "Empfang Hochzeit \u2013 Hochzeitsfotografie Tirol Bayern",
+      "Hochzeitsempfang \u2013 Hochzeitsfotograf Mario Schubert",
+    ],
+    en: [
+      "Wedding reception \u2013 Wedding photography Innsbruck",
+      "Reception & celebration \u2013 Wedding photographer Tyrol",
+      "Wedding celebration \u2013 Mario Schubert Photography",
+      "Wedding reception \u2013 Wedding photography Tyrol Bavaria",
+      "Wedding reception \u2013 Wedding photographer Mario Schubert",
+    ],
+  },
+  "hochzeit:details": {
+    de: [
+      "Hochzeitsdetails \u2013 Hochzeitsfotografie Innsbruck",
+      "Details & Dekoration \u2013 Hochzeitsfotograf Tirol",
+      "Hochzeit Detailaufnahmen \u2013 Mario Schubert Fotografie",
+      "Eheringe & Details \u2013 Hochzeitsfotografie Tirol",
+      "Hochzeitsdetails \u2013 Hochzeitsfotograf Mario Schubert",
+    ],
+    en: [
+      "Wedding details \u2013 Wedding photography Innsbruck",
+      "Details & decoration \u2013 Wedding photographer Tyrol",
+      "Wedding detail shots \u2013 Mario Schubert Photography",
+      "Wedding rings & details \u2013 Wedding photography Tyrol",
+      "Wedding details \u2013 Wedding photographer Mario Schubert",
+    ],
+  },
+  "tiere:hunde": {
+    de: [
+      "Hundefotografie \u2013 Tierfotograf Innsbruck",
+      "Hundeportrait \u2013 Tierfotografie Tirol",
+      "Hundeshooting \u2013 Mario Schubert Fotografie",
+      "Hundefotografie outdoor \u2013 Tierfotograf Tirol",
+      "Hund Portrait \u2013 Tierfotografie Innsbruck",
+    ],
+    en: [
+      "Dog photography \u2013 Animal photographer Innsbruck",
+      "Dog portrait \u2013 Animal photography Tyrol",
+      "Dog photo shoot \u2013 Mario Schubert Photography",
+      "Outdoor dog photography \u2013 Animal photographer Tyrol",
+      "Dog portrait \u2013 Animal photography Innsbruck",
+    ],
+  },
+  "tiere:pferde": {
+    de: [
+      "Pferdefotografie \u2013 Tierfotograf Innsbruck",
+      "Pferd & Mensch \u2013 Tierfotografie Tirol",
+      "Pferdeportrait \u2013 Mario Schubert Fotografie",
+      "Pferdeshooting \u2013 Tierfotograf Tirol",
+      "Pferdefotografie outdoor \u2013 Tierfotografie Innsbruck",
+    ],
+    en: [
+      "Horse photography \u2013 Animal photographer Innsbruck",
+      "Horse & human \u2013 Animal photography Tyrol",
+      "Horse portrait \u2013 Mario Schubert Photography",
+      "Horse photo shoot \u2013 Animal photographer Tyrol",
+      "Outdoor horse photography \u2013 Animal photography Innsbruck",
+    ],
+  },
+  "tiere:andere": {
+    de: [
+      "Tierfotografie \u2013 Tierfotograf Innsbruck",
+      "Haustier Portrait \u2013 Tierfotografie Tirol",
+      "Tiershooting \u2013 Mario Schubert Fotografie",
+      "Kleintier Fotografie \u2013 Tierfotograf Tirol",
+      "Tierfotografie \u2013 Fotograf Innsbruck Tirol",
+    ],
+    en: [
+      "Animal photography \u2013 Animal photographer Innsbruck",
+      "Pet portrait \u2013 Animal photography Tyrol",
+      "Pet photo shoot \u2013 Mario Schubert Photography",
+      "Small animal photography \u2013 Animal photographer Tyrol",
+      "Animal photography \u2013 Photographer Innsbruck Tyrol",
+    ],
+  },
+  "portrait:couple": {
+    de: [
+      "Paarshooting \u2013 Fotograf Innsbruck",
+      "Couple Shooting \u2013 Paarfotografie Tirol",
+      "Paarportrait \u2013 Mario Schubert Fotografie",
+      "Paarshooting outdoor \u2013 Fotograf Tirol",
+      "Couple Portrait \u2013 Paarfotografie Innsbruck",
+    ],
+    en: [
+      "Couple shoot \u2013 Photographer Innsbruck",
+      "Couple shooting \u2013 Couple photography Tyrol",
+      "Couple portrait \u2013 Mario Schubert Photography",
+      "Outdoor couple shoot \u2013 Photographer Tyrol",
+      "Couple portrait \u2013 Couple photography Innsbruck",
+    ],
+  },
+  "portrait:familie": {
+    de: [
+      "Familienshooting \u2013 Fotograf Innsbruck",
+      "Familienfotografie \u2013 Familienfotograf Tirol",
+      "Familienportrait \u2013 Mario Schubert Fotografie",
+      "Familie & Kinder \u2013 Fotograf Innsbruck Tirol",
+      "Familienshooting outdoor \u2013 Familienfotografie Tirol",
+    ],
+    en: [
+      "Family shoot \u2013 Photographer Innsbruck",
+      "Family photography \u2013 Family photographer Tyrol",
+      "Family portrait \u2013 Mario Schubert Photography",
+      "Family & kids \u2013 Photographer Innsbruck Tyrol",
+      "Outdoor family shoot \u2013 Family photography Tyrol",
+    ],
+  },
+  "portrait:privat": {
+    de: [
+      "Eventfotografie \u2013 Fotograf Innsbruck",
+      "Private Anl\u00e4sse \u2013 Fotografie Tirol",
+      "Eventfotos \u2013 Mario Schubert Fotografie",
+      "Geburtstag & Events \u2013 Fotograf Tirol",
+      "Eventfotografie \u2013 Fotograf Innsbruck Tirol",
+    ],
+    en: [
+      "Event photography \u2013 Photographer Innsbruck",
+      "Private occasions \u2013 Photography Tyrol",
+      "Event photos \u2013 Mario Schubert Photography",
+      "Birthday & events \u2013 Photographer Tyrol",
+      "Event photography \u2013 Photographer Innsbruck Tyrol",
+    ],
+  },
+};
+
+function generateGenericAlt(page: string, category: string, index: number): { de: string; en: string } {
+  const pageMap: Record<string, { de: string; en: string }> = {
+    hochzeit: { de: "Hochzeitsfotografie", en: "Wedding photography" },
+    tiere: { de: "Tierfotografie", en: "Animal photography" },
+    portrait: { de: "Portraitfotografie", en: "Portrait photography" },
+  };
+  const catMap: Record<string, { de: string; en: string }> = {
+    standesamt: { de: "Standesamtliche Trauung", en: "Civil ceremony" },
+    "getting-ready": { de: "Getting Ready", en: "Getting ready" },
+    "kirchliche-trauung": { de: "Kirchliche Trauung", en: "Church ceremony" },
+    paarshooting: { de: "Paarshooting", en: "Couple shoot" },
+    empfang: { de: "Empfang & Feier", en: "Reception & celebration" },
+    details: { de: "Hochzeitsdetails", en: "Wedding details" },
+    hunde: { de: "Hundefotografie", en: "Dog photography" },
+    pferde: { de: "Pferdefotografie", en: "Horse photography" },
+    andere: { de: "Tierfotografie", en: "Animal photography" },
+    couple: { de: "Paarshooting", en: "Couple shoot" },
+    familie: { de: "Familienshooting", en: "Family shoot" },
+    privat: { de: "Private Anl\u00e4sse", en: "Private occasions" },
+  };
+  const locations = ["Innsbruck", "Tirol", "Innsbruck Tirol", "Bayern", "Mario Schubert"];
+  const location = locations[index % locations.length];
+  const pageName = pageMap[page] || { de: "Fotografie", en: "Photography" };
+  const catName = catMap[category] || { de: category, en: category };
+  return {
+    de: `${catName.de} \u2013 ${pageName.de} ${location}`,
+    en: `${catName.en} \u2013 ${pageName.en} ${location}`,
+  };
+}
+
+function autoGenerateAlt(page: string, category: string, index: number): { de: string; en: string } {
+  const key = `${page}:${category}`;
+  const templates = ALT_TEMPLATES[key];
+  if (templates) {
+    const i = index % templates.de.length;
+    return { de: templates.de[i], en: templates.en[i] };
+  }
+  return generateGenericAlt(page, category, index);
+}
+
 async function fetchImagesFromStoryblok(): Promise<ImageEntry[] | null> {
   try {
     const stories = await fetchStoryblokStories<StoryblokGalleryContent>(
@@ -383,13 +621,29 @@ async function fetchImagesFromStoryblok(): Promise<ImageEntry[] | null> {
 
     if (!stories || stories.length === 0) return null;
 
-    return stories.map((s) => ({
-      page: (s.content.page || "").toLowerCase(),
-      category: (s.content.category || "").toLowerCase(),
-      src: s.content.image_url || "",
-      altDe: s.content.alt_de || "",
-      altEn: s.content.alt_en || "",
-    }));
+    // Track index per page:category for alt-tag rotation
+    const categoryCounters: Record<string, number> = {};
+
+    return stories.map((s) => {
+      const page = (s.content.page || "").toLowerCase();
+      const category = (s.content.category || "").toLowerCase();
+      const key = `${page}:${category}`;
+      const idx = categoryCounters[key] || 0;
+      categoryCounters[key] = idx + 1;
+
+      // Use manual alt tags if provided, otherwise auto-generate
+      const hasManualDe = s.content.alt_de && s.content.alt_de.trim().length > 0;
+      const hasManualEn = s.content.alt_en && s.content.alt_en.trim().length > 0;
+      const autoAlt = (!hasManualDe || !hasManualEn) ? autoGenerateAlt(page, category, idx) : null;
+
+      return {
+        page,
+        category,
+        src: s.content.image_url || "",
+        altDe: hasManualDe ? s.content.alt_de : (autoAlt?.de || ""),
+        altEn: hasManualEn ? s.content.alt_en : (autoAlt?.en || ""),
+      };
+    });
   } catch (err) {
     console.warn("[Storyblok] Failed to fetch gallery images:", err);
     return null;

@@ -1,3 +1,5 @@
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
+import { usePageContent } from "../storyblok";
 import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { ArrowRight, Star, Heart, Users, Baby, PartyPopper } from "lucide-react";
@@ -12,7 +14,6 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
-import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4431_(WebRes).jpg?updatedAt=1772999913745",
@@ -30,6 +31,7 @@ export function PortraitPage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const { getImagesForPage } = useImages();
+  const { getText } = usePageContent("portrait", lang);
 
   const seo = lang === "de"
     ? {
@@ -45,20 +47,20 @@ export function PortraitPage() {
 
   const categories = [
     {
-      title: t.portrait.coupleTitle,
-      text: t.portrait.coupleText,
+      title: getText("couple_title", t.portrait.coupleTitle),
+      text: getText("couple_text", t.portrait.coupleText),
       image: IMAGES.couple,
       imageAlt: "Verliebtes Paar beim Couple Shooting in den Tiroler Alpen – Paarfotograf Mario Schubert Innsbruck",
     },
     {
-      title: t.portrait.familyTitle,
-      text: t.portrait.familyText,
+      title: getText("family_title", t.portrait.familyTitle),
+      text: getText("family_text", t.portrait.familyText),
       image: IMAGES.family,
       imageAlt: "Natuerliches Familienshooting Outdoor – Familienfotograf Innsbruck Tirol",
     },
     {
-      title: t.portrait.privateTitle,
-      text: t.portrait.privateText,
+      title: getText("private_title", t.portrait.privateTitle),
+      text: getText("private_text", t.portrait.privateText),
       image: IMAGES.baptism,
       imageAlt: "Taufe Zeremonie Fotografie – Eventfotograf Mario Schubert Bayern und Tirol",
     },
@@ -96,8 +98,8 @@ export function PortraitPage() {
       <ParallaxHero
         imageSrc={IMAGES.hero}
         imageAlt="Romantisches Couple Shooting Outdoor – Portrait und Paarfotografie in Innsbruck, Tirol von Mario Schubert"
-        preTitle={t.portrait.heroTitle}
-        title={t.portrait.heroSubtitle}
+        preTitle={getText("hero_title", t.portrait.heroTitle)}
+        title={getText("hero_subtitle", t.portrait.heroSubtitle)}
       />
 
       {/* Intro */}
@@ -108,7 +110,7 @@ export function PortraitPage() {
               className="text-black/70 text-[1rem] md:text-[1.1rem]"
               style={{ lineHeight: 1.9, fontWeight: 300 }}
             >
-              {t.portrait.intro}
+              {getText("intro", t.portrait.intro)}
             </p>
           </SectionReveal>
         </div>
@@ -324,20 +326,20 @@ export function PortraitPage() {
                 marginBottom: "1.5rem",
               }}
             >
-              {t.portrait.ctaTitle}
+              {getText("cta_title", t.portrait.ctaTitle)}
             </h2>
             <p
               className="text-white/50 text-[0.9rem] mb-10"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
-              {t.portrait.ctaText}
+              {getText("cta_text", t.portrait.ctaText)}
             </p>
             <button
               onClick={() => openContact("portrait")}
               className="inline-flex items-center gap-2 text-white border border-white/40 px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-white hover:text-black transition-all duration-300"
               style={{ fontWeight: 400 }}
             >
-              {t.portrait.ctaButton}
+              {getText("cta_button", t.portrait.ctaButton)}
               <ArrowRight size={14} />
             </button>
           </SectionReveal>

@@ -2,17 +2,21 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { google } from "googleapis";
 
 /**
- * Vercel Serverless Function: Sync ImageKit → Google Sheets "Bilder" Tab
+ * Vercel Serverless Function: Sync ImageKit → Google Sheets + Storyblok
  *
  * Reads all image files from predefined ImageKit folders, maps them to
  * page/category, generates SEO-optimized alt tags (DE/EN), and writes
- * everything into the Google Sheet "Bilder" tab.
+ * everything into:
+ *   1. Google Sheets "Bilder" tab (legacy fallback)
+ *   2. Storyblok CMS gallery/ folder (primary data source)
  *
  * Required Environment Variables in Vercel:
  *   IMAGEKIT_PRIVATE_KEY            – ImageKit Private API Key
  *   GOOGLE_SERVICE_ACCOUNT_EMAIL    – Service Account Email
  *   GOOGLE_SERVICE_ACCOUNT_KEY      – Service Account Private Key (PEM, with \n)
  *   GOOGLE_SHEET_ID                 – The Google Sheet ID
+ *   STORYBLOK_MANAGEMENT_TOKEN      – Storyblok Personal Access Token (Management API)
+ *   STORYBLOK_SPACE_ID              – Storyblok Space ID (default: 291045863485848)
  *   SYNC_SECRET                     – (Optional) Secret token to protect the endpoint
  *   ADMIN_PASSWORD                  – (Optional) Admin password to protect the endpoint
  *
@@ -424,6 +428,287 @@ async function getSheetsAuth() {
   return auth;
 }
 
+// ── Storyblok Management API ──
+const STORYBLOK_MAPI_BASE = "https://mapi.storyblok.com/v1/spaces";
+
+interface StoryblokStory {
+  id: number;
+  name: string;
+  slug: string;
+  full_slug: string;
+  content: {
+    component: string;
+    image_url?: string;
+    page?: string;
+    category?: string;
+    alt_de?: string;
+    alt_en?: string;
+    sort_order?: number;
+  };
+}
+
+async function storyblokRequest(
+  spaceId: string,
+  token: string,
+  method: string,
+  path: string,
+  body?: any
+): Promise<any> {
+  const url = `${STORYBLOK_MAPI_BASE}/${spaceId}/${path}`;
+  const opts: RequestInit = {
+    method,
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json",
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const response = await fetch(url, opts);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Storyblok API ${method} ${path}: ${response.status} – ${text}`);
+  }
+  // 204 No Content (e.g. delete)
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+// Rate limiter: Storyblok Management API allows ~3 req/sec
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function findStoryblokFolderId(
+  spaceId: string,
+  token: string,
+  folderSlug: string
+): Promise<number | null> {
+  try {
+    // Search for folder by slug
+    const data = await storyblokRequest(spaceId, token, "GET",
+      `stories?starts_with=${folderSlug}&is_startpage=0&per_page=1&search_term=&folder_only=1`
+    );
+    // Also try listing parent to find the folder
+    if (!data?.stories?.length) {
+      const parentData = await storyblokRequest(spaceId, token, "GET",
+        `stories?with_parent=0&per_page=100&folder_only=1`
+      );
+      const folder = parentData?.stories?.find(
+        (s: any) => s.slug === folderSlug || s.full_slug === folderSlug + "/"
+      );
+      return folder?.id || null;
+    }
+    return data.stories[0]?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getAllStoryblokGalleryImages(
+  spaceId: string,
+  token: string
+): Promise<StoryblokStory[]> {
+  const allStories: StoryblokStory[] = [];
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const data = await storyblokRequest(spaceId, token, "GET",
+      `stories?starts_with=gallery/&per_page=${perPage}&page=${page}&sort_by=created_at:asc`
+    );
+    if (!data?.stories?.length) break;
+    // Filter only gallery_image components (skip folder itself)
+    const images = data.stories.filter(
+      (s: StoryblokStory) => s.content?.component === "gallery_image"
+    );
+    allStories.push(...images);
+    if (data.stories.length < perPage) break;
+    page++;
+    await sleep(350);
+  }
+
+  return allStories;
+}
+
+async function syncToStoryblok(
+  allRows: string[][],
+  spaceId: string,
+  token: string
+): Promise<{ created: number; updated: number; deleted: number; skipped: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, deleted: 0, skipped: 0, errors: [] as string[] };
+
+  // Step 1: Find gallery folder ID
+  let folderId = await findStoryblokFolderId(spaceId, token, "gallery");
+  if (!folderId) {
+    // Create the gallery folder
+    try {
+      const folderData = await storyblokRequest(spaceId, token, "POST", "stories", {
+        story: {
+          name: "Gallery",
+          slug: "gallery",
+          is_folder: true,
+          default_root: "gallery_image",
+        },
+      });
+      folderId = folderData?.story?.id;
+      console.log(`📁 Created gallery folder with ID: ${folderId}`);
+      await sleep(350);
+    } catch (err: any) {
+      result.errors.push(`Failed to create gallery folder: ${err?.message}`);
+      return result;
+    }
+  }
+
+  if (!folderId) {
+    result.errors.push("Could not find or create gallery/ folder in Storyblok");
+    return result;
+  }
+
+  console.log(`📁 Gallery folder ID: ${folderId}`);
+
+  // Step 2: Get existing stories
+  const existingStories = await getAllStoryblokGalleryImages(spaceId, token);
+  console.log(`📋 Found ${existingStories.length} existing gallery_image stories in Storyblok`);
+
+  // Build map: image_url -> story
+  const existingByUrl = new Map<string, StoryblokStory>();
+  for (const story of existingStories) {
+    if (story.content?.image_url) {
+      existingByUrl.set(story.content.image_url, story);
+    }
+  }
+
+  // Step 3: Build set of all current ImageKit URLs
+  const currentUrls = new Set<string>();
+
+  // Step 4: Create/Update stories for each image
+  for (let i = 0; i < allRows.length; i++) {
+    const [page, category, imageUrl, altDe, altEn] = allRows[i];
+    currentUrls.add(imageUrl);
+
+    const existing = existingByUrl.get(imageUrl);
+
+    if (existing) {
+      // Check if alt tags or metadata changed
+      const needsUpdate =
+        existing.content.alt_de !== altDe ||
+        existing.content.alt_en !== altEn ||
+        existing.content.page !== page ||
+        existing.content.category !== category ||
+        existing.content.sort_order !== i;
+
+      if (needsUpdate) {
+        try {
+          await storyblokRequest(spaceId, token, "PUT", `stories/${existing.id}`, {
+            story: {
+              content: {
+                ...existing.content,
+                page,
+                category,
+                image_url: imageUrl,
+                alt_de: altDe,
+                alt_en: altEn,
+                sort_order: i,
+              },
+            },
+            publish: 1,
+          });
+          result.updated++;
+          await sleep(350);
+        } catch (err: any) {
+          result.errors.push(`Update failed for ${imageUrl}: ${err?.message}`);
+        }
+      } else {
+        result.skipped++;
+      }
+    } else {
+      // Create new story
+      // Generate a slug from the filename
+      const urlParts = imageUrl.split("/");
+      const filename = urlParts[urlParts.length - 1]
+        .split("?")[0] // Remove query params
+        .replace(/\.(jpg|jpeg|png|webp|gif|tiff?)$/i, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "-")
+        .replace(/-+/g, "-")
+        .toLowerCase()
+        .substring(0, 80);
+
+      const slug = `${page}-${category || "misc"}-${filename}`.substring(0, 120);
+
+      try {
+        await storyblokRequest(spaceId, token, "POST", "stories", {
+          story: {
+            name: `${page} ${category || "misc"} ${i}`,
+            slug,
+            parent_id: folderId,
+            content: {
+              component: "gallery_image",
+              page,
+              category,
+              image_url: imageUrl,
+              alt_de: altDe,
+              alt_en: altEn,
+              sort_order: i,
+            },
+          },
+          publish: 1,
+        });
+        result.created++;
+        await sleep(350);
+      } catch (err: any) {
+        // If slug conflict, try with index suffix
+        if (err?.message?.includes("422")) {
+          try {
+            await storyblokRequest(spaceId, token, "POST", "stories", {
+              story: {
+                name: `${page} ${category || "misc"} ${i}`,
+                slug: `${slug}-${i}`,
+                parent_id: folderId,
+                content: {
+                  component: "gallery_image",
+                  page,
+                  category,
+                  image_url: imageUrl,
+                  alt_de: altDe,
+                  alt_en: altEn,
+                  sort_order: i,
+                },
+              },
+              publish: 1,
+            });
+            result.created++;
+            await sleep(350);
+          } catch (retryErr: any) {
+            result.errors.push(`Create failed for ${imageUrl}: ${retryErr?.message}`);
+          }
+        } else {
+          result.errors.push(`Create failed for ${imageUrl}: ${err?.message}`);
+        }
+      }
+    }
+
+    // Log progress every 20 images
+    if ((i + 1) % 20 === 0) {
+      console.log(`📸 Storyblok progress: ${i + 1}/${allRows.length} (created: ${result.created}, updated: ${result.updated}, skipped: ${result.skipped})`);
+    }
+  }
+
+  // Step 5: Delete stories for images no longer in ImageKit
+  for (const [url, story] of existingByUrl.entries()) {
+    if (!currentUrls.has(url)) {
+      try {
+        await storyblokRequest(spaceId, token, "DELETE", `stories/${story.id}`);
+        result.deleted++;
+        await sleep(350);
+      } catch (err: any) {
+        result.errors.push(`Delete failed for story ${story.id}: ${err?.message}`);
+      }
+    }
+  }
+
+  return result;
+}
+
 // ── Main Handler ──
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
@@ -459,6 +744,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── Validate env vars ──
   const imagekitKey = process.env.IMAGEKIT_PRIVATE_KEY;
   const sheetId = process.env.GOOGLE_SHEET_ID;
+  const storyblokToken = process.env.STORYBLOK_MANAGEMENT_TOKEN;
+  const storyblokSpaceId = process.env.STORYBLOK_SPACE_ID || "291045863485848";
 
   if (!imagekitKey) {
     return res.status(500).json({
@@ -468,6 +755,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!sheetId) {
     return res.status(500).json({
       error: "Missing GOOGLE_SHEET_ID environment variable",
+    });
+  }
+  if (!storyblokToken) {
+    return res.status(500).json({
+      error: "Missing STORYBLOK_MANAGEMENT_TOKEN environment variable",
+    });
+  }
+  if (!storyblokSpaceId) {
+    return res.status(500).json({
+      error: "Missing STORYBLOK_SPACE_ID environment variable",
     });
   }
 
@@ -549,6 +846,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`📝 Wrote ${allRows.length} rows to Google Sheets "Bilder" tab`);
 
+    // ── Step 3: Sync to Storyblok ──
+    const storyblokResult = await syncToStoryblok(allRows, storyblokSpaceId, storyblokToken);
+    console.log(`📸 Synced to Storyblok: ${storyblokResult.created} created, ${storyblokResult.updated} updated, ${storyblokResult.deleted} deleted, ${storyblokResult.skipped} skipped`);
+
     // ── Response ──
     return res.status(200).json({
       success: true,
@@ -557,6 +858,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       folderStats,
       folderErrors: Object.keys(folderErrors).length > 0 ? folderErrors : undefined,
       totalImages: allRows.length,
+      storyblokResult,
     });
   } catch (error: any) {
     console.error("❌ Sync error:", error?.message || error);

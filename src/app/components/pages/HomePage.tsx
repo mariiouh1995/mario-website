@@ -13,6 +13,7 @@ import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
+import { usePageContent } from "../storyblok";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
@@ -29,6 +30,7 @@ export function HomePage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const { getImagesForPage } = useImages();
+  const { getText } = usePageContent("home", lang);
 
   const GALLERY_PAGE_SIZE = 12;
   const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE_SIZE);
@@ -48,22 +50,22 @@ export function HomePage() {
   const services = [
     {
       icon: Heart,
-      title: t.home.weddingTitle,
-      desc: t.home.weddingDesc,
+      title: getText("wedding_title", t.home.weddingTitle),
+      desc: getText("wedding_desc", t.home.weddingDesc),
       image: IMAGES.wedding,
       link: "/hochzeiten",
     },
     {
       icon: Camera,
-      title: t.home.animalsTitle,
-      desc: t.home.animalsDesc,
+      title: getText("animals_title", t.home.animalsTitle),
+      desc: getText("animals_desc", t.home.animalsDesc),
       image: IMAGES.animals,
       link: "/tierfotografie",
     },
     {
       icon: Film,
-      title: t.home.portraitTitle,
-      desc: t.home.portraitDesc,
+      title: getText("portrait_title", t.home.portraitTitle),
+      desc: getText("portrait_desc", t.home.portraitDesc),
       image: IMAGES.portrait,
       link: "/portrait",
     },
@@ -139,7 +141,7 @@ export function HomePage() {
               className="text-white/70 text-[0.75rem] tracking-[0.3em] uppercase mb-8"
               style={{ fontWeight: 400 }}
             >
-              {t.home.heroSubtitle}
+              {getText("hero_subtitle", t.home.heroSubtitle)}
             </p>
             <img
               src={LOGO_URL}
@@ -150,14 +152,14 @@ export function HomePage() {
               className="text-white/60 text-[1rem] md:text-[1.15rem] mb-10"
               style={{ fontWeight: 300, letterSpacing: "0.05em" }}
             >
-              {t.home.heroTagline}
+              {getText("hero_tagline", t.home.heroTagline)}
             </p>
             <button
               onClick={() => openContact("general")}
               className="inline-flex items-center gap-2 text-white border border-white/40 px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-white hover:text-black transition-all duration-300"
               style={{ fontWeight: 400 }}
             >
-              {lang === "de" ? "Jetzt anfragen" : "Inquire now"}
+              {getText("hero_cta", lang === "de" ? "Jetzt anfragen" : "Inquire now")}
               <ArrowRight size={16} />
             </button>
           </motion.div>
@@ -182,7 +184,7 @@ export function HomePage() {
               className="text-[0.75rem] tracking-[0.3em] uppercase text-black/40 text-center mb-4"
               style={{ fontWeight: 400 }}
             >
-              {t.home.servicesTitle}
+              {getText("services_title", t.home.servicesTitle)}
             </p>
           </SectionReveal>
 
@@ -233,7 +235,7 @@ export function HomePage() {
                     className="inline-flex items-center gap-2 text-[0.78rem] tracking-[0.15em] uppercase text-black/75 group-hover:text-black transition-colors"
                     style={{ fontWeight: 400 }}
                   >
-                    {t.home.viewMore}
+                    {getText("view_more", t.home.viewMore)}
                     <ArrowRight
                       size={14}
                       className="transition-transform group-hover:translate-x-1"
@@ -254,7 +256,7 @@ export function HomePage() {
               className="text-white/40 text-[0.75rem] tracking-[0.3em] uppercase text-center mb-4"
               style={{ fontWeight: 400 }}
             >
-              {lang === "de" ? "SO LÄUFT'S AB" : "HOW IT WORKS"}
+              {getText("how_it_works_pretitle", lang === "de" ? "SO LÄUFT'S AB" : "HOW IT WORKS")}
             </p>
             <h2
               className="text-center mb-16"
@@ -264,7 +266,7 @@ export function HomePage() {
                 fontWeight: 300,
               }}
             >
-              {lang === "de" ? "In 3 Schritten zu euren Bildern" : "3 steps to your images"}
+              {getText("how_it_works_title", lang === "de" ? "In 3 Schritten zu euren Bildern" : "3 steps to your images")}
             </h2>
           </SectionReveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
@@ -272,26 +274,26 @@ export function HomePage() {
               {
                 icon: MessageCircle,
                 step: "01",
-                title: lang === "de" ? "Anfrage & Kennenlernen" : "Inquiry & Getting to know",
-                text: lang === "de"
+                title: getText("step1_title", lang === "de" ? "Anfrage & Kennenlernen" : "Inquiry & Getting to know"),
+                text: getText("step1_text", lang === "de"
                   ? "Schreibt mir und erzählt mir von euch. In einem unverbindlichen Erstgespräch klären wir alle Fragen."
-                  : "Write to me and tell me about yourselves. In a free initial conversation we'll clarify everything.",
+                  : "Write to me and tell me about yourselves. In a free initial conversation we'll clarify everything."),
               },
               {
                 icon: Sparkles,
                 step: "02",
-                title: lang === "de" ? "Planung & Vorbereitung" : "Planning & Preparation",
-                text: lang === "de"
+                title: getText("step2_title", lang === "de" ? "Planung & Vorbereitung" : "Planning & Preparation"),
+                text: getText("step2_text", lang === "de"
                   ? "Gemeinsam planen wir euer Shooting – von der Location über den Zeitplan bis zur Stimmung."
-                  : "Together we plan your shoot – from location to schedule to mood.",
+                  : "Together we plan your shoot – from location to schedule to mood."),
               },
               {
                 icon: Camera,
                 step: "03",
-                title: lang === "de" ? "Shooting & Ergebnis" : "Shoot & Results",
-                text: lang === "de"
+                title: getText("step3_title", lang === "de" ? "Shooting & Ergebnis" : "Shoot & Results"),
+                text: getText("step3_text", lang === "de"
                   ? "Am Tag selbst seid ihr entspannt, ich fange alles ein. Innerhalb weniger Wochen erhaltet ihr eure Galerie."
-                  : "On the day you relax, I capture everything. Within a few weeks you'll receive your gallery.",
+                  : "On the day you relax, I capture everything. Within a few weeks you'll receive your gallery."),
               },
             ].map((item, i) => (
               <SectionReveal key={item.step} delay={i * 0.12}>
@@ -348,7 +350,7 @@ export function HomePage() {
                 className="text-[0.75rem] tracking-[0.3em] uppercase text-black/55 mb-4"
                 style={{ fontWeight: 400 }}
               >
-                {t.home.aboutPreTitle}
+                {getText("about_pretitle", t.home.aboutPreTitle)}
               </p>
               <h2
                 style={{
@@ -359,27 +361,27 @@ export function HomePage() {
                   marginBottom: "1.5rem",
                 }}
               >
-                {t.home.aboutTitle.split("Mario")[0]}
+                {getText("about_title", t.home.aboutTitle).split("Mario")[0]}
                 <span style={{ fontWeight: 700 }}>Mario</span>
               </h2>
               <p
                 className="text-black/75 text-[0.9rem] mb-6"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
-                {t.home.aboutText}
+                {getText("about_text", t.home.aboutText)}
               </p>
               <p
                 className="text-black/75 text-[0.9rem] mb-8"
                 style={{ lineHeight: 1.8, fontWeight: 300 }}
               >
-                {t.home.philosophyText}
+                {getText("philosophy_text", t.home.philosophyText)}
               </p>
               <Link
                 to="/ueber-mich"
                 className="inline-flex items-center gap-2 text-[0.8rem] tracking-[0.15em] uppercase text-black border border-black px-8 py-3 no-underline hover:bg-black hover:text-white transition-all duration-300"
                 style={{ fontWeight: 400 }}
               >
-                {t.home.aboutCta}
+                {getText("about_cta", t.home.aboutCta)}
                 <ArrowRight size={14} />
               </Link>
             </SectionReveal>
@@ -400,7 +402,7 @@ export function HomePage() {
                 letterSpacing: "0.1em",
               }}
             >
-              {t.home.inspiredTitle}
+              {getText("inspired_title", t.home.inspiredTitle)}
             </h2>
           </SectionReveal>
 
@@ -417,7 +419,7 @@ export function HomePage() {
                 className="inline-flex items-center gap-2 text-[0.8rem] tracking-[0.15em] uppercase text-black border border-black px-8 py-3 no-underline hover:bg-black hover:text-white transition-all duration-300 bg-transparent cursor-pointer"
                 style={{ fontWeight: 400 }}
               >
-                {lang === "de" ? "Mehr anzeigen" : "Load more"}
+                {getText("load_more", lang === "de" ? "Mehr anzeigen" : "Load more")}
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -444,17 +446,17 @@ export function HomePage() {
                 className="text-[0.9rem] text-black/70"
                 style={{ fontWeight: 400 }}
               >
-                {lang === "de"
+                {getText("wyldworks_title", lang === "de"
                   ? "Foto & Video für Unternehmen?"
-                  : "Photo & video for businesses?"}
+                  : "Photo & video for businesses?")}
               </p>
               <p
                 className="text-black/55 text-[0.82rem] max-w-lg"
                 style={{ lineHeight: 1.6, fontWeight: 300 }}
               >
-                {lang === "de"
+                {getText("wyldworks_desc", lang === "de"
                   ? "Employer Branding, Imagefilme, Events & Social Media Content – das läuft über meine Agentur."
-                  : "Employer branding, image films, events & social media content – that's handled by my agency."}
+                  : "Employer branding, image films, events & social media content – that's handled by my agency.")}
               </p>
               <a
                 href="https://www.wyldworks.de/"
@@ -493,20 +495,20 @@ export function HomePage() {
                 marginBottom: "1.5rem",
               }}
             >
-              {t.home.ctaTitle}
+              {getText("cta_title", t.home.ctaTitle)}
             </h2>
             <p
               className="text-white/65 text-[0.9rem] mb-10 max-w-xl mx-auto"
               style={{ lineHeight: 1.8, fontWeight: 300 }}
             >
-              {t.home.ctaText}
+              {getText("cta_text", t.home.ctaText)}
             </p>
             <button
               onClick={() => openContact("general")}
               className="inline-flex items-center gap-2 text-white border border-white/40 px-8 py-3 text-[0.8rem] tracking-[0.15em] uppercase bg-transparent cursor-pointer hover:bg-white hover:text-black transition-all duration-300"
               style={{ fontWeight: 400 }}
             >
-              {t.home.ctaButton}
+              {getText("cta_button", t.home.ctaButton)}
               <ArrowRight size={14} />
             </button>
           </SectionReveal>
