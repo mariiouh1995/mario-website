@@ -1,4 +1,5 @@
 import { usePageContent } from "../storyblok";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { ArrowRight, Check, Star, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";

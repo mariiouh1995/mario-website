@@ -1,4 +1,5 @@
 import { usePageContent } from "../storyblok";
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { useLanguage } from "../LanguageContext";
 import { Camera, Film, Heart, Mail, Phone, MapPin, Clock, Users, Award, Video } from "lucide-react";
