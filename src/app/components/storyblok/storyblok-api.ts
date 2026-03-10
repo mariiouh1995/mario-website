@@ -10,7 +10,7 @@
 import { STORYBLOK_TOKEN, isStoryblokConfigured, getContentVersion } from "./storyblok-init";
 
 const API_BASE = "https://api.storyblok.com/v2/cdn";
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (reduced API calls to avoid rate limits)
 
 interface StoryblokResponse<T = any> {
   stories: Array<{
@@ -28,6 +28,28 @@ interface StoryblokResponse<T = any> {
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
+}
+
+/**
+ * Fetch a single URL with retry logic for 429 rate limits.
+ */
+async function fetchWithRetry(url: string, retries = 3, baseDelay = 1000): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(url);
+
+    if (response.status === 429 && attempt < retries) {
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.warn(`[Storyblok] Rate limited (429), retrying in ${delay}ms… (attempt ${attempt + 1}/${retries})`);
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+
+    return response;
+  }
+
+  // Should not reach here, but just in case
+  return fetch(url);
 }
 
 /**
@@ -57,7 +79,7 @@ export async function fetchStoryblokStories<T = any>(
     url.searchParams.set("per_page", String(perPage));
     url.searchParams.set("sort_by", "content.sort_order:asc");
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString());
 
     if (!response.ok) {
       throw new Error(`Storyblok API returned ${response.status}`);
@@ -65,22 +87,23 @@ export async function fetchStoryblokStories<T = any>(
 
     const json: StoryblokResponse<T> = await response.json();
 
-    // Handle pagination if needed (fetch all pages)
+    // Handle pagination sequentially with delay to avoid rate limits
     const total = parseInt(response.headers.get("Total") || "0", 10);
     let allStories = [...json.stories];
 
     if (total > perPage) {
       const pages = Math.ceil(total / perPage);
-      const promises: Promise<Response>[] = [];
 
       for (let page = 2; page <= pages; page++) {
+        // Small delay between requests to stay under rate limit (5 req/s)
+        if (page > 2) {
+          await new Promise((r) => setTimeout(r, 250));
+        }
+
         const pageUrl = new URL(url.toString());
         pageUrl.searchParams.set("page", String(page));
-        promises.push(fetch(pageUrl.toString()));
-      }
+        const res = await fetchWithRetry(pageUrl.toString());
 
-      const responses = await Promise.all(promises);
-      for (const res of responses) {
         if (res.ok) {
           const pageJson: StoryblokResponse<T> = await res.json();
           allStories = [...allStories, ...pageJson.stories];
@@ -113,7 +136,7 @@ export async function fetchStoryblokStory<T = any>(
   try {
     const version = getContentVersion();
     const url = `${API_BASE}/stories/${slug}?token=${STORYBLOK_TOKEN}&version=${version}`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       throw new Error(`Storyblok API returned ${response.status}`);
