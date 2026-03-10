@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
+import { fetchStoryblokStories } from "./storyblok/storyblok-api";
+import { isStoryblokConfigured } from "./storyblok/storyblok-init";
 
 /**
- * Hook to fetch dynamic packages from Google Sheets via Vercel serverless function.
+ * Hook to fetch dynamic packages.
  *
- * Includes localStorage caching (1 hour) as fallback, and falls back
- * to hardcoded defaults if the API is unavailable.
+ * Priority:
+ * 1. localStorage cache (1 hour)
+ * 2. Storyblok CMS (if configured via VITE_STORYBLOK_TOKEN)
+ * 3. Google Sheets API (legacy fallback via /api/get-packages)
+ * 4. Hardcoded fallback data
  */
 
 // ── Types ──
@@ -30,7 +35,7 @@ interface PackagesResponse {
   portrait: PackageData[];
   animals: PackageData[];
   fetchedAt: string;
-  source: "sheets" | "fallback";
+  source: "sheets" | "fallback" | "storyblok";
 }
 
 interface PackagesState {
@@ -356,6 +361,17 @@ export function usePackages(): PackagesState & { packages: PackagesResponse } {
 
     async function fetchPackages() {
       try {
+        // Priority 1: Storyblok CMS
+        if (isStoryblokConfigured()) {
+          const sbData = await fetchPackagesFromStoryblok();
+          if (sbData && !cancelled) {
+            setCachedData(sbData);
+            setState({ data: sbData, loading: false, error: null });
+            return;
+          }
+        }
+
+        // Priority 2: Google Sheets API (legacy)
         const response = await fetch("/api/get-packages");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -366,7 +382,7 @@ export function usePackages(): PackagesState & { packages: PackagesResponse } {
           setState({ data, loading: false, error: null });
         }
       } catch (err: any) {
-        console.warn("Failed to fetch packages from API, using fallback:", err.message);
+        console.warn("Failed to fetch packages, using fallback:", err.message);
         if (!cancelled) {
           setState({
             data: null,
@@ -389,4 +405,86 @@ export function usePackages(): PackagesState & { packages: PackagesResponse } {
     ...state,
     packages: state.data || FALLBACK_DATA,
   };
+}
+
+// ── Storyblok data mapper ──
+
+interface StoryblokPackageContent {
+  name: string;
+  price: string;
+  subtitle: string;
+  subtitle_en: string;
+  features: string; // newline-separated
+  features_en: string; // newline-separated
+  highlight: boolean;
+  category: string; // "wedding-photo" | "wedding-video" | "portrait" | "animals"
+  sort_order: number;
+}
+
+interface StoryblokAddonContent {
+  text_de: string;
+  text_en: string;
+  sort_order: number;
+}
+
+async function fetchPackagesFromStoryblok(): Promise<PackagesResponse | null> {
+  try {
+    const [packageStories, addonStories] = await Promise.all([
+      fetchStoryblokStories<StoryblokPackageContent>("packages/", "packages"),
+      fetchStoryblokStories<StoryblokAddonContent>("addons/", "addons"),
+    ]);
+
+    if (!packageStories || packageStories.length === 0) return null;
+
+    const weddingPhoto: PackageData[] = [];
+    const weddingVideo: PackageData[] = [];
+    const portrait: PackageData[] = [];
+    const animals: PackageData[] = [];
+
+    for (const story of packageStories) {
+      const c = story.content;
+      const pkg: PackageData = {
+        name: c.name || story.name,
+        price: c.price || "",
+        subtitle: c.subtitle || "",
+        subtitleEn: c.subtitle_en || c.subtitle || "",
+        features: (c.features || "").split("\n").filter(Boolean),
+        featuresEn: (c.features_en || "").split("\n").filter(Boolean),
+        highlight: !!c.highlight,
+      };
+
+      switch (c.category) {
+        case "wedding-photo":
+          weddingPhoto.push(pkg);
+          break;
+        case "wedding-video":
+          weddingVideo.push(pkg);
+          break;
+        case "portrait":
+          portrait.push(pkg);
+          break;
+        case "animals":
+          animals.push(pkg);
+          break;
+      }
+    }
+
+    const weddingAddons: AddOnData[] = (addonStories || []).map((s) => ({
+      textDe: s.content.text_de || "",
+      textEn: s.content.text_en || "",
+    }));
+
+    return {
+      weddingPhoto,
+      weddingVideo,
+      weddingAddons,
+      portrait,
+      animals,
+      fetchedAt: new Date().toISOString(),
+      source: "storyblok",
+    };
+  } catch (err) {
+    console.warn("[Storyblok] Failed to map package data:", err);
+    return null;
+  }
 }

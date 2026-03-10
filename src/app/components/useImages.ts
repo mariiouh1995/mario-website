@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
+import { fetchStoryblokStories } from "./storyblok/storyblok-api";
+import { isStoryblokConfigured } from "./storyblok/storyblok-init";
 
 /**
- * Hook to fetch gallery images from Google Sheets via Vercel serverless function.
+ * Hook to fetch gallery images.
  *
- * Includes localStorage caching (1 hour) and falls back to hardcoded defaults
- * if the API is unavailable. Use `getImagesForPage(page, category?)` to filter.
+ * Priority:
+ * 1. localStorage cache (5 min)
+ * 2. Storyblok CMS (if configured via VITE_STORYBLOK_TOKEN)
+ * 3. Google Sheets API (legacy fallback via /api/get-images)
+ * 4. Hardcoded fallback data
  */
 
 // ── Types ──
@@ -170,7 +175,7 @@ const FALLBACK_IMAGES: ImageEntry[] = [
   w("freie-trauung", "https://images.unsplash.com/photo-1769812344337-ec16a1b7cef8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwY2VyZW1vbnklMjBvdXRkb29yJTIwZWxlZ2FudHxlbnwxfHx8fDE3NzI5OTc1MzF8MA&ixlib=rb-4.1.0&q=80&w=1080", "Elegante freie Trauung Outdoor – Hochzeitsfotografie Innsbruck", "Elegant outdoor ceremony – Wedding photography Innsbruck"),
 
   // ═══════════════════════════════════════════════
-  // HOCHZEIT – Party (8 Fallback-Bilder)
+  // HOCHZEIT – Abend-Party (8 Fallback-Bilder, ImageKit: /Wedding/Abend-Party → category "party")
   // ═══════════════════════════════════════════════
   w("party", "https://images.unsplash.com/photo-1764269719300-7094d6c00533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcGFydHklMjBjZWxlYnJhdGlvbiUyMGRhbmNlfGVufDF8fHx8MTc3MzAxNDAyOXww&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitsparty – Feier und Tanz – Hochzeitsfotograf Innsbruck", "Wedding party – Celebration and dance – Wedding photographer Innsbruck"),
   w("party", "https://images.unsplash.com/photo-1765615201173-0ea7dcadc4bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcmVjZXB0aW9uJTIwcGFydHklMjBndWVzdHMlMjBkYW5jaW5nfGVufDF8fHx8MTc3MzAxNDAzMHww&ixlib=rb-4.1.0&q=80&w=1080", "Hochzeitsempfang – Gäste tanzen – Hochzeitsfotografie Tirol", "Wedding reception – Guests dancing – Wedding photography Tyrol"),
@@ -252,6 +257,26 @@ export function useImages() {
 
     async function fetchImages() {
       try {
+        // Priority 1: Storyblok CMS
+        if (isStoryblokConfigured()) {
+          const sbImages = await fetchImagesFromStoryblok();
+          if (sbImages && sbImages.length > 0 && !cancelled) {
+            // Merge: Storyblok images take priority, fallback fills missing categories
+            const sbCategories = new Set(
+              sbImages.map((img: ImageEntry) => `${img.page}:${img.category}`)
+            );
+            const fallbackFill = FALLBACK_IMAGES.filter(
+              (img) => !sbCategories.has(`${img.page}:${img.category}`)
+            );
+            const merged = [...sbImages, ...fallbackFill];
+            console.log(`[useImages] Storyblok: ${sbImages.length} images + ${fallbackFill.length} fallback = ${merged.length} total`);
+            setCachedData(merged);
+            setState({ images: merged, loading: false, error: null });
+            return;
+          }
+        }
+
+        // Priority 2: Google Sheets API (legacy)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -336,4 +361,37 @@ export function useImages() {
     getImagesForPage,
     allImages: state.images,
   };
+}
+
+// ── Storyblok image mapper ──
+
+interface StoryblokGalleryContent {
+  page: string;
+  category: string;
+  image_url: string;
+  alt_de: string;
+  alt_en: string;
+  sort_order: number;
+}
+
+async function fetchImagesFromStoryblok(): Promise<ImageEntry[] | null> {
+  try {
+    const stories = await fetchStoryblokStories<StoryblokGalleryContent>(
+      "gallery/",
+      "gallery_images"
+    );
+
+    if (!stories || stories.length === 0) return null;
+
+    return stories.map((s) => ({
+      page: (s.content.page || "").toLowerCase(),
+      category: (s.content.category || "").toLowerCase(),
+      src: s.content.image_url || "",
+      altDe: s.content.alt_de || "",
+      altEn: s.content.alt_en || "",
+    }));
+  } catch (err) {
+    console.warn("[Storyblok] Failed to fetch gallery images:", err);
+    return null;
+  }
 }

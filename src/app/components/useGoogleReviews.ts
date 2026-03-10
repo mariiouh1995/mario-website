@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "./LanguageContext";
+import { fetchStoryblokStories } from "./storyblok/storyblok-api";
+import { isStoryblokConfigured } from "./storyblok/storyblok-init";
 
 export interface GoogleReview {
   author: string;
@@ -13,7 +15,7 @@ export interface GoogleReviewsData {
   averageRating: number;
   totalReviews: number;
   fetchedAt: string;
-  source: "sheets" | "fallback";
+  source: "sheets" | "fallback" | "storyblok";
 }
 
 const CACHE_KEY = "marioschub_google_reviews";
@@ -113,7 +115,24 @@ export function useGoogleReviews(filterMinRating = 4) {
         return;
       }
 
-      // 2. Fetch from API
+      // 2a. Try Storyblok first
+      if (isStoryblokConfigured()) {
+        try {
+          const sbReviews = await fetchReviewsFromStoryblok();
+          if (sbReviews && sbReviews.reviews.length > 0) {
+            setCachedReviews(sbReviews);
+            if (!cancelled) {
+              setData(sbReviews);
+              setLoading(false);
+            }
+            return;
+          }
+        } catch (err) {
+          console.info("[Storyblok] Reviews fetch failed, trying API...", err);
+        }
+      }
+
+      // 2b. Fetch from Google Sheets API (legacy)
       try {
         const res = await fetch("/api/google-reviews");
 
@@ -170,4 +189,48 @@ export function useGoogleReviews(filterMinRating = 4) {
     loading,
     error,
   };
+}
+
+// ── Storyblok reviews mapper ──
+
+interface StoryblokReviewContent {
+  author: string;
+  rating: number;
+  text: string;
+  text_en: string;
+  sort_order: number;
+}
+
+async function fetchReviewsFromStoryblok(): Promise<GoogleReviewsData | null> {
+  try {
+    const stories = await fetchStoryblokStories<StoryblokReviewContent>(
+      "reviews/",
+      "reviews"
+    );
+
+    if (!stories || stories.length === 0) return null;
+
+    const reviews: GoogleReview[] = stories.map((s) => ({
+      author: s.content.author || s.name,
+      rating: Number(s.content.rating) || 5,
+      text: s.content.text || "",
+      textEn: s.content.text_en || s.content.text || "",
+    }));
+
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 5;
+
+    return {
+      reviews,
+      averageRating: Math.round(avgRating * 10) / 10,
+      totalReviews: reviews.length,
+      fetchedAt: new Date().toISOString(),
+      source: "storyblok",
+    };
+  } catch (err) {
+    console.warn("[Storyblok] Failed to map reviews:", err);
+    return null;
+  }
 }
