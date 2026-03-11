@@ -8,6 +8,7 @@ import { CookieBanner } from "./CookieBanner";
 import { StructuredData } from "./StructuredData";
 import { FloatingWhatsApp } from "./FloatingWhatsApp";
 import { useContactModal, type InquiryCategory } from "./ContactModal";
+import { restoreConsentFromStorage, trackPageView } from "./analytics";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
@@ -69,6 +70,16 @@ export function Layout() {
 
   // Camera flash animation on CTA clicks
   useCameraFlashGlobal();
+
+  // Google Analytics: Restore consent from localStorage on mount
+  useEffect(() => {
+    restoreConsentFromStorage();
+  }, []);
+
+  // Google Analytics: Track page views on route changes
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
 
   // Determine inquiry scope based on current route
   const getInquiryScope = (): InquiryCategory => {

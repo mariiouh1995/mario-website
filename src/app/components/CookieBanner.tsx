@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
 import { Cookie, X } from "lucide-react";
+import { updateGoogleConsent } from "./analytics";
 
 const COOKIE_CONSENT_KEY = "ms-cookie-consent";
 
@@ -34,6 +35,7 @@ export function CookieBanner() {
 
   const saveConsent = (consent: ConsentState) => {
     localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
+    updateGoogleConsent(consent.analytics, consent.marketing);
     setVisible(false);
   };
 
