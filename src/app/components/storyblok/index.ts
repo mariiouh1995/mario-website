@@ -25,3 +25,5 @@ export { initStoryblok, isStoryblokConfigured } from "./storyblok-init";
 export { fetchStoryblokStories, fetchStoryblokStory, clearStoryblokCache } from "./storyblok-api";
 export { useStoryblokFAQs } from "./useStoryblokFAQs";
 export { usePageContent } from "./usePageContent";
+export { ICON_MAP, getAvailableIconNames } from "./icon-map";
+export type { IconComponent } from "./icon-map";
