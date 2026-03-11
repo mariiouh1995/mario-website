@@ -27,7 +27,7 @@ export function AnimalsPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
-  const { getText } = usePageContent("animals", lang);
+  const { getText, getAsset, getIcon } = usePageContent("animals", lang);
 
   const seo = lang === "de"
     ? {
@@ -95,19 +95,19 @@ export function AnimalsPage() {
     {
       title: getText("dogs_title", t.animals.dogsTitle),
       text: getText("dogs_text", t.animals.dogsText),
-      image: IMAGES.dogs,
+      image: getAsset("dogs_image", IMAGES.dogs),
       imageAlt: "Dog photography",
     },
     {
       title: getText("horses_title", t.animals.horsesTitle),
       text: getText("horses_text", t.animals.horsesText),
-      image: IMAGES.horses,
+      image: getAsset("horses_image", IMAGES.horses),
       imageAlt: "Horse photography",
     },
     {
       title: getText("other_title", t.animals.otherTitle),
       text: getText("other_text", t.animals.otherText),
-      image: IMAGES.cats,
+      image: getAsset("cats_image", IMAGES.cats),
       imageAlt: "Pet photography",
     },
   ];
@@ -155,12 +155,12 @@ export function AnimalsPage() {
         canonical="/tierfotografie"
         keywords={seo.keywords}
         lang={lang}
-        ogImage={IMAGES.hero}
+        ogImage={getAsset("hero_image", IMAGES.hero)}
       />
 
       {/* Hero */}
       <ParallaxHero
-        imageSrc={IMAGES.hero}
+        imageSrc={getAsset("hero_image", IMAGES.hero)}
         imageAlt="Professionelle Tierfotografie – Hundeportrait Outdoor in Tirol"
         preTitle={getText("hero_title", t.animals.heroTitle)}
         title={getText("hero_subtitle", t.animals.heroSubtitle)}
@@ -202,7 +202,7 @@ export function AnimalsPage() {
               <div className="bg-white border border-black/10 overflow-hidden h-full flex flex-col">
                 <div className="aspect-[4/3] overflow-hidden">
                   <ImageWithFallback
-                    src={IMAGES.studio}
+                    src={getAsset("studio_image", IMAGES.studio)}
                     alt="Studio Tierfotografie"
                     className="w-full h-full object-cover"
                   />
@@ -264,7 +264,7 @@ export function AnimalsPage() {
               <div className="bg-white border border-black h-full flex flex-col overflow-hidden">
                 <div className="aspect-[4/3] overflow-hidden">
                   <ImageWithFallback
-                    src={IMAGES.outdoor}
+                    src={getAsset("outdoor_image", IMAGES.outdoor)}
                     alt="Outdoor Tierfotografie"
                     className="w-full h-full object-cover"
                   />

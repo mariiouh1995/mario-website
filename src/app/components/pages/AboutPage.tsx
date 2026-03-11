@@ -22,7 +22,7 @@ const IMAGES = {
 export function AboutPage() {
   const { t, lang } = useLanguage();
   const { openContact } = useContactModal();
-  const { getText } = usePageContent("about", lang);
+  const { getText, getAsset, getIcon } = usePageContent("about", lang);
 
   const seo = lang === "de"
     ? {
@@ -223,7 +223,7 @@ export function AboutPage() {
         canonical="/ueber-mich"
         keywords={seo.keywords}
         lang={lang}
-        ogImage={IMAGES.portrait}
+        ogImage={getAsset("portrait_image", IMAGES.portrait)}
       />
 
       {/* Video Hero */}
@@ -234,7 +234,7 @@ export function AboutPage() {
           muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-          src={HERO_VIDEO}
+          src={getAsset("hero_video", HERO_VIDEO)}
         />
         <motion.div
           className="relative h-full flex flex-col items-center justify-center text-center px-4"
@@ -318,7 +318,7 @@ export function AboutPage() {
             <SectionReveal delay={0.2}>
               <div className="relative">
                 <ImageWithFallback
-                  src={IMAGES.portrait}
+                  src={getAsset("portrait_image", IMAGES.portrait)}
                   alt="Fotograf Mario Schubert – Hochzeitsfotograf und Tierfotograf aus Innsbruck, Tirol"
                   className="w-full aspect-[4/5] object-cover"
                 />
@@ -366,7 +366,7 @@ export function AboutPage() {
               <div className="flex justify-center lg:justify-start">
                 <div className="relative max-w-[380px] w-full">
                   <ImageWithFallback
-                    src={IMAGES.marioAction}
+                    src={getAsset("mario_action_image", IMAGES.marioAction)}
                     alt="Mario Schubert bei einem Hundeshooting in Aktion – Tierfotograf Innsbruck"
                     className="w-full aspect-[3/4] object-cover"
                   />

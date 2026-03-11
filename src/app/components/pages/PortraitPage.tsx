@@ -31,7 +31,7 @@ export function PortraitPage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const { getImagesForPage } = useImages();
-  const { getText } = usePageContent("portrait", lang);
+  const { getText, getAsset, getIcon } = usePageContent("portrait", lang);
 
   const seo = lang === "de"
     ? {
@@ -49,19 +49,19 @@ export function PortraitPage() {
     {
       title: getText("couple_title", t.portrait.coupleTitle),
       text: getText("couple_text", t.portrait.coupleText),
-      image: IMAGES.couple,
+      image: getAsset("couple_image", IMAGES.couple),
       imageAlt: "Verliebtes Paar beim Couple Shooting in den Tiroler Alpen – Paarfotograf Mario Schubert Innsbruck",
     },
     {
       title: getText("family_title", t.portrait.familyTitle),
       text: getText("family_text", t.portrait.familyText),
-      image: IMAGES.family,
+      image: getAsset("family_image", IMAGES.family),
       imageAlt: "Natuerliches Familienshooting Outdoor – Familienfotograf Innsbruck Tirol",
     },
     {
       title: getText("private_title", t.portrait.privateTitle),
       text: getText("private_text", t.portrait.privateText),
-      image: IMAGES.baptism,
+      image: getAsset("baptism_image", IMAGES.baptism),
       imageAlt: "Taufe Zeremonie Fotografie – Eventfotograf Mario Schubert Bayern und Tirol",
     },
   ];
@@ -91,12 +91,12 @@ export function PortraitPage() {
         canonical="/portrait"
         keywords={seo.keywords}
         lang={lang}
-        ogImage={IMAGES.hero}
+        ogImage={getAsset("hero_image", IMAGES.hero)}
       />
 
       {/* Hero with Parallax */}
       <ParallaxHero
-        imageSrc={IMAGES.hero}
+        imageSrc={getAsset("hero_image", IMAGES.hero)}
         imageAlt="Romantisches Couple Shooting Outdoor – Portrait und Paarfotografie in Innsbruck, Tirol von Mario Schubert"
         preTitle={getText("hero_title", t.portrait.heroTitle)}
         title={getText("hero_subtitle", t.portrait.heroSubtitle)}

@@ -15,9 +15,9 @@ import { MasonryGrid } from "../MasonryGrid";
 import { usePageContent } from "../storyblok";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
-const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Wedding%20Clip%20fu%CC%88r%20Wesbeite_ProRes422_1080p.mp4?updatedAt=1773071703884";
+const HERO_VIDEO_FALLBACK = "https://ik.imagekit.io/r2yqrg6np/Wedding%20Clip%20fu%CC%88r%20Wesbeite_ProRes422_1080p.mp4?updatedAt=1773071703884";
 
-const IMAGES = {
+const FALLBACK_IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/E00A5635-2.jpg?updatedAt=1773007052923",
   wedding: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_151924_0405(LowRes).jpg?updatedAt=1773007048480",
   animals: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1038_(WebRes).jpg?updatedAt=1773000802084",
@@ -30,7 +30,7 @@ export function HomePage() {
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
   const { getImagesForPage } = useImages();
-  const { getText } = usePageContent("home", lang);
+  const { getText, getAsset, getIcon } = usePageContent("home", lang);
 
   const GALLERY_PAGE_SIZE = 12;
   const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE_SIZE);
@@ -52,21 +52,21 @@ export function HomePage() {
       icon: Heart,
       title: getText("wedding_title", t.home.weddingTitle),
       desc: getText("wedding_desc", t.home.weddingDesc),
-      image: IMAGES.wedding,
+      image: getAsset("wedding_image", FALLBACK_IMAGES.wedding),
       link: "/hochzeiten",
     },
     {
       icon: Camera,
       title: getText("animals_title", t.home.animalsTitle),
       desc: getText("animals_desc", t.home.animalsDesc),
-      image: IMAGES.animals,
+      image: getAsset("animals_image", FALLBACK_IMAGES.animals),
       link: "/tierfotografie",
     },
     {
       icon: Film,
       title: getText("portrait_title", t.home.portraitTitle),
       desc: getText("portrait_desc", t.home.portraitDesc),
-      image: IMAGES.portrait,
+      image: getAsset("portrait_image", FALLBACK_IMAGES.portrait),
       link: "/portrait",
     },
   ];
@@ -113,7 +113,7 @@ export function HomePage() {
         canonical="/"
         keywords={seo.keywords}
         lang={lang}
-        ogImage={IMAGES.hero}
+        ogImage={FALLBACK_IMAGES.hero}
       />
 
       {/* Hero Section */}
@@ -124,8 +124,8 @@ export function HomePage() {
           muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-          src={HERO_VIDEO}
-          poster={IMAGES.hero}
+          src={HERO_VIDEO_FALLBACK}
+          poster={FALLBACK_IMAGES.hero}
         />
         <div className="absolute inset-0 bg-black/40" />
 
@@ -333,7 +333,7 @@ export function HomePage() {
             <SectionReveal direction="left">
               <div className="relative">
                 <ImageWithFallback
-                  src={IMAGES.about}
+                  src={getAsset("about_image", FALLBACK_IMAGES.about)}
                   alt="Fotograf Mario Schubert mit Kamera – Hochzeitsfotograf und Videograf aus Innsbruck, Tirol"
                   className="w-full aspect-[4/5] object-cover"
                 />

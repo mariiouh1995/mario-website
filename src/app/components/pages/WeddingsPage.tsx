@@ -40,7 +40,7 @@ export function WeddingsPage() {
   const [galleryMode, setGalleryMode] = useState<"fotos" | "videos">("fotos");
   const { getImagesForPage } = useImages();
   const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
-  const { getText } = usePageContent("weddings", lang);
+  const { getText, getAsset, getIcon } = usePageContent("weddings", lang);
 
   // Video Hero parallax
   const heroRef = useRef<HTMLElement>(null);
@@ -118,7 +118,7 @@ export function WeddingsPage() {
         canonical="/hochzeiten"
         keywords={seo.keywords}
         lang={lang}
-        ogImage={IMAGES.hero}
+        ogImage={getAsset("hero_image", IMAGES.hero)}
       />
 
       {/* Hero */}
@@ -129,8 +129,8 @@ export function WeddingsPage() {
           muted
           playsInline
           className="absolute inset-0 w-full h-full object-cover"
-          src={HERO_VIDEO}
-          poster={IMAGES.hero}
+          src={getAsset("hero_video", HERO_VIDEO)}
+          poster={getAsset("hero_image", IMAGES.hero)}
         />
         <motion.div
           className="relative h-full flex flex-col items-center justify-center text-center px-4"
@@ -213,12 +213,12 @@ export function WeddingsPage() {
             <SectionReveal delay={0.2}>
               <div className="grid grid-cols-2 gap-3">
                 <ImageWithFallback
-                  src={IMAGES.photo1}
+                  src={getAsset("photo1_image", IMAGES.photo1)}
                   alt="Elegante Hochzeitszeremonie in Tirol – zeitlose Hochzeitsfotografie von Mario Schubert Innsbruck"
                   className="w-full aspect-[3/4] object-cover"
                 />
                 <ImageWithFallback
-                  src={IMAGES.photo2}
+                  src={getAsset("photo2_image", IMAGES.photo2)}
                   alt="Emotionales Brautportrait – authentische Hochzeitsfotografie in den Alpen"
                   className="w-full aspect-[3/4] object-cover mt-12"
                 />
@@ -235,12 +235,12 @@ export function WeddingsPage() {
             <SectionReveal>
               <div className="order-2 lg:order-1 grid grid-cols-2 gap-3">
                 <ImageWithFallback
-                  src={IMAGES.video}
+                  src={getAsset("video_image", IMAGES.video)}
                   alt="Erster Tanz bei Hochzeitsfeier – Hochzeitsvideografie Bayern und Tirol"
                   className="w-full aspect-[3/4] object-cover mt-12"
                 />
                 <ImageWithFallback
-                  src={IMAGES.details}
+                  src={getAsset("details_image", IMAGES.details)}
                   alt="Eheringe Detailaufnahme – Hochzeitsfotograf Innsbruck Detailfotografie"
                   className="w-full aspect-[3/4] object-cover"
                 />
