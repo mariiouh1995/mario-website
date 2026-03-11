@@ -1,11 +1,4 @@
-import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
-import { usePageContent } from "../storyblok";
-import { useWeddingPackages } from "../usePackagesFormatted";
-import { useImages } from "../useImages";
-import { useShuffledGallery } from "../useShuffledGallery";
-import { ParallaxHero } from "../ParallaxHero";
-import { GoogleReviewsGrid } from "../GoogleReviews";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { ArrowRight, Check, Camera, Heart, Users, Sparkles, Music, Cake, PartyPopper, Star, Download, Sun, Palette, Contrast, Clock, MessageCircle, FileText, CalendarCheck, CameraIcon, Gift, Smartphone, Play } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
@@ -16,6 +9,15 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
+
+import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
+import { usePageContent } from "../storyblok";
+import { useWeddingPackages } from "../usePackagesFormatted";
+import { useImages } from "../useImages";
+import { useShuffledGallery } from "../useShuffledGallery";
+import { GoogleReviewsGrid } from "../GoogleReviews";
+
+const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Lo%CC%88wenClip_fu%CC%88r_Webseite_compressed.mp4?updatedAt=1773077988312";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_152738_0428(LowRes).jpg?updatedAt=1773007053353",
@@ -39,6 +41,15 @@ export function WeddingsPage() {
   const { getImagesForPage } = useImages();
   const { photoPackages: weddingPhotoPackages, videoPackages: weddingVideoPackages, addOns, shotListItems } = useWeddingPackages(lang);
   const { getText } = usePageContent("weddings", lang);
+
+  // Video Hero parallax
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const heroTextY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   // Reset visibleCount when category changes
   const GALLERY_PAGE_SIZE = 20;
@@ -111,12 +122,55 @@ export function WeddingsPage() {
       />
 
       {/* Hero */}
-      <ParallaxHero
-        imageSrc={IMAGES.hero}
-        imageAlt="Hochzeitspaar bei romantischem Outdoor-Shooting in den Tiroler Alpen – Hochzeitsfotograf Mario Schubert Innsbruck"
-        preTitle={getText("hero_title", t.weddings.heroTitle)}
-        title={getText("hero_subtitle", t.weddings.heroSubtitle)}
-      />
+      <section ref={heroRef} className="relative h-[40vh] min-h-[280px] md:h-[70vh] md:min-h-[500px] overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src={HERO_VIDEO}
+          poster={IMAGES.hero}
+        />
+        <motion.div
+          className="relative h-full flex flex-col items-center justify-center text-center px-4"
+          style={{ y: heroTextY, opacity: heroOpacity }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p
+              className="text-white/70 text-[0.75rem] tracking-[0.3em] uppercase mb-4"
+              style={{ fontWeight: 400 }}
+            >
+              {getText("hero_title", t.weddings.heroTitle)}
+            </p>
+            <h1
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: "clamp(2.5rem, 7vw, 5rem)",
+                fontWeight: 300,
+                lineHeight: 1,
+                color: "white",
+              }}
+            >
+              {getText("hero_subtitle", t.weddings.heroSubtitle)}
+            </h1>
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          style={{ opacity: heroOpacity }}
+        >
+          <div className="w-[1px] h-12 bg-white/30" />
+        </motion.div>
+      </section>
 
       {/* Wedding Photography */}
       <section className="py-24 md:py-32 px-4">

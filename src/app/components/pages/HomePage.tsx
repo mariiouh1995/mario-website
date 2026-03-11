@@ -8,7 +8,6 @@ import { Lightbox, useLightbox } from "../Lightbox";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
-import { ParallaxHero } from "../ParallaxHero";
 import { GoogleReviewSingle } from "../GoogleReviews";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
@@ -16,6 +15,7 @@ import { MasonryGrid } from "../MasonryGrid";
 import { usePageContent } from "../storyblok";
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
+const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Wedding%20Clip%20fu%CC%88r%20Wesbeite_ProRes422_1080p.mp4?updatedAt=1773071703884";
 
 const IMAGES = {
   hero: "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/E00A5635-2.jpg?updatedAt=1773007052923",
@@ -118,14 +118,16 @@ export function HomePage() {
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative h-[45vh] min-h-[350px] md:h-screen md:min-h-[600px] overflow-hidden">
-        <motion.div className="absolute inset-0" style={{ y: heroImageY }}>
-          <ImageWithFallback
-            src={IMAGES.hero}
-            alt="Romantisches Brautpaar-Shooting in den Alpen – Hochzeitsfotograf Mario Schubert, Innsbruck Tirol"
-            className="w-full h-[120%] object-cover"
-          />
-          <div className="absolute inset-0 bg-black/40" />
-        </motion.div>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src={HERO_VIDEO}
+          poster={IMAGES.hero}
+        />
+        <div className="absolute inset-0 bg-black/40" />
 
         <motion.div
           className="relative h-full flex flex-col items-center justify-center text-center px-4"
