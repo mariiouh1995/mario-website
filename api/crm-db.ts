@@ -164,28 +164,28 @@ export const DEFAULT_PORTAL_VISIBILITY: PortalVisibility = {
 export const MAIL_TEMPLATES: Record<string, { label: string; subject: string; body: string }> = {
   reply: {
     label: "Anfrage beantworten",
-    subject: "Danke für deine Anfrage, {firstName}",
-    body: "Servus {firstName},\n\nvielen Dank für deine Anfrage. Ich freue mich, mehr über eure Pläne zu erfahren.\n\nIch melde mich zeitnah mit ein paar Terminvorschlägen für ein kurzes Vorgespräch.\n\n{signature}",
+    subject: "Danke für eure Anfrage",
+    body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Ich freue mich, mehr über eure Pläne zu erfahren.\n\nIch melde mich zeitnah mit ein paar Terminvorschlägen für ein kurzes Vorgespräch.",
   },
   consultation: {
     label: "Vorgespräch",
     subject: "Unser Vorgespräch",
-    body: "Servus {firstName},\n\nhier findest du die Details für unser Vorgespräch:\n\nTermin: {consultationDate}\n\nFalls sich bei dir etwas ändert, gib mir einfach kurz Bescheid.\n\n{signature}",
+    body: "Servus ihr Lieben,\n\nhier findet ihr die Details für unser Vorgespräch:\n\nTermin: {consultationDate}\n\nFalls sich bei euch etwas ändert, gebt mir einfach kurz Bescheid.",
   },
   contract: {
     label: "Vertrag senden",
-    subject: "Dein Vertrag mit Mario Schubert Photography",
-    body: "Servus {firstName},\n\nich habe dir den Vertrag für euren Termin vorbereitet.\n\nDu findest ihn hier:\n{contractUrl}\n\nWenn alles passt, gib mir bitte kurz Bescheid oder sende mir den unterschriebenen Vertrag zurück.\n\n{signature}",
+    subject: "Euer Vertrag mit Mario Schubert Photography",
+    body: "Servus ihr Lieben,\n\nich habe euch den Vertrag für euren Termin vorbereitet.\n\nIhr findet ihn hier:\n{contractUrl}\n\nWenn alles passt, gebt mir bitte kurz Bescheid oder sendet mir den unterschriebenen Vertrag zurück.",
   },
   portal: {
     label: "Kundenportal",
-    subject: "Dein Kundenbereich bei Mario Schubert Photography",
-    body: "Servus {firstName},\n\nich habe dir einen persönlichen Kundenbereich eingerichtet. Dort findest du eure gebuchten Leistungen, Termine, Dokumente und später auch den Galerie-Link.\n\nLink: {portalUrl}\nPasswort: {portalPassword}\n\n{signature}",
+    subject: "Euer Kundenbereich bei Mario Schubert Photography",
+    body: "Servus ihr Lieben,\n\nich habe euch einen persönlichen Kundenbereich eingerichtet. Dort findet ihr eure gebuchten Leistungen, Termine, Dokumente und später auch den Galerie-Link.\n\nLink: {portalUrl}\nPasswort: {portalPassword}",
   },
   gallery: {
     label: "Galerie geliefert",
     subject: "Eure Galerie ist fertig",
-    body: "Servus {firstName},\n\neure Galerie ist fertig. Du findest sie hier:\n{galleryUrl}\n\nIch wünsche euch ganz viel Freude mit den Bildern.\n\n{signature}",
+    body: "Servus ihr Lieben,\n\neure Galerie ist fertig. Ihr findet sie hier:\n{galleryUrl}\n\nIch wünsche euch ganz viel Freude mit den Bildern.",
   },
 };
 

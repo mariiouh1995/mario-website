@@ -265,6 +265,10 @@ function parseTime(value: string) {
   return /(\d{1,2}:\d{2})/.exec(value || "")?.[1] || "";
 }
 
+function mailBodyForEditor(body = "") {
+  return body.replace(/\n{0,2}\{signature\}\s*$/i, "").trim();
+}
+
 function dateDiffDays(date: string) {
   const target = new Date(`${date}T00:00:00`);
   const today = new Date();
@@ -427,7 +431,7 @@ export function AdminPage() {
   useEffect(() => {
     const template = mailTemplates[activeMail];
     setMailSubject(template?.subject || "");
-    setMailBody(template?.body || "");
+    setMailBody(mailBodyForEditor(template?.body || ""));
   }, [activeMail, mailTemplates, selectedId]);
 
   const login = async () => {
@@ -487,7 +491,7 @@ export function AdminPage() {
     setConfirmAction(action);
     setConfirmSendMail(Boolean(action.templateKey));
     setConfirmSubject(action.subject || template?.subject || "");
-    setConfirmBody(action.body || template?.body || "");
+    setConfirmBody(mailBodyForEditor(action.body || template?.body || ""));
     setConfirmAttachmentUrl("");
     setConfirmAttachmentName("");
   };
@@ -812,7 +816,7 @@ export function AdminPage() {
             <InquiryDetail
               inquiry={selectedInquiry}
               onReply={() => openConfirm({ title: "Anfrage beantworten?", description: "Die Anfrage wird als beantwortet markiert. Optional wird direkt eine Mail verschickt.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => markInquiryAnswered(selectedInquiry.id) })}
-              onDelete={() => openConfirm({ title: "Anfrage ablehnen oder löschen?", description: "Die Anfrage wird entfernt. Optional kann vorher eine kurze Absage-Mail gesendet werden.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, subject: `Danke für deine Anfrage, ${selectedInquiry.brideName || selectedInquiry.name}`, body: "Servus {firstName},\n\nvielen Dank für deine Anfrage. Leider passt es diesmal nicht oder der Termin ist bereits vergeben.\n\nIch wünsche euch alles Gute.\n\n{signature}", onConfirm: () => deleteInquiryAction(selectedInquiry.id) })}
+              onDelete={() => openConfirm({ title: "Anfrage ablehnen oder löschen?", description: "Die Anfrage wird entfernt. Optional kann vorher eine kurze Absage-Mail gesendet werden.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, subject: "Danke für eure Anfrage", body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Leider passt es diesmal nicht oder der Termin ist bereits vergeben.\n\nIch wünsche euch alles Gute.", onConfirm: () => deleteInquiryAction(selectedInquiry.id) })}
               onConvert={() => openConfirm({ title: "In Kunden umwandeln?", description: "Relevante Kontaktdaten, Leistungen, Nachrichten und Locations werden übernommen.", templateKey: "portal", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => convertInquiry(selectedInquiry.id) })}
             />
           )}
