@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
-import type { CrmCustomer, CustomerStatus, InquiryStatus } from "./crm-db";
 
-type CrmDb = typeof import("./crm-db");
+type CrmCustomer = any;
+type CrmDb = any;
+type CustomerStatus = string;
+type InquiryStatus = string;
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
