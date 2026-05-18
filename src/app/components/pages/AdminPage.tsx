@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Toaster, toast } from "sonner";
 import {
   ArrowRight,
   Bell,
@@ -415,6 +416,7 @@ export function AdminPage() {
       setSelectedInquiryId("");
       setDraft(null);
       setMessage(`API/DB nicht erreichbar: ${error.message || "unbekannter Fehler"}. Bitte Vercel Function Logs prüfen.`);
+      toast.error(`API/DB nicht erreichbar: ${error.message || "unbekannter Fehler"}`);
     } finally {
       setLoading(false);
     }
@@ -479,8 +481,10 @@ export function AdminPage() {
     try {
       await persistCustomerDraft(draft);
       setMessage("Gespeichert");
+      toast.success("Kunde gespeichert");
     } catch (error: any) {
       setMessage(error.message || "Speichern fehlgeschlagen");
+      toast.error(error.message || "Speichern fehlgeschlagen");
     } finally {
       setSaving(false);
     }
@@ -514,18 +518,25 @@ export function AdminPage() {
       await sendActionMail(confirmAction);
       await confirmAction.onConfirm();
       setMessage("Aktion ausgeführt");
+      toast.success(confirmSendMail ? "Aktion ausgeführt und Mail gesendet" : "Aktion ausgeführt");
       setConfirmAction(null);
     } catch (error: any) {
       setMessage(error.message || "Aktion fehlgeschlagen");
+      toast.error(error.message || "Aktion fehlgeschlagen");
     } finally {
       setSaving(false);
     }
   };
 
   const createCustomer = async () => {
-    const data = await api("customer", { method: "POST", body: JSON.stringify({ customer: emptyCustomer() }) });
-    setCustomers((prev) => [normalizeCustomer(data.customer), ...prev]);
-    selectCustomer(data.customer.id);
+    try {
+      const data = await api("customer", { method: "POST", body: JSON.stringify({ customer: emptyCustomer() }) });
+      setCustomers((prev) => [normalizeCustomer(data.customer), ...prev]);
+      selectCustomer(data.customer.id);
+      toast.success("Kunde angelegt");
+    } catch (error: any) {
+      toast.error(error.message || "Kunde konnte nicht angelegt werden");
+    }
   };
 
   const convertInquiry = async (inquiryId: string) => {
@@ -617,8 +628,10 @@ export function AdminPage() {
       });
       setNewTaskOpen(false);
       setMessage("Aufgabe angelegt");
+      toast.success("Aufgabe angelegt");
     } catch (error: any) {
       setMessage(error.message || "Aufgabe konnte nicht angelegt werden");
+      toast.error(error.message || "Aufgabe konnte nicht angelegt werden");
     } finally {
       setSaving(false);
     }
@@ -648,8 +661,10 @@ export function AdminPage() {
       await api("send-mail", { method: "POST", body: JSON.stringify({ customerId: draft.id, templateKey: activeMail, subject: mailSubject, body: mailBody }) });
       await loadCrm();
       setMessage("Mail gesendet");
+      toast.success("Mail gesendet");
     } catch (error: any) {
       setMessage(error.message || "Mail konnte nicht gesendet werden");
+      toast.error(error.message || "Mail konnte nicht gesendet werden");
     } finally {
       setSaving(false);
     }
@@ -658,7 +673,12 @@ export function AdminPage() {
   const provisionPortal = async () => {
     if (!draft) return;
     const portalPassword = createPortalPassword(draft.eventDate);
-    if (!portalPassword) return setMessage("Für das Portal-Passwort braucht der Kunde ein Hochzeits-/Shootingdatum.");
+    if (!portalPassword) {
+      const text = "Für das Portal-Passwort braucht der Kunde ein Hochzeits-/Shootingdatum.";
+      setMessage(text);
+      toast.error(text);
+      return;
+    }
     setSaving(true);
     try {
       await persistCustomerDraft(draft);
@@ -667,8 +687,10 @@ export function AdminPage() {
       setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
       setDraft(saved);
       setMessage(`Portal bereitgestellt und Mail gesendet. Passwort: ${data.portalPassword}`);
+      toast.success("Portal bereitgestellt und Mail gesendet");
     } catch (error: any) {
       setMessage(error.message || "Portal konnte nicht bereitgestellt werden");
+      toast.error(error.message || "Portal konnte nicht bereitgestellt werden");
     } finally {
       setSaving(false);
     }
@@ -687,6 +709,7 @@ export function AdminPage() {
       localStorage.setItem("mario_read_notifications", JSON.stringify(next));
       return next;
     });
+    toast.success("Notification als gelesen markiert");
   };
 
   const markAllNotificationsRead = () => {
@@ -695,6 +718,7 @@ export function AdminPage() {
       localStorage.setItem("mario_read_notifications", JSON.stringify(next));
       return next;
     });
+    toast.success("Alle Notifications als gelesen markiert");
   };
 
   if (!isAuthenticated) {
@@ -715,6 +739,7 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17]">
+      <Toaster position="top-right" richColors closeButton />
       <header className="border-b border-black/10 bg-[#11100f] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-5 py-4 sm:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
