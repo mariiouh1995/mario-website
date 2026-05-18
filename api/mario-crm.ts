@@ -157,6 +157,7 @@ async function ensureCustomerDriveFolder(customer: CrmCustomer) {
       mimeType: "application/vnd.google-apps.folder",
       parents: [rootFolderId],
     },
+    supportsAllDrives: true,
     fields: "id",
   });
   const folderId = created.data.id;
@@ -175,7 +176,7 @@ function upsertDocument(customer: CrmCustomer, document: CustomerDocument) {
 async function deleteDriveFile(fileId?: string) {
   if (!fileId) return;
   try {
-    await driveClient().files.delete({ fileId });
+    await driveClient().files.delete({ fileId, supportsAllDrives: true });
   } catch (error: any) {
     if (error?.code !== 404) throw error;
   }
@@ -287,12 +288,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const uploaded = await drive.files.create({
         requestBody: { name: fileName, parents: [folderId] },
         media: { mimeType, body: Readable.from(buffer) },
+        supportsAllDrives: true,
         fields: "id, webViewLink",
       });
       const fileId = uploaded.data.id;
       if (!fileId) throw new Error("Google Drive file could not be uploaded");
-      await drive.permissions.create({ fileId, requestBody: { type: "anyone", role: "reader" } });
-      const file = await drive.files.get({ fileId, fields: "webViewLink" });
+      await drive.permissions.create({ fileId, supportsAllDrives: true, requestBody: { type: "anyone", role: "reader" } });
+      const file = await drive.files.get({ fileId, supportsAllDrives: true, fields: "webViewLink" });
       const url = file.data.webViewLink || uploaded.data.webViewLink || "";
       const document = { id: documentId, kind, title, url, driveFileId: fileId, fileName, mimeType, uploadedAt: new Date().toISOString() };
       const saved = await crm.upsertCustomer({
@@ -453,6 +455,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: "Unknown CRM action" });
   } catch (error: any) {
     console.error("mario-crm error", error);
-    return res.status(500).json({ error: error?.message || "Internal server error" });
+    const detail = error?.response?.data?.error_description || error?.response?.data?.error?.message || error?.errors?.[0]?.message || error?.message;
+    return res.status(500).json({ error: detail || "Internal server error" });
   }
 }

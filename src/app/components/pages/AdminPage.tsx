@@ -773,6 +773,10 @@ export function AdminPage() {
   };
   const uploadDocument = async (document: CustomerDocument, file: File) => {
     if (!draft) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Datei ist zu groß für den direkten Upload. Bitte nutze aktuell eine Datei unter 4 MB oder trage einen Drive-Link als URL ein.");
+      return;
+    }
     setSaving(true);
     try {
       const contentBase64 = await readFileAsBase64(file);
