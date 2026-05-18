@@ -293,7 +293,7 @@ export function AdminPage() {
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
-  const [view, setView] = useState<"customers" | "calendar">("customers");
+  const [view, setView] = useState<"customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar">("customersList");
   const [editMode, setEditMode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
@@ -403,7 +403,15 @@ export function AdminPage() {
       setMailTemplates(data.mailTemplates || {});
       if (!selectedId && data.customers?.[0]) setSelectedId(data.customers[0].id);
     } catch (error: any) {
-      loadMockPreview(`Lokale Vorschau mit Mockdaten aktiv. API/DB: ${error.message || "nicht erreichbar"}`);
+      setPreviewMode(false);
+      setInquiries([]);
+      setCustomers([]);
+      setWorkflow(statusSteps);
+      setMailTemplates({});
+      setSelectedId("");
+      setSelectedInquiryId("");
+      setDraft(null);
+      setMessage(`API/DB nicht erreichbar: ${error.message || "unbekannter Fehler"}. Bitte Vercel Function Logs prüfen.`);
     } finally {
       setLoading(false);
     }
@@ -453,13 +461,13 @@ export function AdminPage() {
   const selectCustomer = (id: string) => {
     setSelectedId(id);
     setSelectedInquiryId("");
-    setView("customers");
+    setView("customerDetail");
     setEditMode(false);
   };
   const selectInquiry = (id: string) => {
     setSelectedInquiryId(id);
     setSelectedId("");
-    setView("customers");
+    setView("inquiryDetail");
   };
 
   const persistCustomerDraft = async (updated: Customer) => {
@@ -716,7 +724,7 @@ export function AdminPage() {
             {previewMode && <p className="text-white/45 text-xs mt-1">Lokale Vorschau mit Mockdaten</p>}
           </div>
           <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
-            <button onClick={() => setView(view === "calendar" ? "customers" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> Kalender</button>
+            <button onClick={() => setView(view === "calendar" ? "customersList" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> {view === "calendar" ? "Liste anzeigen" : "Kalender"}</button>
             <div className="relative">
               <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10">
                 <Bell className="w-4 h-4" />
@@ -759,7 +767,10 @@ export function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-5 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[310px_minmax(0,1fr)] gap-5 sm:gap-6">
         <aside className="space-y-5">
           <section className="bg-white border border-black/8 rounded-lg p-4">
-            <h2 className="text-sm font-semibold mb-3 flex items-center gap-2"><Mail className="w-4 h-4" /> Neue Anfragen</h2>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-sm font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Neue Anfragen</h2>
+              <button onClick={() => setView("inquiriesList")} className="text-xs text-black/45 hover:text-black">Alle ansehen</button>
+            </div>
             <div className="space-y-2 max-h-72 overflow-auto">
               {inquiries.filter((item) => item.status !== "umgewandelt").map((inquiry) => (
                 <article key={inquiry.id} onClick={() => selectInquiry(inquiry.id)} className={`rounded-md border p-3 cursor-pointer ${inquiry.id === selectedInquiryId ? "bg-[#11100f] text-white border-[#11100f]" : "bg-[#faf8f5] border-black/8"}`}>
@@ -773,7 +784,10 @@ export function AdminPage() {
           </section>
 
           <section className="bg-white border border-black/8 rounded-lg p-4">
-            <h2 className="text-sm font-semibold mb-3 flex items-center gap-2"><UserRound className="w-4 h-4" /> Kunden</h2>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-sm font-semibold flex items-center gap-2"><UserRound className="w-4 h-4" /> Kunden</h2>
+              <button onClick={() => setView("customersList")} className="text-xs text-black/45 hover:text-black">Alle ansehen</button>
+            </div>
             <div className="space-y-1.5 max-h-[42rem] overflow-auto">
               {customers.map((customer) => (
                 <button key={customer.id} onClick={() => selectCustomer(customer.id)} className={`relative w-full text-left rounded-md px-3 py-2 border transition ${customer.id === selectedId ? "bg-[#11100f] text-white border-[#11100f]" : "bg-[#faf8f5] border-black/8 hover:border-black/20"}`}>
@@ -790,7 +804,9 @@ export function AdminPage() {
           {message && <p className="rounded-md bg-[#f4f0eb] px-3 py-2 text-sm text-black/65 mb-5">{message}</p>}
           {loading && <p className="text-black/45">Lade CRM...</p>}
           {!loading && view === "calendar" && <CalendarView month={calendarMonth} setMonth={setCalendarMonth} events={calendarEvents} onEvent={setCalendarEvent} />}
-          {!loading && view !== "calendar" && selectedInquiry && (
+          {!loading && view === "customersList" && <CustomersListView customers={customers} notificationsByCustomer={notificationsByCustomer} onSelect={selectCustomer} />}
+          {!loading && view === "inquiriesList" && <InquiriesListView inquiries={inquiries} onSelect={selectInquiry} />}
+          {!loading && view === "inquiryDetail" && selectedInquiry && (
             <InquiryDetail
               inquiry={selectedInquiry}
               onReply={() => openConfirm({ title: "Anfrage beantworten?", description: "Die Anfrage wird als beantwortet markiert. Optional wird direkt eine Mail verschickt.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => markInquiryAnswered(selectedInquiry.id) })}
@@ -798,8 +814,8 @@ export function AdminPage() {
               onConvert={() => openConfirm({ title: "In Kunden umwandeln?", description: "Relevante Kontaktdaten, Leistungen, Nachrichten und Locations werden übernommen.", templateKey: "portal", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => convertInquiry(selectedInquiry.id) })}
             />
           )}
-          {!loading && view !== "calendar" && !draft && !selectedInquiry && <p className="text-black/45">Wähle eine Anfrage, einen Kunden oder lege einen neuen Kunden an.</p>}
-          {!loading && view !== "calendar" && draft && (
+          {!loading && (view === "customerDetail" || view === "inquiryDetail") && !draft && !selectedInquiry && <p className="text-black/45">Wähle eine Anfrage, einen Kunden oder lege einen neuen Kunden an.</p>}
+          {!loading && view === "customerDetail" && draft && (
             <CustomerDetail
               draft={draft}
               workflow={workflow}
@@ -884,6 +900,97 @@ export function AdminPage() {
   );
 }
 
+function CustomersListView({ customers, notificationsByCustomer, onSelect }: { customers: Customer[]; notificationsByCustomer: Record<string, number>; onSelect: (id: string) => void }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.22em] text-black/40">Übersicht</p>
+        <h2 className="mt-1 text-2xl">Alle Kunden</h2>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-black/8">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-[#faf8f5] text-left text-xs uppercase tracking-[0.14em] text-black/40">
+            <tr>
+              <th className="px-4 py-3 font-medium">Kunde</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Datum</th>
+              <th className="px-4 py-3 font-medium">Kontakt</th>
+              <th className="px-4 py-3 font-medium">Portal</th>
+              <th className="px-4 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/8">
+            {customers.map((customer) => (
+              <tr key={customer.id} className="hover:bg-[#faf8f5]">
+                <td className="px-4 py-3">
+                  <p className="font-medium">{customer.name || "Unbenannter Kunde"}</p>
+                  <p className="text-xs text-black/45">{customer.category || "Kategorie offen"}</p>
+                </td>
+                <td className="px-4 py-3">{statusSteps.find((item) => item.key === customer.status)?.label || customer.status}</td>
+                <td className="px-4 py-3">{customer.eventDate || "Noch offen"}</td>
+                <td className="px-4 py-3">
+                  <p>{customer.email || "Keine E-Mail"}</p>
+                  <p className="text-xs text-black/45">{customer.phone || "Keine Telefonnummer"}</p>
+                </td>
+                <td className="px-4 py-3">{customer.portalEnabled ? "aktiv" : "nicht aktiv"}</td>
+                <td className="px-4 py-3 text-right">
+                  {notificationsByCustomer[customer.id] > 0 && <span className="mr-2 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] text-white">{notificationsByCustomer[customer.id]}</span>}
+                  <button onClick={() => onSelect(customer.id)} className="rounded-md bg-[#11100f] px-3 py-2 text-xs text-white">Öffnen</button>
+                </td>
+              </tr>
+            ))}
+            {customers.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-black/45">Noch keine Kunden angelegt.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function InquiriesListView({ inquiries, onSelect }: { inquiries: Inquiry[]; onSelect: (id: string) => void }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.22em] text-black/40">Übersicht</p>
+        <h2 className="mt-1 text-2xl">Alle Anfragen</h2>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-black/8">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-[#faf8f5] text-left text-xs uppercase tracking-[0.14em] text-black/40">
+            <tr>
+              <th className="px-4 py-3 font-medium">Anfrage</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Datum</th>
+              <th className="px-4 py-3 font-medium">Kontakt</th>
+              <th className="px-4 py-3 font-medium">Gefunden über</th>
+              <th className="px-4 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/8">
+            {inquiries.map((inquiry) => (
+              <tr key={inquiry.id} className="hover:bg-[#faf8f5]">
+                <td className="px-4 py-3">
+                  <p className="font-medium">{inquiry.name || "Unbenannte Anfrage"}</p>
+                  <p className="text-xs text-black/45">{inquiry.category || "Kategorie offen"}</p>
+                </td>
+                <td className="px-4 py-3">{inquiry.status}</td>
+                <td className="px-4 py-3">{inquiry.eventDate || "Noch offen"}</td>
+                <td className="px-4 py-3">
+                  <p>{inquiry.email || "Keine E-Mail"}</p>
+                  <p className="text-xs text-black/45">{inquiry.phone || "Keine Telefonnummer"}</p>
+                </td>
+                <td className="px-4 py-3">{inquiry.foundVia || "-"}</td>
+                <td className="px-4 py-3 text-right"><button onClick={() => onSelect(inquiry.id)} className="rounded-md bg-[#11100f] px-3 py-2 text-xs text-white">Öffnen</button></td>
+              </tr>
+            ))}
+            {inquiries.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-black/45">Keine Anfragen vorhanden.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function CalendarView({ month, setMonth, events, onEvent }: { month: Date; setMonth: (date: Date) => void; events: CalendarEvent[]; onEvent: (event: CalendarEvent) => void }) {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
@@ -895,16 +1002,31 @@ function CalendarView({ month, setMonth, events, onEvent }: { month: Date; setMo
     acc[event.date] = [...(acc[event.date] || []), event];
     return acc;
   }, {});
+  const monthEvents = events
+    .filter((event) => {
+      const date = new Date(`${event.date}T00:00:00`);
+      return date.getFullYear() === year && date.getMonth() === monthIndex;
+    })
+    .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <button onClick={() => setMonth(new Date(year, monthIndex - 1, 1))} className="rounded-md border border-black/10 p-2"><ChevronLeft className="w-4 h-4" /></button>
-        <h2 className="text-xl font-medium">{monthNames[monthIndex]} {year}</h2>
+        <h2 className="text-lg sm:text-xl font-medium text-center">{monthNames[monthIndex]} {year}</h2>
         <button onClick={() => setMonth(new Date(year, monthIndex + 1, 1))} className="rounded-md border border-black/10 p-2"><ChevronRight className="w-4 h-4" /></button>
       </div>
-      <div className="grid grid-cols-7 gap-2 text-xs text-black/45 mb-2">{["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <div key={day}>{day}</div>)}</div>
-      <div className="grid grid-cols-7 gap-2">
+      <div className="sm:hidden space-y-2">
+        {monthEvents.map((event) => (
+          <button key={event.id} onClick={() => onEvent(event)} className={`w-full text-left rounded-md border p-3 ${event.type === "shooting" ? "bg-[#11100f] text-white border-[#11100f]" : "bg-[#faf8f5] border-black/8 text-black"}`}>
+            <p className="font-medium">{event.customerName}</p>
+            <p className="text-xs opacity-70 mt-1">{event.date} · {event.time} · {event.title}</p>
+          </button>
+        ))}
+        {monthEvents.length === 0 && <p className="rounded-md border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Keine Termine in diesem Monat.</p>}
+      </div>
+      <div className="hidden sm:grid grid-cols-7 gap-2 text-xs text-black/45 mb-2">{["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <div key={day}>{day}</div>)}</div>
+      <div className="hidden sm:grid grid-cols-7 gap-2">
         {cells.map((day, index) => {
           const date = day ? `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "";
           return (
@@ -1123,18 +1245,12 @@ function TaskBoard({ tasks, requestTaskStatus }: { tasks: TaskItem[]; requestTas
             <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${taskStatusStyles[task.status]}`}>{taskStatusLabels[task.status]}</span>
           </div>
           {task.note && <p className="mt-3 text-xs leading-relaxed text-black/55 whitespace-pre-wrap">{task.note}</p>}
-          <div className="mt-4 grid grid-cols-2 gap-1.5">
-            {(Object.keys(taskStatusLabels) as TaskStatus[]).map((status) => (
-              <button
-                key={status}
-                onClick={() => requestTaskStatus(task, status)}
-                disabled={task.status === status}
-                className={`rounded-md border px-2 py-2 text-xs transition ${task.status === status ? taskStatusStyles[status] : "border-black/8 bg-white text-black/55 hover:border-black/20"}`}
-              >
-                {taskStatusLabels[status]}
-              </button>
-            ))}
-          </div>
+          <label className="mt-4 block">
+            <span className="text-[11px] uppercase tracking-[0.14em] text-black/35">Status ändern</span>
+            <select value={task.status} onChange={(event) => requestTaskStatus(task, event.target.value as TaskStatus)} className="mt-2 w-full rounded-md border border-black/10 bg-white px-3 py-2 text-sm">
+              {(Object.keys(taskStatusLabels) as TaskStatus[]).map((status) => <option key={status} value={status}>{taskStatusLabels[status]}</option>)}
+            </select>
+          </label>
         </article>
       ))}
     </div>

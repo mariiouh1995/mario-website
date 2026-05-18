@@ -18,7 +18,7 @@ import {
   type CrmCustomer,
   type CustomerStatus,
   type InquiryStatus,
-} from "./_crm/db";
+} from "./crm/db";
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
