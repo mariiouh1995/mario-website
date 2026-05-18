@@ -24,6 +24,7 @@ type Customer = {
   category: string;
   eventDate: string;
   location: string;
+  customerAddress?: string;
   locationAddress?: string;
   locations?: LocationItem[];
   consultationDate: string;
@@ -162,7 +163,7 @@ export function CustomerPortalPage() {
 
   const visibility = { ...defaultVisibility, ...(customer.portalVisibility || {}) };
   const services = [...(customer.bookedServices || []), ...(customer.customServices || [])];
-  const visibleTasks = customer.tasks || [];
+  const visibleTasks = (customer.tasks || []).filter((task) => (task.id.startsWith("step-") ? visibility.status : visibility.tasks));
   const payments = customer.payments || [];
   const total = services.reduce((sum, service) => sum + moneyNumber(service.price), 0);
   const paid = payments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
@@ -183,23 +184,23 @@ export function CustomerPortalPage() {
       </section>
 
       <main className="max-w-5xl mx-auto px-5 py-8 md:py-12 space-y-8">
-        {(visibility.status || visibility.tasks) && visibleTasks.length > 0 && (
+        {visibleTasks.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
-            <h2 className="text-lg font-medium mb-5 flex items-center gap-2">
+            <h2 className="text-base font-medium mb-4 flex items-center gap-2">
               <ListChecks className="w-5 h-5" /> Status & Aufgaben
             </h2>
-            <div className="grid md:grid-cols-2 gap-3">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {visibleTasks.map((task) => {
                 const done = task.status === "erledigt";
                 const active = task.status === "in_arbeit";
                 return (
-                  <article key={task.id} className={`rounded-lg border px-4 py-4 ${done ? "bg-[#eef6ef] border-[#b9d7bd]" : active ? "bg-[#f7ead8] border-[#ddbf91]" : "bg-[#faf8f5] border-black/8"}`}>
+                  <article key={task.id} className={`rounded-md border px-3 py-3 ${done ? "bg-[#eef6ef] border-[#b9d7bd]" : active ? "bg-[#f7ead8] border-[#ddbf91]" : "bg-[#faf8f5] border-black/8"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        {done ? <CheckCircle2 className="w-5 h-5 text-emerald-700 mt-0.5" /> : active ? <Clock3 className="w-5 h-5 text-[#8a5c21] mt-0.5" /> : <Circle className="w-5 h-5 text-black/30 mt-0.5" />}
+                        {done ? <CheckCircle2 className="w-4 h-4 text-emerald-700 mt-0.5" /> : active ? <Clock3 className="w-4 h-4 text-[#8a5c21] mt-0.5" /> : <Circle className="w-4 h-4 text-black/30 mt-0.5" />}
                         <div>
-                          <h3 className="font-medium">{task.title}</h3>
-                          <p className="text-sm text-black/50 mt-1">{taskStatusLabels[task.status]}</p>
+                          <h3 className="font-medium text-sm">{task.title}</h3>
+                          <p className="text-xs text-black/50 mt-1">{taskStatusLabels[task.status]}</p>
                         </div>
                       </div>
                     </div>
@@ -294,6 +295,18 @@ export function CustomerPortalPage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {customer.customerAddress && (
+          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5" /> Kundenadresse
+            </h2>
+            <p className="text-sm text-black/55">{customer.customerAddress}</p>
+            <a href={mapsUrl(customer.customerAddress)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746] hover:text-black">
+              In Google Maps öffnen <ExternalLink className="w-3 h-3" />
+            </a>
           </section>
         )}
 

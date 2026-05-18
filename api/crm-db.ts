@@ -477,6 +477,11 @@ export async function deleteInquiry(id: string) {
   await sql()`DELETE FROM mario_inquiries WHERE id = ${id}`;
 }
 
+export async function deleteCustomer(id: string) {
+  await ensureMarioCrmSchema();
+  await sql()`DELETE FROM mario_customers WHERE id = ${id}`;
+}
+
 export async function listCustomers() {
   await ensureMarioCrmSchema();
   const rows = await sql()`SELECT * FROM mario_customers ORDER BY updated_at DESC`;

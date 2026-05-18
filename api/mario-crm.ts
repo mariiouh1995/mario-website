@@ -198,6 +198,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true });
     }
 
+    if (req.method === "POST" && action === "delete-customer") {
+      const id = normalizeString(req.body?.id);
+      if (!id) return res.status(400).json({ error: "id is required" });
+      await crm.deleteCustomer(id);
+      return res.status(200).json({ success: true });
+    }
+
     if (req.method === "POST" && action === "send-inquiry-mail") {
       const inquiryId = normalizeString(req.body?.inquiryId);
       const templateKey = normalizeString(req.body?.templateKey);

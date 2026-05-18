@@ -291,6 +291,13 @@ function formatMoney(value?: string) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(normalized);
 }
 
+function formatDateDe(value?: string) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+}
+
 function moneyNumber(value?: string) {
   const clean = (value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
   const parsed = Number(clean);
@@ -347,8 +354,13 @@ export function AdminPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [newTaskNote, setNewTaskNote] = useState("");
+  const [newPaymentOpen, setNewPaymentOpen] = useState(false);
+  const [newPaymentTitle, setNewPaymentTitle] = useState("Anzahlung");
+  const [newPaymentAmount, setNewPaymentAmount] = useState("");
+  const [newPaymentDate, setNewPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [syncingImages, setSyncingImages] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
     const saved = localStorage.getItem("mario_read_notifications");
     return saved ? JSON.parse(saved) : [];
@@ -590,6 +602,15 @@ export function AdminPage() {
     setSelectedInquiryId("");
   };
 
+  const deleteCustomerAction = async (customerId: string) => {
+    await api("delete-customer", { method: "POST", body: JSON.stringify({ id: customerId }) });
+    setCustomers((prev) => prev.filter((customer) => customer.id !== customerId));
+    setSelectedId("");
+    setDraft(null);
+    setView("customersList");
+    toast.success("Kunde gelöscht");
+  };
+
   const markInquiryAnswered = async (inquiryId: string) => {
     await api("inquiry-status", { method: "PUT", body: JSON.stringify({ id: inquiryId, status: "beantwortet" }) });
     await loadCrm();
@@ -675,6 +696,29 @@ export function AdminPage() {
       setSaving(false);
     }
   };
+  const openPaymentModal = () => {
+    setNewPaymentTitle("Anzahlung");
+    setNewPaymentAmount("");
+    setNewPaymentDate(new Date().toISOString().slice(0, 10));
+    setNewPaymentOpen(true);
+  };
+
+  const createPaymentFromModal = async () => {
+    if (!draft || !newPaymentTitle.trim() || !newPaymentAmount.trim()) return;
+    setSaving(true);
+    try {
+      await persistCustomerDraft({
+        ...draft,
+        payments: [...draft.payments, { id: `pay-${Date.now()}`, title: newPaymentTitle.trim(), amount: newPaymentAmount.trim(), paidAt: newPaymentDate, note: "" }],
+      });
+      setNewPaymentOpen(false);
+      toast.success("Zahlung geloggt");
+    } catch (error: any) {
+      toast.error(error.message || "Zahlung konnte nicht geloggt werden");
+    } finally {
+      setSaving(false);
+    }
+  };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
   const addPayment = () => draft && setDraft({ ...draft, payments: [...draft.payments, { id: `pay-${Date.now()}`, title: "Anzahlung", amount: "", paidAt: new Date().toISOString().slice(0, 10), note: "" }] });
   const removeService = (service: ServiceItem) => {
@@ -751,6 +795,24 @@ export function AdminPage() {
     localStorage.setItem("mario_reminder_settings", JSON.stringify(next));
   };
 
+  const syncImageKit = async () => {
+    setSyncingImages(true);
+    try {
+      const res = await fetch("/api/sync-imagekit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "ImageKit Sync fehlgeschlagen");
+      toast.success("ImageKit Sync abgeschlossen");
+    } catch (error: any) {
+      toast.error(error.message || "ImageKit Sync fehlgeschlagen");
+    } finally {
+      setSyncingImages(false);
+    }
+  };
+
   const markNotificationRead = (id: string) => {
     setReadNotificationIds((prev) => {
       const next = Array.from(new Set([...prev, id]));
@@ -802,6 +864,8 @@ export function AdminPage() {
                 {notifications.length > 0 && <span className="absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-600 text-white text-[11px] flex items-center justify-center">{notifications.length}</span>}
               </button>
               {notificationsOpen && (
+                <>
+                <button aria-label="Notifications schließen" onClick={() => setNotificationsOpen(false)} className="fixed inset-0 z-20 cursor-default bg-transparent" />
                 <div className="fixed left-3 right-3 top-20 z-30 rounded-lg bg-white text-black shadow-xl border border-black/10 p-3 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[20rem]">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Notifications</p>
@@ -825,8 +889,10 @@ export function AdminPage() {
                     {notifications.length === 0 && <p className="text-sm text-black/45">Keine fälligen Reminder.</p>}
                   </div>
                 </div>
+                </>
               )}
             </div>
+            <button onClick={() => setSettingsOpen(true)} className="inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10 text-white/80" title="Globale Settings"><Settings className="w-4 h-4" /></button>
             <button onClick={createCustomer} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
             <button onClick={logout} className="inline-flex items-center justify-center gap-2 text-white/55 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
           </div>
@@ -834,12 +900,28 @@ export function AdminPage() {
       </header>
 
       {settingsOpen && (
-        <Modal title="Notification Settings" onClose={() => setSettingsOpen(false)}>
-          <label className="block">
-            <span className="text-xs uppercase tracking-[0.16em] text-black/45">Reminder-Tage vor Deadline</span>
-            <input defaultValue={reminderSettings.days.join(", ")} onBlur={(event) => saveReminderSettings(event.target.value)} className="mt-2 w-full rounded-md border border-black/10 px-3 py-2 text-sm" />
-          </label>
-          <p className="text-xs text-black/45 mt-2">Kommagetrennt, z.B. 14, 7, 3, 1.</p>
+        <Modal title="Globale Settings" onClose={() => setSettingsOpen(false)}>
+          <div className="space-y-6">
+            <section>
+              <h3 className="font-semibold mb-3">Notifications</h3>
+              <label className="block">
+                <span className="text-xs uppercase tracking-[0.16em] text-black/45">Reminder-Tage vor Deadline</span>
+                <input defaultValue={reminderSettings.days.join(", ")} onBlur={(event) => saveReminderSettings(event.target.value)} className="mt-2 w-full rounded-md border border-black/10 px-3 py-2 text-sm" />
+              </label>
+              <p className="text-xs text-black/45 mt-2">Kommagetrennt, z.B. 14, 7, 3, 1.</p>
+            </section>
+            <section className="rounded-lg border border-black/8 bg-[#faf8f5] p-4">
+              <h3 className="font-semibold mb-2">Website-Bilder</h3>
+              <p className="text-sm text-black/55 mb-4">Synchronisiert neue ImageKit-Bilder mit den Website-Galerien.</p>
+              <button onClick={syncImageKit} disabled={syncingImages} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50">
+                {syncingImages ? "Synchronisiere..." : "ImageKit Sync starten"}
+              </button>
+            </section>
+            <section>
+              <h3 className="font-semibold mb-2">Sinnvolle nächste globale Settings</h3>
+              <p className="text-sm text-black/55 leading-relaxed">Als Nächstes wären Standard-Mailtexte, Standard-Aufgaben je neuer Kunde und ein Standard-Zahlungsplan sinnvoll. Die technische Grundlage ist jetzt da.</p>
+            </section>
+          </div>
         </Modal>
       )}
 
@@ -914,6 +996,8 @@ export function AdminPage() {
               requestTaskStatus={requestTaskStatus}
               addWorkflowStep={addWorkflowStep}
               addTask={addTask}
+              openPaymentModal={openPaymentModal}
+              deleteCustomer={(customerId) => openConfirm({ title: "Kunde wirklich löschen?", description: "Der Kunde wird vollständig aus der Datenbank gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.", onConfirm: () => deleteCustomerAction(customerId) })}
               removeTask={removeTask}
               addLocation={addLocation}
               addCustomService={addCustomService}
@@ -947,6 +1031,20 @@ export function AdminPage() {
           <div className="flex justify-end gap-3 mt-5">
             <button onClick={() => setNewTaskOpen(false)} className="rounded-md border border-black/10 px-4 py-2 text-sm">Abbrechen</button>
             <button onClick={createTaskFromModal} disabled={saving || !newTaskTitle.trim()} className="rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50">Anlegen</button>
+          </div>
+        </Modal>
+      )}
+
+      {newPaymentOpen && (
+        <Modal title="Zahlung loggen" onClose={() => setNewPaymentOpen(false)}>
+          <div className="space-y-3">
+            <Field label="Wofür?" value={newPaymentTitle} onChange={setNewPaymentTitle} placeholder="z.B. Anzahlung" />
+            <Field label="Betrag" value={newPaymentAmount} onChange={setNewPaymentAmount} placeholder="z.B. 500" />
+            <Field label="Bezahlt am" type="date" value={newPaymentDate} onChange={setNewPaymentDate} />
+          </div>
+          <div className="flex justify-end gap-3 mt-5">
+            <button onClick={() => setNewPaymentOpen(false)} className="rounded-md border border-black/10 px-4 py-2 text-sm">Abbrechen</button>
+            <button onClick={createPaymentFromModal} disabled={saving || !newPaymentTitle.trim() || !newPaymentAmount.trim()} className="rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50">Loggen</button>
           </div>
         </Modal>
       )}
@@ -996,12 +1094,13 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
           <button key={customer.id} onClick={() => onSelect(customer.id)} className="relative text-left rounded-lg border border-black/8 bg-[#faf8f5] p-4">
             {notificationsByCustomer[customer.id] > 0 && <span className="absolute right-3 top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] text-white">{notificationsByCustomer[customer.id]}</span>}
             <p className="font-medium pr-8">{customer.name || "Unbenannter Kunde"}</p>
-            <p className="text-xs text-black/45 mt-1">{customer.category || "Kategorie offen"} · {customer.eventDate || "Datum offen"}</p>
+            <p className="text-xs text-black/45 mt-1">{formatDateDe(customer.eventDate) || "Datum offen"}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{statusSteps.find((item) => item.key === customer.status)?.label || customer.status}</span>
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{customer.portalEnabled ? "Portal aktiv" : "Portal nicht aktiv"}</span>
             </div>
             <p className="mt-3 text-sm text-black/55">{customer.email || "Keine E-Mail"}</p>
+            {customer.phone && <p className="mt-1 text-sm text-black/55">{customer.phone}</p>}
           </button>
         ))}
         {customers.length === 0 && <p className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Noch keine Kunden angelegt.</p>}
@@ -1166,6 +1265,8 @@ function CustomerDetail(props: {
   requestTaskStatus: (task: TaskItem, status: TaskStatus) => void;
   addWorkflowStep: () => void;
   addTask: () => void;
+  openPaymentModal: () => void;
+  deleteCustomer: (customerId: string) => void;
   removeTask: (task: TaskItem) => void;
   addLocation: () => void;
   addCustomService: () => void;
@@ -1189,9 +1290,20 @@ function CustomerDetail(props: {
             <h2 className="mt-1 text-2xl leading-tight">{draft.name || "Unbenannter Kunde"}</h2>
             <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
           </div>
-          <button onClick={() => props.setEditMode(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm">
-            <Pencil className="w-4 h-4" /> Bearbeiten
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <a href={`/kundenportal/${draft.portalToken}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
+              Portal öffnen <ExternalLink className="w-4 h-4" />
+            </a>
+            <button onClick={props.openPaymentModal} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
+              <Plus className="w-4 h-4" /> Zahlung loggen
+            </button>
+            <button onClick={() => props.setEditMode(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm">
+              <Pencil className="w-4 h-4" /> Bearbeiten
+            </button>
+            <button onClick={() => props.deleteCustomer(draft.id)} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 text-red-700 px-4 py-2 text-sm">
+              <Trash2 className="w-4 h-4" /> Löschen
+            </button>
+          </div>
         </div>
 
         <section className="rounded-lg border border-black/8 p-3 sm:p-4">
@@ -1219,7 +1331,11 @@ function CustomerDetail(props: {
           <ViewField label="Kategorie" value={draft.category} />
           <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, draft.eventTime].filter(Boolean).join(" · ")} />
           <ViewField label="Vorgespräch" value={draft.consultationDate} />
-          <ViewField label="Kundenadresse" value={draft.customerAddress} />
+          <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Kundenadresse</p>
+            <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{draft.customerAddress || "Noch nicht erfasst"}</p>
+            <MapLink value={draft.customerAddress} />
+          </div>
           <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
             <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Location</p>
             <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{draft.location || draft.locationAddress || "Noch nicht erfasst"}</p>
@@ -1284,13 +1400,17 @@ function CustomerDetail(props: {
         <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={() => props.setEditMode(false)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">Ansicht</button>
           <button onClick={props.saveCustomer} disabled={props.saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Save className="w-4 h-4" /> {props.saving ? "Speichere..." : "Speichern"}</button>
+          <button onClick={() => props.deleteCustomer(draft.id)} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 text-red-700 px-4 py-2 text-sm"><Trash2 className="w-4 h-4" /> Löschen</button>
         </div>
       </div>
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Schritte & Status</h3>
-          <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
+          <div className="flex items-center gap-3">
+            <PortalToggle draft={draft} setDraft={setDraft} field="status" />
+            <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
+          </div>
         </div>
         <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
       </section>
@@ -1328,12 +1448,12 @@ function CustomerDetail(props: {
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Zusätzliche Aufgaben</h3><button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button></div>
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Zusätzliche Aufgaben</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="tasks" /><button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button></div></div>
         <TaskList tasks={otherTasks} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} />
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Leistungen</h3><button onClick={props.addCustomService} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Leistung</button></div>
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Leistungen</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="services" /><button onClick={props.addCustomService} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Leistung</button></div></div>
         <div className="space-y-2">
           {[...draft.bookedServices, ...draft.customServices].map((service, index) => (
             <div key={`${service.id}-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_auto]">
@@ -1348,7 +1468,7 @@ function CustomerDetail(props: {
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Zahlungen</h3><button onClick={props.addPayment} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Zahlung</button></div>
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Zahlungen</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="payments" /><button onClick={props.addPayment} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Zahlung</button></div></div>
         <div className="space-y-2">
           {draft.payments.map((payment) => (
             <div key={payment.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px_145px_auto]">
@@ -1445,6 +1565,15 @@ function MapLink({ value }: { value?: string }) {
     <a href={href} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746] hover:text-black">
       In Google Maps öffnen <ExternalLink className="w-3 h-3" />
     </a>
+  );
+}
+
+function PortalToggle({ draft, setDraft, field }: { draft: Customer; setDraft: (customer: Customer) => void; field: keyof PortalVisibility }) {
+  return (
+    <label className="inline-flex items-center gap-1 text-xs text-black/45">
+      <input type="checkbox" checked={Boolean(draft.portalVisibility[field])} onChange={(event) => setDraft({ ...draft, portalVisibility: { ...draft.portalVisibility, [field]: event.target.checked } })} />
+      Portal
+    </label>
   );
 }
 
