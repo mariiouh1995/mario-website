@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
+import { google } from "googleapis";
+import { Readable } from "stream";
 import * as crm from "./crm-db.js";
 
 type CrmCustomer = any;
 type CustomerStatus = string;
 type InquiryStatus = string;
+type CustomerDocument = any;
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -120,6 +123,64 @@ function renderInquiryTemplate(template: string, inquiry: { name: string; brideN
     .replaceAll("{signature}", "");
 }
 
+function getDriveCredentials() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_SERVICE_ACCOUNT_DRIVE;
+  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured");
+  try {
+    const credentials = JSON.parse(raw);
+    if (credentials.private_key) credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
+    return credentials;
+  } catch {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON");
+  }
+}
+
+function driveClient() {
+  const credentials = getDriveCredentials();
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+  return google.drive({ version: "v3", auth });
+}
+
+async function ensureCustomerDriveFolder(customer: CrmCustomer) {
+  const rootFolderId = normalizeString(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
+  if (!rootFolderId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured");
+  if (customer.driveFolderId) return customer.driveFolderId;
+
+  const drive = driveClient();
+  const folderName = `${customer.name || "Kunde"} - ${customer.id}`;
+  const created = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [rootFolderId],
+    },
+    fields: "id",
+  });
+  const folderId = created.data.id;
+  if (!folderId) throw new Error("Google Drive folder could not be created");
+  await crm.upsertCustomer({ ...customer, driveFolderId: folderId });
+  return folderId;
+}
+
+function upsertDocument(customer: CrmCustomer, document: CustomerDocument) {
+  const documents = customer.documents || [];
+  const index = documents.findIndex((item: CustomerDocument) => item.id === document.id);
+  if (index >= 0) return documents.map((item: CustomerDocument) => (item.id === document.id ? document : item));
+  return [...documents, document];
+}
+
+async function deleteDriveFile(fileId?: string) {
+  if (!fileId) return;
+  try {
+    await driveClient().files.delete({ fileId });
+  } catch (error: any) {
+    if (error?.code !== 404) throw error;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -203,6 +264,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!id) return res.status(400).json({ error: "id is required" });
       await crm.deleteCustomer(id);
       return res.status(200).json({ success: true });
+    }
+
+    if (req.method === "POST" && action === "upload-document") {
+      const customerId = normalizeString(req.body?.customerId);
+      const title = normalizeString(req.body?.title) || "Dokument";
+      const kind = normalizeString(req.body?.kind) || "custom";
+      const documentId = normalizeString(req.body?.documentId) || (kind === "custom" ? crm.createId("doc") : `doc-${kind}`);
+      const fileName = normalizeString(req.body?.fileName) || `${title}.pdf`;
+      const mimeType = normalizeString(req.body?.mimeType) || "application/octet-stream";
+      const contentBase64 = normalizeString(req.body?.contentBase64);
+      if (!customerId || !contentBase64) return res.status(400).json({ error: "customerId and contentBase64 are required" });
+      const customer = await crm.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      const existingDoc = (customer.documents || []).find((item: CustomerDocument) => item.id === documentId);
+      if (existingDoc?.driveFileId) await deleteDriveFile(existingDoc.driveFileId);
+
+      const folderId = await ensureCustomerDriveFolder(customer);
+      const drive = driveClient();
+      const buffer = Buffer.from(contentBase64, "base64");
+      const uploaded = await drive.files.create({
+        requestBody: { name: fileName, parents: [folderId] },
+        media: { mimeType, body: Readable.from(buffer) },
+        fields: "id, webViewLink",
+      });
+      const fileId = uploaded.data.id;
+      if (!fileId) throw new Error("Google Drive file could not be uploaded");
+      await drive.permissions.create({ fileId, requestBody: { type: "anyone", role: "reader" } });
+      const file = await drive.files.get({ fileId, fields: "webViewLink" });
+      const url = file.data.webViewLink || uploaded.data.webViewLink || "";
+      const document = { id: documentId, kind, title, url, driveFileId: fileId, fileName, mimeType, uploadedAt: new Date().toISOString() };
+      const saved = await crm.upsertCustomer({
+        ...customer,
+        driveFolderId: folderId,
+        documents: upsertDocument(customer, document),
+        offerUrl: kind === "offer" ? url : customer.offerUrl,
+        contractUrl: kind === "contract" ? url : customer.contractUrl,
+        invoiceUrl: kind === "invoice" ? url : customer.invoiceUrl,
+      });
+      return res.status(200).json({ customer: saved, document });
+    }
+
+    if (req.method === "POST" && action === "delete-document") {
+      const customerId = normalizeString(req.body?.customerId);
+      const documentId = normalizeString(req.body?.documentId);
+      if (!customerId || !documentId) return res.status(400).json({ error: "customerId and documentId are required" });
+      const customer = await crm.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+      const document = (customer.documents || []).find((item: CustomerDocument) => item.id === documentId);
+      if (document?.driveFileId) await deleteDriveFile(document.driveFileId);
+      const kind = document?.kind || documentId.replace("doc-", "");
+      const saved = await crm.upsertCustomer({
+        ...customer,
+        documents: (customer.documents || []).filter((item: CustomerDocument) => item.id !== documentId),
+        offerUrl: kind === "offer" ? "" : customer.offerUrl,
+        contractUrl: kind === "contract" ? "" : customer.contractUrl,
+        invoiceUrl: kind === "invoice" ? "" : customer.invoiceUrl,
+      });
+      return res.status(200).json({ customer: saved });
     }
 
     if (req.method === "POST" && action === "send-inquiry-mail") {

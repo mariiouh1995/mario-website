@@ -39,11 +39,13 @@ type ServiceItem = { id: string; name: string; price: string; type: "package" | 
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type PortalVisibility = {
   status: boolean;
   tasks: boolean;
   services: boolean;
   payments: boolean;
+  documents: boolean;
   offer: boolean;
   contract: boolean;
   invoice: boolean;
@@ -104,6 +106,8 @@ type Customer = {
   payments: PaymentItem[];
   depositDueDate: string;
   finalPaymentDueDate: string;
+  documents: CustomerDocument[];
+  driveFolderId: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
   portalMessages: PortalMessage[];
@@ -157,6 +161,7 @@ const defaultPortalVisibility: PortalVisibility = {
   tasks: false,
   services: true,
   payments: false,
+  documents: true,
   offer: false,
   contract: false,
   invoice: false,
@@ -203,6 +208,8 @@ const emptyCustomer = (): Customer => ({
   payments: [],
   depositDueDate: "",
   finalPaymentDueDate: "",
+  documents: [],
+  driveFolderId: "",
   tasks: workflowTasks(),
   portalVisibility: { ...defaultPortalVisibility },
   portalMessages: [],
@@ -250,6 +257,8 @@ function normalizeCustomer(customer: Customer): Customer {
     payments: customer.payments || [],
     depositDueDate: customer.depositDueDate || "",
     finalPaymentDueDate: customer.finalPaymentDueDate || "",
+    documents: customer.documents || [],
+    driveFolderId: customer.driveFolderId || "",
     locations: customer.locations || [],
     tasks,
     status: deriveStatus(tasks),
@@ -313,6 +322,15 @@ function normalizeHref(value?: string) {
   if (!trimmed) return "";
   if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
   return `https://${trimmed}`;
+}
+
+function readFileAsBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 function dateDiffDays(date: string) {
@@ -743,6 +761,55 @@ export function AdminPage() {
       onConfirm: () => setDraft({ ...draft, payments: draft.payments.filter((item) => item.id !== payment.id) }),
     });
   };
+  const addCustomDocument = () => draft && setDraft({ ...draft, documents: [...draft.documents, { id: `doc-${Date.now()}`, kind: "custom", title: "Neues Dokument", url: "" }] });
+  const updateDocument = (document: CustomerDocument) => {
+    if (!draft) return;
+    const documents = draft.documents.some((item) => item.id === document.id)
+      ? draft.documents.map((item) => (item.id === document.id ? document : item))
+      : [...draft.documents, document];
+    setDraft({ ...draft, documents });
+  };
+  const uploadDocument = async (document: CustomerDocument, file: File) => {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      const contentBase64 = await readFileAsBase64(file);
+      const data = await api("upload-document", {
+        method: "POST",
+        body: JSON.stringify({
+          customerId: draft.id,
+          documentId: document.id,
+          kind: document.kind,
+          title: document.title,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          contentBase64,
+        }),
+      });
+      const saved = normalizeCustomer(data.customer);
+      setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+      setDraft(saved);
+      toast.success("Dokument hochgeladen");
+    } catch (error: any) {
+      toast.error(error.message || "Dokument konnte nicht hochgeladen werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const deleteDocument = (document: CustomerDocument) => {
+    if (!draft) return;
+    openConfirm({
+      title: "Dokument löschen?",
+      description: document.driveFileId ? "Das Dokument wird aus dem Kunden und aus Google Drive gelöscht." : "Das Dokument wird aus dem Kunden entfernt.",
+      onConfirm: async () => {
+      const data = await api("delete-document", { method: "POST", body: JSON.stringify({ customerId: draft.id, documentId: document.id }) });
+      const saved = normalizeCustomer(data.customer);
+      setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+      setDraft(saved);
+      toast.success("Dokument gelöscht");
+      },
+    });
+  };
   const addLocation = () => draft && setDraft({ ...draft, locations: [...draft.locations, { id: `location-${Date.now()}`, title: "Weitere Location", address: "" }] });
   const addPortalMessage = () => draft && setDraft({ ...draft, portalMessages: [...draft.portalMessages, { id: `msg-${Date.now()}`, title: "Neue Nachricht", message: "", createdAt: new Date().toISOString(), visible: true }] });
 
@@ -1004,6 +1071,10 @@ export function AdminPage() {
               removeService={removeService}
               addPayment={addPayment}
               removePayment={removePayment}
+              addCustomDocument={addCustomDocument}
+              updateDocument={updateDocument}
+              uploadDocument={uploadDocument}
+              deleteDocument={deleteDocument}
               addPortalMessage={addPortalMessage}
               sendMail={sendMail}
               provisionPortal={provisionPortal}
@@ -1273,6 +1344,10 @@ function CustomerDetail(props: {
   removeService: (service: ServiceItem) => void;
   addPayment: () => void;
   removePayment: (payment: PaymentItem) => void;
+  addCustomDocument: () => void;
+  updateDocument: (document: CustomerDocument) => void;
+  uploadDocument: (document: CustomerDocument, file: File) => void;
+  deleteDocument: (document: CustomerDocument) => void;
   addPortalMessage: () => void;
   sendMail: () => void;
   provisionPortal: () => void;
@@ -1368,6 +1443,16 @@ function CustomerDetail(props: {
           <h3 className="font-semibold mb-3">Zahlungen</h3>
           <PaymentSummary customer={draft} />
         </section>
+
+        <DocumentSection
+          draft={draft}
+          setDraft={setDraft}
+          addCustomDocument={props.addCustomDocument}
+          updateDocument={props.updateDocument}
+          uploadDocument={props.uploadDocument}
+          deleteDocument={props.deleteDocument}
+          readOnly
+        />
 
         {draft.locations.length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
@@ -1481,6 +1566,16 @@ function CustomerDetail(props: {
           {draft.payments.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 px-3 py-3 text-sm text-black/45">Noch keine Zahlungen geloggt.</p>}
         </div>
       </section>
+
+      <DocumentSection
+        draft={draft}
+        setDraft={setDraft}
+        addCustomDocument={props.addCustomDocument}
+        updateDocument={props.updateDocument}
+        uploadDocument={props.uploadDocument}
+        deleteDocument={props.deleteDocument}
+        readOnly={false}
+      />
 
       <PortalControls draft={draft} setDraft={setDraft} addPortalMessage={props.addPortalMessage} provisionPortal={props.provisionPortal} />
 
@@ -1635,6 +1730,96 @@ function PaymentSummary({ customer }: { customer: Customer }) {
       )}
     </div>
   );
+}
+
+function customerDocuments(draft: Customer) {
+  const existing = new Map(draft.documents.map((document) => [document.id, document]));
+  const standard: CustomerDocument[] = [
+    { id: "doc-offer", kind: "offer", title: "Angebot", url: draft.offerUrl },
+    { id: "doc-contract", kind: "contract", title: "Vertrag", url: draft.contractUrl },
+    { id: "doc-invoice", kind: "invoice", title: "Rechnung", url: draft.invoiceUrl },
+  ].map((document) => ({ ...document, ...(existing.get(document.id) || {}), url: existing.get(document.id)?.url || document.url }));
+  const custom = draft.documents.filter((document) => document.kind === "custom");
+  return [...standard, ...custom];
+}
+
+function documentVisibilityField(document: CustomerDocument): keyof PortalVisibility {
+  if (document.kind === "offer") return "offer";
+  if (document.kind === "contract") return "contract";
+  if (document.kind === "invoice") return "invoice";
+  return "documents";
+}
+
+function DocumentSection({
+  draft,
+  setDraft,
+  addCustomDocument,
+  updateDocument,
+  uploadDocument,
+  deleteDocument,
+  readOnly,
+}: {
+  draft: Customer;
+  setDraft: (customer: Customer) => void;
+  addCustomDocument: () => void;
+  updateDocument: (document: CustomerDocument) => void;
+  uploadDocument: (document: CustomerDocument, file: File) => void;
+  deleteDocument: (document: CustomerDocument) => void;
+  readOnly: boolean;
+}) {
+  const documents = customerDocuments(draft);
+  const updateStandardUrl = (document: CustomerDocument, url: string) => {
+    if (document.kind === "offer") setDraft({ ...draft, offerUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
+    if (document.kind === "contract") setDraft({ ...draft, contractUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
+    if (document.kind === "invoice") setDraft({ ...draft, invoiceUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
+  };
+
+  return (
+    <section className="rounded-lg border border-black/8 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">Dokumente</h3>
+        {!readOnly && <button onClick={addCustomDocument} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Dokument</button>}
+      </div>
+      <div className="space-y-3">
+        {documents.map((document) => {
+          const visibilityField = documentVisibilityField(document);
+          return (
+            <div key={document.id} className="rounded-md bg-[#faf8f5] border border-black/8 p-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {readOnly || document.kind !== "custom" ? (
+                    <p className="font-medium text-sm">{document.title}</p>
+                  ) : (
+                    <input value={document.title} onChange={(event) => updateDocument({ ...document, title: event.target.value })} className="w-full rounded-md border border-black/10 px-3 py-2 text-sm" />
+                  )}
+                  {document.fileName && <p className="mt-1 text-xs text-black/45">{document.fileName}</p>}
+                </div>
+                <PortalToggle draft={draft} setDraft={setDraft} field={visibilityField} />
+              </div>
+              {readOnly ? (
+                document.url ? <a href={normalizeHref(document.url)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-[#6c5746] hover:text-black">Dokument öffnen <ExternalLink className="w-4 h-4" /></a> : <p className="mt-3 text-sm text-black/40">Noch nicht hinterlegt</p>
+              ) : (
+                <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                  <input value={document.url || ""} onChange={(event) => document.kind === "custom" ? updateDocument({ ...document, url: event.target.value }) : updateStandardUrl(document, event.target.value)} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="URL einfügen oder Datei hochladen" />
+                  <label className="inline-flex items-center justify-center rounded-md border border-black/10 bg-white px-3 py-2 text-sm cursor-pointer">
+                    Upload
+                    <input type="file" className="hidden" onChange={(event) => event.target.files?.[0] && uploadDocument(document, event.target.files[0])} />
+                  </label>
+                  <button onClick={() => deleteDocument(document)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function upsertDocumentLocal(documents: CustomerDocument[], document: CustomerDocument) {
+  return documents.some((item) => item.id === document.id)
+    ? documents.map((item) => (item.id === document.id ? document : item))
+    : [...documents, document];
 }
 
 function InquiryDetail({ inquiry, onReply, onDelete, onConvert }: { inquiry: Inquiry; onReply: () => void; onDelete: () => void; onConvert: () => void }) {

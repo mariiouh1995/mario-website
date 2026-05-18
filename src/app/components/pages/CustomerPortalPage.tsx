@@ -6,11 +6,13 @@ type ServiceItem = { id: string; name: string; price: string; type: "package" | 
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type PortalVisibility = {
   status?: boolean;
   tasks?: boolean;
   services?: boolean;
   payments?: boolean;
+  documents?: boolean;
   offer?: boolean;
   contract?: boolean;
   invoice?: boolean;
@@ -38,6 +40,7 @@ type Customer = {
   payments?: PaymentItem[];
   depositDueDate?: string;
   finalPaymentDueDate?: string;
+  documents?: CustomerDocument[];
   tasks: TaskItem[];
   portalIntro: string;
   portalVisibility?: PortalVisibility;
@@ -49,6 +52,7 @@ const defaultVisibility: Required<PortalVisibility> = {
   tasks: false,
   services: true,
   payments: false,
+  documents: true,
   offer: false,
   contract: false,
   invoice: false,
@@ -86,6 +90,24 @@ function formatMoney(value?: string) {
 function moneyNumber(value?: string) {
   const parsed = Number((value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function portalDocuments(customer: Customer, visibility: Required<PortalVisibility>) {
+  const existing = new Map((customer.documents || []).map((document) => [document.id, document]));
+  const standard: CustomerDocument[] = [
+    { id: "doc-offer", kind: "offer", title: "Angebot", url: customer.offerUrl || "" },
+    { id: "doc-contract", kind: "contract", title: "Vertrag", url: customer.contractUrl || "" },
+    { id: "doc-invoice", kind: "invoice", title: "Rechnung", url: customer.invoiceUrl || "" },
+  ].map((document) => ({ ...document, ...(existing.get(document.id) || {}), url: existing.get(document.id)?.url || document.url }));
+  return [
+    ...standard.filter((document) => {
+      if (document.kind === "offer") return visibility.offer && document.url;
+      if (document.kind === "contract") return visibility.contract && document.url;
+      if (document.kind === "invoice") return visibility.invoice && document.url;
+      return false;
+    }),
+    ...(customer.documents || []).filter((document) => document.kind === "custom" && visibility.documents && document.url),
+  ];
 }
 
 export function CustomerPortalPage() {
@@ -170,6 +192,7 @@ export function CustomerPortalPage() {
   const openAmount = Math.max(total - paid, 0);
   const messages = (customer.portalMessages || []).filter((item) => item.visible);
   const locations = customer.locations || [];
+  const documents = portalDocuments(customer, visibility);
 
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17]">
@@ -235,40 +258,23 @@ export function CustomerPortalPage() {
           <InfoCard icon={<Calendar className="w-5 h-5" />} title="Vorgespräch">
             <p>{customer.consultationDate || "Noch nicht festgelegt"}</p>
           </InfoCard>
-          {visibility.contract && (
-            <InfoCard icon={<FileText className="w-5 h-5" />} title="Vertrag">
-              {customer.contractUrl ? (
-                <a href={normalizeHref(customer.contractUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
-                  Vertrag öffnen <ExternalLink className="w-4 h-4" />
-                </a>
-              ) : (
-                <p>Noch nicht hinterlegt</p>
-              )}
-            </InfoCard>
-          )}
-          {visibility.offer && (
-            <InfoCard icon={<FileText className="w-5 h-5" />} title="Angebot">
-              {customer.offerUrl ? (
-                <a href={normalizeHref(customer.offerUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
-                  Angebot öffnen <ExternalLink className="w-4 h-4" />
-                </a>
-              ) : (
-                <p>Noch nicht hinterlegt</p>
-              )}
-            </InfoCard>
-          )}
-          {visibility.invoice && (
-            <InfoCard icon={<FileText className="w-5 h-5" />} title="Rechnung">
-              {customer.invoiceUrl ? (
-                <a href={normalizeHref(customer.invoiceUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
-                  Rechnung öffnen <ExternalLink className="w-4 h-4" />
-                </a>
-              ) : (
-                <p>Noch nicht hinterlegt</p>
-              )}
-            </InfoCard>
-          )}
         </div>
+
+        {documents.length > 0 && (
+          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5" /> Dokumente
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {documents.map((document) => (
+                <a key={document.id} href={normalizeHref(document.url)} target="_blank" rel="noreferrer" className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm hover:border-black/20">
+                  <span className="block font-medium">{document.title}</span>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[#6c5746]">Öffnen <ExternalLink className="w-3 h-3" /></span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {(customer.locationAddress || locations.length > 0) && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
