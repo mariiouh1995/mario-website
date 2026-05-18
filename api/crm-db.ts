@@ -242,106 +242,113 @@ export async function ensureMarioCrmSchema() {
   if (schemaReady) return;
   const db = sql();
 
-  await db`
-    CREATE TABLE IF NOT EXISTS mario_inquiries (
-      id text PRIMARY KEY,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now(),
-      status text NOT NULL DEFAULT 'neu',
-      name text NOT NULL DEFAULT '',
-      bride_name text NOT NULL DEFAULT '',
-      groom_name text NOT NULL DEFAULT '',
-      email text NOT NULL DEFAULT '',
-      phone text NOT NULL DEFAULT '',
-      category text NOT NULL DEFAULT '',
-      event_date text NOT NULL DEFAULT '',
-      customer_address text NOT NULL DEFAULT '',
-      location_address text NOT NULL DEFAULT '',
-      locations jsonb NOT NULL DEFAULT '[]',
-      found_via text NOT NULL DEFAULT '',
-      message text NOT NULL DEFAULT '',
-      selected_packages jsonb NOT NULL DEFAULT '[]',
-      estimated_total text NOT NULL DEFAULT '',
-      converted_customer_id text
-    )
-  `;
+  await db`SELECT pg_advisory_lock(74839201)`;
+  try {
+    if (schemaReady) return;
 
-  await db`
-    CREATE TABLE IF NOT EXISTS mario_customers (
-      id text PRIMARY KEY,
-      portal_token text UNIQUE NOT NULL,
-      source_inquiry_id text NOT NULL DEFAULT '',
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now(),
-      status text NOT NULL DEFAULT 'anfrage',
-      name text NOT NULL DEFAULT '',
-      bride_name text NOT NULL DEFAULT '',
-      groom_name text NOT NULL DEFAULT '',
-      email text NOT NULL DEFAULT '',
-      phone text NOT NULL DEFAULT '',
-      category text NOT NULL DEFAULT '',
-      event_date text NOT NULL DEFAULT '',
-      event_time text NOT NULL DEFAULT '',
-      location text NOT NULL DEFAULT '',
-      customer_address text NOT NULL DEFAULT '',
-      location_address text NOT NULL DEFAULT '',
-      locations jsonb NOT NULL DEFAULT '[]',
-      consultation_date text NOT NULL DEFAULT '',
-      consultation_type text NOT NULL DEFAULT '',
-      gallery_url text NOT NULL DEFAULT '',
-      offer_url text NOT NULL DEFAULT '',
-      contract_url text NOT NULL DEFAULT '',
-      invoice_url text NOT NULL DEFAULT '',
-      portal_enabled boolean NOT NULL DEFAULT false,
-      portal_password text NOT NULL DEFAULT '',
-      portal_published_at text NOT NULL DEFAULT '',
-      contract_status text NOT NULL DEFAULT 'nicht_gesendet',
-      booked_services jsonb NOT NULL DEFAULT '[]',
-      custom_services jsonb NOT NULL DEFAULT '[]',
-      tasks jsonb NOT NULL DEFAULT '[]',
-      portal_visibility jsonb NOT NULL DEFAULT '{}',
-      portal_messages jsonb NOT NULL DEFAULT '[]',
-      notes text NOT NULL DEFAULT '',
-      portal_intro text NOT NULL DEFAULT ''
-    )
-  `;
+    await db`
+      CREATE TABLE IF NOT EXISTS mario_inquiries (
+        id text PRIMARY KEY,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        status text NOT NULL DEFAULT 'neu',
+        name text NOT NULL DEFAULT '',
+        bride_name text NOT NULL DEFAULT '',
+        groom_name text NOT NULL DEFAULT '',
+        email text NOT NULL DEFAULT '',
+        phone text NOT NULL DEFAULT '',
+        category text NOT NULL DEFAULT '',
+        event_date text NOT NULL DEFAULT '',
+        customer_address text NOT NULL DEFAULT '',
+        location_address text NOT NULL DEFAULT '',
+        locations jsonb NOT NULL DEFAULT '[]',
+        found_via text NOT NULL DEFAULT '',
+        message text NOT NULL DEFAULT '',
+        selected_packages jsonb NOT NULL DEFAULT '[]',
+        estimated_total text NOT NULL DEFAULT '',
+        converted_customer_id text
+      )
+    `;
 
-  await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS bride_name text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS groom_name text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS customer_address text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS bride_name text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS groom_name text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS customer_address text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS event_time text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS offer_url text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS invoice_url text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_enabled boolean NOT NULL DEFAULT false`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_password text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_published_at text NOT NULL DEFAULT ''`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_visibility jsonb NOT NULL DEFAULT '{}'`;
-  await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_messages jsonb NOT NULL DEFAULT '[]'`;
+    await db`
+      CREATE TABLE IF NOT EXISTS mario_customers (
+        id text PRIMARY KEY,
+        portal_token text UNIQUE NOT NULL,
+        source_inquiry_id text NOT NULL DEFAULT '',
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        status text NOT NULL DEFAULT 'anfrage',
+        name text NOT NULL DEFAULT '',
+        bride_name text NOT NULL DEFAULT '',
+        groom_name text NOT NULL DEFAULT '',
+        email text NOT NULL DEFAULT '',
+        phone text NOT NULL DEFAULT '',
+        category text NOT NULL DEFAULT '',
+        event_date text NOT NULL DEFAULT '',
+        event_time text NOT NULL DEFAULT '',
+        location text NOT NULL DEFAULT '',
+        customer_address text NOT NULL DEFAULT '',
+        location_address text NOT NULL DEFAULT '',
+        locations jsonb NOT NULL DEFAULT '[]',
+        consultation_date text NOT NULL DEFAULT '',
+        consultation_type text NOT NULL DEFAULT '',
+        gallery_url text NOT NULL DEFAULT '',
+        offer_url text NOT NULL DEFAULT '',
+        contract_url text NOT NULL DEFAULT '',
+        invoice_url text NOT NULL DEFAULT '',
+        portal_enabled boolean NOT NULL DEFAULT false,
+        portal_password text NOT NULL DEFAULT '',
+        portal_published_at text NOT NULL DEFAULT '',
+        contract_status text NOT NULL DEFAULT 'nicht_gesendet',
+        booked_services jsonb NOT NULL DEFAULT '[]',
+        custom_services jsonb NOT NULL DEFAULT '[]',
+        tasks jsonb NOT NULL DEFAULT '[]',
+        portal_visibility jsonb NOT NULL DEFAULT '{}',
+        portal_messages jsonb NOT NULL DEFAULT '[]',
+        notes text NOT NULL DEFAULT '',
+        portal_intro text NOT NULL DEFAULT ''
+      )
+    `;
 
-  await db`
-    CREATE TABLE IF NOT EXISTS mario_mail_logs (
-      id text PRIMARY KEY,
-      customer_id text NOT NULL,
-      template_key text NOT NULL DEFAULT '',
-      recipient text NOT NULL DEFAULT '',
-      subject text NOT NULL DEFAULT '',
-      body text NOT NULL DEFAULT '',
-      sent_at timestamptz NOT NULL DEFAULT now()
-    )
-  `;
+    await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS bride_name text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS groom_name text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS customer_address text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_inquiries ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS bride_name text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS groom_name text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS customer_address text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS event_time text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS offer_url text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS invoice_url text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_enabled boolean NOT NULL DEFAULT false`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_password text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_published_at text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_visibility jsonb NOT NULL DEFAULT '{}'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_messages jsonb NOT NULL DEFAULT '[]'`;
 
-  await db`CREATE INDEX IF NOT EXISTS idx_mario_inquiries_created_at ON mario_inquiries(created_at DESC)`;
-  await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_updated_at ON mario_customers(updated_at DESC)`;
-  await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_portal_token ON mario_customers(portal_token)`;
+    await db`
+      CREATE TABLE IF NOT EXISTS mario_mail_logs (
+        id text PRIMARY KEY,
+        customer_id text NOT NULL,
+        template_key text NOT NULL DEFAULT '',
+        recipient text NOT NULL DEFAULT '',
+        subject text NOT NULL DEFAULT '',
+        body text NOT NULL DEFAULT '',
+        sent_at timestamptz NOT NULL DEFAULT now()
+      )
+    `;
 
-  schemaReady = true;
+    await db`CREATE INDEX IF NOT EXISTS idx_mario_inquiries_created_at ON mario_inquiries(created_at DESC)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_updated_at ON mario_customers(updated_at DESC)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_portal_token ON mario_customers(portal_token)`;
+
+    schemaReady = true;
+  } finally {
+    await db`SELECT pg_advisory_unlock(74839201)`;
+  }
 }
 
 function mapInquiry(row: any): CrmInquiry {
