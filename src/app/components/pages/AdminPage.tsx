@@ -1421,13 +1421,6 @@ function CustomerDetail(props: {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <LinkField label="Angebot" value={draft.offerUrl} />
-          <LinkField label="Vertrag" value={draft.contractUrl} />
-          <LinkField label="Rechnung" value={draft.invoiceUrl} />
-          <LinkField label="Galerie" value={draft.galleryUrl} />
-        </div>
-
         {[...draft.bookedServices, ...draft.customServices].length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
             <h3 className="font-semibold mb-3">Leistungen</h3>
@@ -1797,7 +1790,7 @@ function DocumentSection({
                   )}
                   {document.fileName && <p className="mt-1 text-xs text-black/45">{document.fileName}</p>}
                 </div>
-                <PortalToggle draft={draft} setDraft={setDraft} field={visibilityField} />
+                {!readOnly && <PortalToggle draft={draft} setDraft={setDraft} field={visibilityField} />}
               </div>
               {readOnly ? (
                 document.url ? <a href={normalizeHref(document.url)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-[#6c5746] hover:text-black">Dokument öffnen <ExternalLink className="w-4 h-4" /></a> : <p className="mt-3 text-sm text-black/40">Noch nicht hinterlegt</p>
