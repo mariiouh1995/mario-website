@@ -18,6 +18,7 @@ import {
   Save,
   Send,
   Settings,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -204,7 +205,7 @@ function isWorkflowTask(task: TaskItem) {
 }
 
 function deriveStatus(tasks: TaskItem[]): CustomerStatus {
-  const workflow = statusSteps.map((step) => tasks.find((task) => task.id === `step-${step.key}`) || { id: `step-${step.key}`, title: step.label, status: "offen" as TaskStatus });
+  const workflow = statusSteps.map((step) => tasks.find((task) => task.id === `step-${step.key}`)).filter(Boolean) as TaskItem[];
   const inProgress = workflow.find((task) => task.status === "in_arbeit");
   if (inProgress) return inProgress.id.replace("step-", "") as CustomerStatus;
   const lastDone = [...workflow].reverse().find((task) => task.status === "erledigt");
@@ -212,10 +213,14 @@ function deriveStatus(tasks: TaskItem[]): CustomerStatus {
 }
 
 function normalizeTasks(tasks: TaskItem[] = []) {
-  const existing = new Map(tasks.map((task) => [task.id, task]));
-  const standard = workflowTasks().map((task) => ({ ...task, ...(existing.get(task.id) || {}) }));
-  const custom = tasks.filter((task) => !isWorkflowTask(task));
-  return [...standard, ...custom];
+  if (!tasks.length) return workflowTasks();
+  return tasks.map((task) => ({
+    id: task.id || `task-${Date.now()}`,
+    title: task.title || "Neue Aufgabe",
+    status: task.status || "offen",
+    dueDate: task.dueDate || "",
+    note: task.note || "",
+  }));
 }
 
 function normalizeCustomer(customer: Customer): Customer {
@@ -537,9 +542,10 @@ export function AdminPage() {
     if (!draft) return;
     const tasks = draft.tasks.map((item) => (item.id === task.id ? { ...item, status } : item));
     const updated = normalizeCustomer({ ...draft, tasks, status: deriveStatus(tasks) });
+    const affectsCustomerStatus = statusSteps.some((step) => task.id === `step-${step.key}`);
     openConfirm({
       title: "Aufgabenstatus ändern?",
-      description: `"${task.title}" wird auf "${status}" gesetzt. Der Kundenstatus wird daraus automatisch abgeleitet.`,
+      description: affectsCustomerStatus ? `"${task.title}" wird auf "${status}" gesetzt. Der Kundenstatus wird daraus automatisch abgeleitet.` : `"${task.title}" wird auf "${status}" gesetzt.`,
       templateKey: task.id === "step-vertrag" && status === "erledigt" ? "contract" : task.id === "step-galerie" && status === "erledigt" ? "gallery" : undefined,
       onConfirm: () => persistCustomerDraft(updated),
     });
@@ -550,6 +556,33 @@ export function AdminPage() {
     setNewTaskDueDate("");
     setNewTaskNote("");
     setNewTaskOpen(true);
+  };
+
+  const addWorkflowStep = () => {
+    if (!draft) return;
+    const tasks = [
+      ...draft.tasks,
+      {
+        id: `step-custom-${Date.now()}`,
+        title: "Neuer Schritt",
+        status: "offen" as TaskStatus,
+        dueDate: "",
+        note: "",
+      },
+    ];
+    setDraft(normalizeCustomer({ ...draft, tasks, status: deriveStatus(tasks) }));
+  };
+
+  const removeTask = (task: TaskItem) => {
+    if (!draft) return;
+    openConfirm({
+      title: isWorkflowTask(task) ? "Schritt entfernen?" : "Aufgabe entfernen?",
+      description: `"${task.title}" wird aus diesem Kunden entfernt. Speichere danach den Kunden, damit die Änderung übernommen wird.`,
+      onConfirm: () => {
+        const tasks = draft.tasks.filter((item) => item.id !== task.id);
+        setDraft(normalizeCustomer({ ...draft, tasks, status: deriveStatus(tasks) }));
+      },
+    });
   };
 
   const createTaskFromModal = async () => {
@@ -578,6 +611,20 @@ export function AdminPage() {
     }
   };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
+  const removeService = (service: ServiceItem) => {
+    if (!draft) return;
+    openConfirm({
+      title: "Leistung entfernen?",
+      description: `"${service.name || "Diese Leistung"}" wird aus diesem Kunden entfernt. Speichere danach den Kunden, damit die Änderung übernommen wird.`,
+      onConfirm: () => {
+        if (service.type === "custom") {
+          setDraft({ ...draft, customServices: draft.customServices.filter((item) => item.id !== service.id) });
+          return;
+        }
+        setDraft({ ...draft, bookedServices: draft.bookedServices.filter((item) => item.id !== service.id) });
+      },
+    });
+  };
   const addLocation = () => draft && setDraft({ ...draft, locations: [...draft.locations, { id: `location-${Date.now()}`, title: "Weitere Location", address: "" }] });
   const addPortalMessage = () => draft && setDraft({ ...draft, portalMessages: [...draft.portalMessages, { id: `msg-${Date.now()}`, title: "Neue Nachricht", message: "", createdAt: new Date().toISOString(), visible: true }] });
 
@@ -755,9 +802,12 @@ export function AdminPage() {
               saveCustomer={saveCustomer}
               updateTask={updateTask}
               requestTaskStatus={requestTaskStatus}
+              addWorkflowStep={addWorkflowStep}
               addTask={addTask}
+              removeTask={removeTask}
               addLocation={addLocation}
               addCustomService={addCustomService}
+              removeService={removeService}
               addPortalMessage={addPortalMessage}
               sendMail={sendMail}
               provisionPortal={provisionPortal}
@@ -987,9 +1037,12 @@ function CustomerDetail(props: {
   saveCustomer: () => void;
   updateTask: (id: string, patch: Partial<TaskItem>) => void;
   requestTaskStatus: (task: TaskItem, status: TaskStatus) => void;
+  addWorkflowStep: () => void;
   addTask: () => void;
+  removeTask: (task: TaskItem) => void;
   addLocation: () => void;
   addCustomService: () => void;
+  removeService: (service: ServiceItem) => void;
   addPortalMessage: () => void;
   sendMail: () => void;
   provisionPortal: () => void;
@@ -1077,8 +1130,11 @@ function CustomerDetail(props: {
       </div>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <h3 className="font-semibold flex items-center gap-2 mb-3"><ListChecks className="w-4 h-4" /> Schritte & Status</h3>
-        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} compact />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Schritte & Status</h3>
+          <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
+        </div>
+        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
       </section>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -1092,7 +1148,7 @@ function CustomerDetail(props: {
         <Field label="Vorgespräch" value={draft.consultationDate} onChange={(value) => setDraft({ ...draft, consultationDate: value })} placeholder="22. Mai 2026, 18:30 Uhr · Google Meet" />
         <Field label="Kundenadresse" value={draft.customerAddress} onChange={(value) => setDraft({ ...draft, customerAddress: value })} />
         <Field label="Location-Adresse" value={draft.locationAddress} onChange={(value) => setDraft({ ...draft, locationAddress: value })} />
-        <Field label="Location kurz" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} />
+        <Field label="Location-Name" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} placeholder="z.B. Schloss Elmau" />
         <Field label="Angebotslink" value={draft.offerUrl} onChange={(value) => setDraft({ ...draft, offerUrl: value })} />
         <Field label="Vertrag-Link" value={draft.contractUrl} onChange={(value) => setDraft({ ...draft, contractUrl: value })} />
         <Field label="Rechnungslink" value={draft.invoiceUrl} onChange={(value) => setDraft({ ...draft, invoiceUrl: value })} />
@@ -1113,16 +1169,19 @@ function CustomerDetail(props: {
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Zusätzliche Aufgaben</h3><button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button></div>
-        <TaskList tasks={otherTasks} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} />
+        <TaskList tasks={otherTasks} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} />
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Leistungen</h3><button onClick={props.addCustomService} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Leistung</button></div>
         <div className="space-y-2">
           {[...draft.bookedServices, ...draft.customServices].map((service, index) => (
-            <div key={`${service.id}-${index}`} className="grid grid-cols-[1fr_110px] gap-2">
+            <div key={`${service.id}-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_auto]">
               <input value={service.name} onChange={(event) => updateService(draft, setDraft, service, "name", event.target.value)} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
               <input value={service.price} onChange={(event) => updateService(draft, setDraft, service, "price", event.target.value)} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Preis" />
+              <button onClick={() => props.removeService(service)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center" title="Leistung entfernen">
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
@@ -1204,7 +1263,7 @@ function LinkField({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function TaskList({ tasks, updateTask, requestTaskStatus, compact = false }: { tasks: TaskItem[]; updateTask: (id: string, patch: Partial<TaskItem>) => void; requestTaskStatus: (task: TaskItem, status: TaskStatus) => void; compact?: boolean }) {
+function TaskList({ tasks, updateTask, requestTaskStatus, removeTask, compact = false }: { tasks: TaskItem[]; updateTask: (id: string, patch: Partial<TaskItem>) => void; requestTaskStatus: (task: TaskItem, status: TaskStatus) => void; removeTask: (task: TaskItem) => void; compact?: boolean }) {
   if (tasks.length === 0) {
     return <p className="rounded-md border border-black/8 bg-[#faf8f5] px-3 py-3 text-sm text-black/45">Noch keine Aufgaben angelegt.</p>;
   }
@@ -1212,13 +1271,16 @@ function TaskList({ tasks, updateTask, requestTaskStatus, compact = false }: { t
   return (
     <div className="space-y-2">
       {tasks.map((task) => (
-        <div key={task.id} className={`grid gap-2 ${compact ? "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto]" : "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto]"}`}>
+        <div key={task.id} className={`grid gap-2 ${compact ? "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto_auto]" : "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto_auto]"}`}>
           <input value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
           <input type="date" value={task.dueDate || ""} onChange={(event) => updateTask(task.id, { dueDate: event.target.value })} className="rounded-md border border-black/10 px-2 py-2 text-sm" />
           <select value={task.status} onChange={(event) => requestTaskStatus(task, event.target.value as TaskStatus)} className="rounded-md border border-black/10 px-2 py-2 text-sm">
             {(Object.keys(taskStatusLabels) as TaskStatus[]).map((status) => <option key={status} value={status}>{taskStatusLabels[status]}</option>)}
           </select>
           <button onClick={() => requestTaskStatus(task, "erledigt")} className="rounded-md border border-black/10 px-3 py-2 text-sm inline-flex items-center gap-1 justify-center"><Check className="w-4 h-4" /> Fertig</button>
+          <button onClick={() => removeTask(task)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center" title={isWorkflowTask(task) ? "Schritt entfernen" : "Aufgabe entfernen"}>
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       ))}
     </div>
