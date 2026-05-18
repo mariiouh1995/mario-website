@@ -138,7 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = normalizeString(req.query.action) || normalizeString(req.body?.action);
 
   try {
-    const crm = (await import("./crm-db")) as CrmDb;
+    const crm = (await import("./crm-db.js")) as CrmDb;
 
     if (action === "portal") {
       const token = normalizeString(req.query.token);
