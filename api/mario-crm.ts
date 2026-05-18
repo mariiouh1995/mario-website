@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
-import type { CrmCustomer, CustomerStatus, InquiryStatus } from "./crm/db";
+import type { CrmCustomer, CustomerStatus, InquiryStatus } from "./crm-db";
 
-type CrmDb = typeof import("./crm/db");
+type CrmDb = typeof import("./crm-db");
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -136,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = normalizeString(req.query.action) || normalizeString(req.body?.action);
 
   try {
-    const crm = (await import("./crm/db")) as CrmDb;
+    const crm = (await import("./crm-db")) as CrmDb;
 
     if (action === "portal") {
       const token = normalizeString(req.query.token);

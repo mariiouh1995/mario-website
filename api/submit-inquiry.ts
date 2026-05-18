@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { appendInquiry } = await import("./crm/db");
+    const { appendInquiry } = await import("./crm-db");
     const interestsText = Array.isArray(interests) ? interests.join(", ") : interests || "";
     const inquiry = await appendInquiry({
       name,
