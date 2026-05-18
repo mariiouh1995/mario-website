@@ -769,6 +769,7 @@ export function AdminPage() {
       return;
     }
     setSaving(true);
+    const toastId = toast.loading("Dokument wird hochgeladen...");
     try {
       const session = await api("upload-document", {
         method: "POST",
@@ -805,9 +806,9 @@ export function AdminPage() {
       const saved = normalizeCustomer(data.customer);
       setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
       setDraft(saved);
-      toast.success("Dokument hochgeladen");
+      toast.success("Dokument hochgeladen", { id: toastId });
     } catch (error: any) {
-      toast.error(error.message || "Dokument konnte nicht hochgeladen werden");
+      toast.error(error.message || "Dokument konnte nicht hochgeladen werden", { id: toastId });
     } finally {
       setSaving(false);
     }
@@ -1815,7 +1816,15 @@ function DocumentSection({
                   <input value={document.url || ""} onChange={(event) => document.kind === "custom" ? updateDocument({ ...document, url: event.target.value }) : updateStandardUrl(document, event.target.value)} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="URL einfügen oder Datei hochladen" />
                   <label className="inline-flex items-center justify-center rounded-md border border-black/10 bg-white px-3 py-2 text-sm cursor-pointer">
                     Upload
-                    <input type="file" className="hidden" onChange={(event) => event.target.files?.[0] && uploadDocument(document, event.target.files[0])} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.currentTarget.value = "";
+                        if (file) uploadDocument(document, file);
+                      }}
+                    />
                   </label>
                   <button onClick={() => deleteDocument(document)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
                 </div>

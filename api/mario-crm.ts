@@ -134,22 +134,30 @@ function getDriveCredentials() {
   }
 }
 
-function driveClient() {
+function driveAuth() {
+  const clientId = normalizeString(process.env.GOOGLE_CLIENT_ID);
+  const clientSecret = normalizeString(process.env.GOOGLE_CLIENT_SECRET);
+  const refreshToken = normalizeString(process.env.GOOGLE_REFRESH_TOKEN);
+  if (clientId && clientSecret && refreshToken) {
+    const auth = new google.auth.OAuth2(clientId, clientSecret);
+    auth.setCredentials({ refresh_token: refreshToken });
+    return auth;
+  }
+
   const credentials = getDriveCredentials();
-  const auth = new google.auth.GoogleAuth({
+  return new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/drive"],
   });
-  return google.drive({ version: "v3", auth });
+}
+
+function driveClient() {
+  return google.drive({ version: "v3", auth: driveAuth() });
 }
 
 async function driveAccessToken() {
-  const credentials = getDriveCredentials();
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/drive"],
-  });
-  const client = await auth.getClient();
+  const auth = driveAuth();
+  const client = "getClient" in auth ? await auth.getClient() : auth;
   const token = await client.getAccessToken();
   const accessToken = typeof token === "string" ? token : token?.token;
   if (!accessToken) throw new Error("Google Drive access token could not be created");
