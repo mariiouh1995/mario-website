@@ -318,6 +318,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ uploadUrl, document: { id: documentId, kind, title, fileName, mimeType }, folderId });
     }
 
+    if (req.method === "POST" && action === "upload-document-chunk") {
+      const uploadUrl = normalizeString(req.body?.uploadUrl);
+      const mimeType = normalizeString(req.body?.mimeType) || "application/octet-stream";
+      const contentBase64 = normalizeString(req.body?.contentBase64);
+      const start = Number(req.body?.start);
+      const end = Number(req.body?.end);
+      const total = Number(req.body?.total);
+      if (!uploadUrl.startsWith("https://www.googleapis.com/upload/drive/v3/files")) return res.status(400).json({ error: "Invalid Google Drive upload URL" });
+      if (!contentBase64 || !Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(total)) {
+        return res.status(400).json({ error: "chunk upload payload is incomplete" });
+      }
+
+      const buffer = Buffer.from(contentBase64, "base64");
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": mimeType,
+          "Content-Length": String(buffer.length),
+          "Content-Range": `bytes ${start}-${end - 1}/${total}`,
+        },
+        body: buffer,
+      });
+      if (uploadResponse.status === 308) return res.status(200).json({ done: false });
+      const data = await uploadResponse.json().catch(async () => ({ error: { message: await uploadResponse.text().catch(() => "") } }));
+      if (!uploadResponse.ok) throw new Error(data?.error?.message || "Google Drive chunk upload failed");
+      return res.status(200).json({ done: true, fileId: data.id });
+    }
+
     if (req.method === "POST" && action === "finish-document-upload") {
       const customerId = normalizeString(req.body?.customerId);
       const title = normalizeString(req.body?.title) || "Dokument";

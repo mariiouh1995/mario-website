@@ -326,6 +326,15 @@ function normalizeHref(value?: string) {
   return `https://${trimmed}`;
 }
 
+function readBlobAsBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function dateDiffDays(date: string) {
   const target = new Date(`${date}T00:00:00`);
   const today = new Date();
@@ -782,14 +791,24 @@ export function AdminPage() {
           mimeType: file.type || "application/octet-stream",
         }),
       });
-      const uploadRes = await fetch(session.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
-      });
-      const uploadData = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok) throw new Error(uploadData?.error?.message || uploadData?.error_description || "Google Drive Upload fehlgeschlagen");
-      const fileId = uploadData.id;
+      const chunkSize = 2 * 1024 * 1024;
+      let fileId = "";
+      for (let start = 0; start < file.size; start += chunkSize) {
+        const end = Math.min(start + chunkSize, file.size);
+        const contentBase64 = await readBlobAsBase64(file.slice(start, end));
+        const chunk = await api("upload-document-chunk", {
+          method: "POST",
+          body: JSON.stringify({
+            uploadUrl: session.uploadUrl,
+            mimeType: file.type || "application/octet-stream",
+            contentBase64,
+            start,
+            end,
+            total: file.size,
+          }),
+        });
+        if (chunk.done) fileId = chunk.fileId;
+      }
       if (!fileId) throw new Error("Google Drive hat keine Datei-ID zurueckgegeben");
       const data = await api("finish-document-upload", {
         method: "POST",
