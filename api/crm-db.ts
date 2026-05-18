@@ -43,6 +43,14 @@ export type TaskItem = {
   note?: string;
 };
 
+export type PaymentItem = {
+  id: string;
+  title: string;
+  amount: string;
+  paidAt: string;
+  note?: string;
+};
+
 export type PortalMessage = {
   id: string;
   title: string;
@@ -55,6 +63,7 @@ export type PortalVisibility = {
   status: boolean;
   tasks: boolean;
   services: boolean;
+  payments: boolean;
   offer: boolean;
   contract: boolean;
   invoice: boolean;
@@ -115,6 +124,9 @@ export type CrmCustomer = {
   contractStatus: ContractStatus;
   bookedServices: ServiceItem[];
   customServices: ServiceItem[];
+  payments: PaymentItem[];
+  depositDueDate: string;
+  finalPaymentDueDate: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
   portalMessages: PortalMessage[];
@@ -154,6 +166,7 @@ export const DEFAULT_PORTAL_VISIBILITY: PortalVisibility = {
   status: false,
   tasks: false,
   services: true,
+  payments: false,
   offer: false,
   contract: false,
   invoice: false,
@@ -165,27 +178,27 @@ export const MAIL_TEMPLATES: Record<string, { label: string; subject: string; bo
   reply: {
     label: "Anfrage beantworten",
     subject: "Danke für eure Anfrage",
-    body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Ich freue mich, mehr über eure Pläne zu erfahren.\n\nIch melde mich zeitnah mit ein paar Terminvorschlägen für ein kurzes Vorgespräch.",
+    body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Ich freue mich sehr, mehr über euren Tag und eure Pläne zu erfahren.\n\nIch melde mich zeitnah mit ein paar Terminvorschlägen für ein kurzes Vorgespräch. Dann schauen wir gemeinsam, was zu euch passt und wie wir eure Geschichte ehrlich, ungezwungen und voller Leben festhalten können.",
   },
   consultation: {
     label: "Vorgespräch",
     subject: "Unser Vorgespräch",
-    body: "Servus ihr Lieben,\n\nhier findet ihr die Details für unser Vorgespräch:\n\nTermin: {consultationDate}\n\nFalls sich bei euch etwas ändert, gebt mir einfach kurz Bescheid.",
+    body: "Servus ihr Lieben,\n\nhier findet ihr die Details für unser Vorgespräch:\n\nTermin: {consultationDate}\n\nIch freue mich darauf, euch kennenzulernen und ein Gefühl für euren Tag zu bekommen. Falls sich bei euch etwas ändert, gebt mir einfach kurz Bescheid.",
   },
   contract: {
     label: "Vertrag senden",
     subject: "Euer Vertrag mit Mario Schubert Photography",
-    body: "Servus ihr Lieben,\n\nich habe euch den Vertrag für euren Termin vorbereitet.\n\nIhr findet ihn hier:\n{contractUrl}\n\nWenn alles passt, gebt mir bitte kurz Bescheid oder sendet mir den unterschriebenen Vertrag zurück.",
+    body: "Servus ihr Lieben,\n\nich habe euch den Vertrag für euren Termin vorbereitet.\n\nIhr findet ihn hier:\n{contractUrl}\n\nSchaut in Ruhe drüber. Wenn alles passt, gebt mir bitte kurz Bescheid oder sendet mir den unterschriebenen Vertrag zurück.",
   },
   portal: {
     label: "Kundenportal",
     subject: "Euer Kundenbereich bei Mario Schubert Photography",
-    body: "Servus ihr Lieben,\n\nich habe euch einen persönlichen Kundenbereich eingerichtet. Dort findet ihr eure gebuchten Leistungen, Termine, Dokumente und später auch den Galerie-Link.\n\nLink: {portalUrl}\nPasswort: {portalPassword}",
+    body: "Servus ihr Lieben,\n\nich habe euch euren persönlichen Kundenbereich eingerichtet. Dort findet ihr alles Wichtige rund um unseren gemeinsamen Termin: Leistungen, Termine, Dokumente und später auch euren Galerie-Link.\n\nLink: {portalUrl}\nPasswort: {portalPassword}\n\nSpeichert euch den Link gern ab, dann habt ihr alles an einem Ort.",
   },
   gallery: {
     label: "Galerie geliefert",
     subject: "Eure Galerie ist fertig",
-    body: "Servus ihr Lieben,\n\neure Galerie ist fertig. Ihr findet sie hier:\n{galleryUrl}\n\nIch wünsche euch ganz viel Freude mit den Bildern.",
+    body: "Servus ihr Lieben,\n\neure Galerie ist fertig. Ihr findet sie hier:\n{galleryUrl}\n\nIch wünsche euch ganz viel Freude beim Anschauen, Wiedererleben und Weitergeben. Danke, dass ich eure Geschichte festhalten durfte.",
   },
 };
 
@@ -302,6 +315,9 @@ export async function ensureMarioCrmSchema() {
         contract_status text NOT NULL DEFAULT 'nicht_gesendet',
         booked_services jsonb NOT NULL DEFAULT '[]',
         custom_services jsonb NOT NULL DEFAULT '[]',
+        payments jsonb NOT NULL DEFAULT '[]',
+        deposit_due_date text NOT NULL DEFAULT '',
+        final_payment_due_date text NOT NULL DEFAULT '',
         tasks jsonb NOT NULL DEFAULT '[]',
         portal_visibility jsonb NOT NULL DEFAULT '{}',
         portal_messages jsonb NOT NULL DEFAULT '[]',
@@ -328,6 +344,9 @@ export async function ensureMarioCrmSchema() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_published_at text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_visibility jsonb NOT NULL DEFAULT '{}'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_messages jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS payments jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS deposit_due_date text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS final_payment_due_date text NOT NULL DEFAULT ''`;
 
     await db`
       CREATE TABLE IF NOT EXISTS mario_mail_logs (
@@ -407,6 +426,9 @@ function mapCustomer(row: any): CrmCustomer {
     contractStatus: row.contract_status,
     bookedServices: normalizeJson<ServiceItem[]>(row.booked_services, []),
     customServices: normalizeJson<ServiceItem[]>(row.custom_services, []),
+    payments: normalizeJson<PaymentItem[]>(row.payments, []),
+    depositDueDate: row.deposit_due_date,
+    finalPaymentDueDate: row.final_payment_due_date,
     tasks: normalizeJson<TaskItem[]>(row.tasks, DEFAULT_TASKS),
     portalVisibility: { ...DEFAULT_PORTAL_VISIBILITY, ...normalizeJson<Partial<PortalVisibility>>(row.portal_visibility, {}) },
     portalMessages: normalizeJson<PortalMessage[]>(row.portal_messages, []),
@@ -483,7 +505,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       bride_name, groom_name, customer_address, location_address, locations,
       event_time, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${id}, ${portalToken}, ${input.sourceInquiryId || ""}, ${input.status || "anfrage"},
       ${input.name || ""}, ${input.email || ""}, ${input.phone || ""}, ${input.category || ""},
@@ -493,7 +515,9 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       ${input.offerUrl || ""}, ${input.contractUrl || ""}, ${input.invoiceUrl || ""},
       ${input.portalEnabled || false}, ${input.portalPassword || ""}, ${input.portalPublishedAt || ""},
       ${input.contractStatus || "nicht_gesendet"}, ${JSON.stringify(input.bookedServices || [])}::jsonb,
-      ${JSON.stringify(input.customServices || [])}::jsonb, ${JSON.stringify(input.tasks || DEFAULT_TASKS)}::jsonb,
+      ${JSON.stringify(input.customServices || [])}::jsonb, ${JSON.stringify(input.payments || [])}::jsonb,
+      ${input.depositDueDate || ""}, ${input.finalPaymentDueDate || ""},
+      ${JSON.stringify(input.tasks || DEFAULT_TASKS)}::jsonb,
       ${JSON.stringify(input.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(input.portalMessages || [])}::jsonb,
       ${input.notes || ""}, ${input.portalIntro || ""}
@@ -510,7 +534,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, phone, category, event_date, event_time, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
       now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.phone}, ${customer.category},
@@ -519,6 +543,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       ${customer.galleryUrl}, ${customer.offerUrl}, ${customer.contractUrl}, ${customer.invoiceUrl},
       ${customer.portalEnabled || false}, ${customer.portalPassword || ""}, ${customer.portalPublishedAt || ""}, ${customer.contractStatus},
       ${JSON.stringify(customer.bookedServices || [])}::jsonb, ${JSON.stringify(customer.customServices || [])}::jsonb,
+      ${JSON.stringify(customer.payments || [])}::jsonb, ${customer.depositDueDate || ""}, ${customer.finalPaymentDueDate || ""},
       ${JSON.stringify(customer.tasks || [])}::jsonb, ${JSON.stringify(customer.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(customer.portalMessages || [])}::jsonb, ${customer.notes}, ${customer.portalIntro}
     )
@@ -550,6 +575,9 @@ export async function upsertCustomer(customer: CrmCustomer) {
       contract_status = EXCLUDED.contract_status,
       booked_services = EXCLUDED.booked_services,
       custom_services = EXCLUDED.custom_services,
+      payments = EXCLUDED.payments,
+      deposit_due_date = EXCLUDED.deposit_due_date,
+      final_payment_due_date = EXCLUDED.final_payment_due_date,
       tasks = EXCLUDED.tasks,
       portal_visibility = EXCLUDED.portal_visibility,
       portal_messages = EXCLUDED.portal_messages,
@@ -571,18 +599,6 @@ export async function appendMailLog(log: MailLog) {
 export function applyTemplate(template: string, customer: CrmCustomer) {
   const firstName = customer.name.split(" ")[0] || customer.name || "du";
   const publicUrl = process.env.PUBLIC_URL || "https://marioschub.com";
-  const signature = [
-    "Mario Schubert",
-    "Fotografie, Video und Fotospiegel",
-    "",
-    "Tirol & Bayern",
-    "AT: +43 67763681543",
-    "DE: +49 151 5533 8029",
-    "Mail: servus@marioschub.com",
-    "Web: www.marioschub.com",
-    "WhatsApp: https://wa.me/4915155338029",
-    "Instagram: @marioschub",
-  ].join("\n");
 
   return template
     .replaceAll("{firstName}", firstName)
@@ -596,5 +612,5 @@ export function applyTemplate(template: string, customer: CrmCustomer) {
     .replaceAll("{contractUrl}", customer.contractUrl || "")
     .replaceAll("{invoiceUrl}", customer.invoiceUrl || "")
     .replaceAll("{galleryUrl}", customer.galleryUrl || "")
-    .replaceAll("{signature}", signature);
+    .replaceAll("{signature}", "");
 }

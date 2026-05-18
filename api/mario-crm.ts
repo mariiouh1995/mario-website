@@ -41,22 +41,9 @@ function createTransport() {
 }
 
 const MARIO_LOGO_URL = process.env.MARIO_MAIL_LOGO_URL || "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
-const MARIO_SIGNATURE_TEXT = [
-  "Mario Schubert",
-  "Fotografie, Video und Fotospiegel",
-  "",
-  "Tirol & Bayern",
-  "AT: +43 67763681543",
-  "DE: +49 151 5533 8029",
-  "Mail: servus@marioschub.com",
-  "Web: www.marioschub.com",
-  "WhatsApp: https://wa.me/4915155338029",
-  "Instagram: @marioschub",
-].join("\n");
 
 function ensureMarioSignature(body: string) {
-  if (body.includes("Mario Schubert") && body.includes("servus@marioschub.com")) return body;
-  return `${body.trim()}\n\n${MARIO_SIGNATURE_TEXT}`;
+  return body.replace(/\n{0,2}\{signature\}\s*/gi, "").trim();
 }
 
 function mailHtml(body: string) {
@@ -91,8 +78,10 @@ function marioMailHtml(body: string) {
   return `
     <div style="margin:0;padding:28px 14px;background:#f4f0eb">
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:640px;margin:0 auto;color:#24211f;background:#fff;border:1px solid #ece8e2;border-radius:14px;overflow:hidden">
-        <div style="padding:34px 24px 26px;text-align:center;border-bottom:1px solid #ece8e2;background:#fff">
-          <img src="${MARIO_LOGO_URL}" alt="Mario Schubert" style="height:44px;max-width:220px" />
+        <div style="padding:34px 24px 26px;text-align:center;border-bottom:1px solid #ece8e2;background:#f8f5f0">
+          <span style="display:inline-block;background:#ffffff;border:1px solid #ece8e2;border-radius:12px;padding:10px 16px">
+            <img src="${MARIO_LOGO_URL}" alt="Mario Schubert" style="display:block;height:44px;max-width:220px" />
+          </span>
           <p style="margin:14px 0 0;color:#8f8880;font-size:12px;letter-spacing:2px;text-transform:uppercase">Fotografie, Video und Fotospiegel</p>
         </div>
         <div style="padding:36px 28px 30px;font-size:15px;line-height:1.78;color:#4d4944">${escaped}</div>
@@ -128,7 +117,7 @@ function renderInquiryTemplate(template: string, inquiry: { name: string; brideN
     .replaceAll("{firstName}", firstName)
     .replaceAll("{name}", inquiry.name || "")
     .replaceAll("{email}", inquiry.email || "")
-    .replaceAll("{signature}", MARIO_SIGNATURE_TEXT);
+    .replaceAll("{signature}", "");
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -38,10 +38,12 @@ type TaskStatus = "offen" | "in_arbeit" | "erledigt" | "obsolet";
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
 type LocationItem = { id: string; title: string; address: string };
+type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
 type PortalVisibility = {
   status: boolean;
   tasks: boolean;
   services: boolean;
+  payments: boolean;
   offer: boolean;
   contract: boolean;
   invoice: boolean;
@@ -99,6 +101,9 @@ type Customer = {
   contractStatus: "nicht_gesendet" | "gesendet" | "unterzeichnet";
   bookedServices: ServiceItem[];
   customServices: ServiceItem[];
+  payments: PaymentItem[];
+  depositDueDate: string;
+  finalPaymentDueDate: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
   portalMessages: PortalMessage[];
@@ -151,6 +156,7 @@ const defaultPortalVisibility: PortalVisibility = {
   status: false,
   tasks: false,
   services: true,
+  payments: false,
   offer: false,
   contract: false,
   invoice: false,
@@ -194,6 +200,9 @@ const emptyCustomer = (): Customer => ({
   contractStatus: "nicht_gesendet",
   bookedServices: [],
   customServices: [],
+  payments: [],
+  depositDueDate: "",
+  finalPaymentDueDate: "",
   tasks: workflowTasks(),
   portalVisibility: { ...defaultPortalVisibility },
   portalMessages: [],
@@ -238,6 +247,9 @@ function normalizeCustomer(customer: Customer): Customer {
     portalMessages: customer.portalMessages || [],
     bookedServices: customer.bookedServices || [],
     customServices: customer.customServices || [],
+    payments: customer.payments || [],
+    depositDueDate: customer.depositDueDate || "",
+    finalPaymentDueDate: customer.finalPaymentDueDate || "",
     locations: customer.locations || [],
     tasks,
     status: deriveStatus(tasks),
@@ -268,6 +280,32 @@ function parseTime(value: string) {
 
 function mailBodyForEditor(body = "") {
   return body.replace(/\n{0,2}\{signature\}\s*$/i, "").trim();
+}
+
+function formatMoney(value?: string) {
+  const clean = (value || "").trim();
+  if (!clean) return "";
+  if (/[€a-z]/i.test(clean)) return clean;
+  const normalized = Number(clean.replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(normalized)) return clean;
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(normalized);
+}
+
+function moneyNumber(value?: string) {
+  const clean = (value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const parsed = Number(clean);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mapsUrl(value?: string) {
+  return value ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}` : "";
+}
+
+function normalizeHref(value?: string) {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
+  return `https://${trimmed}`;
 }
 
 function dateDiffDays(date: string) {
@@ -482,6 +520,7 @@ export function AdminPage() {
       await persistCustomerDraft(draft);
       setMessage("Gespeichert");
       toast.success("Kunde gespeichert");
+      setEditMode(false);
     } catch (error: any) {
       setMessage(error.message || "Speichern fehlgeschlagen");
       toast.error(error.message || "Speichern fehlgeschlagen");
@@ -637,6 +676,7 @@ export function AdminPage() {
     }
   };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
+  const addPayment = () => draft && setDraft({ ...draft, payments: [...draft.payments, { id: `pay-${Date.now()}`, title: "Anzahlung", amount: "", paidAt: new Date().toISOString().slice(0, 10), note: "" }] });
   const removeService = (service: ServiceItem) => {
     if (!draft) return;
     openConfirm({
@@ -649,6 +689,14 @@ export function AdminPage() {
         }
         setDraft({ ...draft, bookedServices: draft.bookedServices.filter((item) => item.id !== service.id) });
       },
+    });
+  };
+  const removePayment = (payment: PaymentItem) => {
+    if (!draft) return;
+    openConfirm({
+      title: "Zahlung entfernen?",
+      description: `"${payment.title || "Diese Zahlung"}" wird aus diesem Kunden entfernt. Speichere danach den Kunden, damit die Änderung übernommen wird.`,
+      onConfirm: () => setDraft({ ...draft, payments: draft.payments.filter((item) => item.id !== payment.id) }),
     });
   };
   const addLocation = () => draft && setDraft({ ...draft, locations: [...draft.locations, { id: `location-${Date.now()}`, title: "Weitere Location", address: "" }] });
@@ -754,7 +802,7 @@ export function AdminPage() {
                 {notifications.length > 0 && <span className="absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-600 text-white text-[11px] flex items-center justify-center">{notifications.length}</span>}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-12 z-30 w-[min(20rem,calc(100vw-2rem))] rounded-lg bg-white text-black shadow-xl border border-black/10 p-3">
+                <div className="fixed left-3 right-3 top-20 z-30 rounded-lg bg-white text-black shadow-xl border border-black/10 p-3 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[20rem]">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Notifications</p>
                     <div className="flex items-center gap-2">
@@ -870,6 +918,8 @@ export function AdminPage() {
               addLocation={addLocation}
               addCustomService={addCustomService}
               removeService={removeService}
+              addPayment={addPayment}
+              removePayment={removePayment}
               addPortalMessage={addPortalMessage}
               sendMail={sendMail}
               provisionPortal={provisionPortal}
@@ -941,7 +991,22 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
         <p className="text-xs uppercase tracking-[0.22em] text-black/40">Übersicht</p>
         <h2 className="mt-1 text-2xl">Alle Kunden</h2>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-black/8">
+      <div className="grid gap-3 md:hidden">
+        {customers.map((customer) => (
+          <button key={customer.id} onClick={() => onSelect(customer.id)} className="relative text-left rounded-lg border border-black/8 bg-[#faf8f5] p-4">
+            {notificationsByCustomer[customer.id] > 0 && <span className="absolute right-3 top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] text-white">{notificationsByCustomer[customer.id]}</span>}
+            <p className="font-medium pr-8">{customer.name || "Unbenannter Kunde"}</p>
+            <p className="text-xs text-black/45 mt-1">{customer.category || "Kategorie offen"} · {customer.eventDate || "Datum offen"}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-white border border-black/8 px-2 py-1">{statusSteps.find((item) => item.key === customer.status)?.label || customer.status}</span>
+              <span className="rounded-full bg-white border border-black/8 px-2 py-1">{customer.portalEnabled ? "Portal aktiv" : "Portal nicht aktiv"}</span>
+            </div>
+            <p className="mt-3 text-sm text-black/55">{customer.email || "Keine E-Mail"}</p>
+          </button>
+        ))}
+        {customers.length === 0 && <p className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Noch keine Kunden angelegt.</p>}
+      </div>
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-black/8">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-[#faf8f5] text-left text-xs uppercase tracking-[0.14em] text-black/40">
             <tr>
@@ -1105,6 +1170,8 @@ function CustomerDetail(props: {
   addLocation: () => void;
   addCustomService: () => void;
   removeService: (service: ServiceItem) => void;
+  addPayment: () => void;
+  removePayment: (payment: PaymentItem) => void;
   addPortalMessage: () => void;
   sendMail: () => void;
   provisionPortal: () => void;
@@ -1153,7 +1220,11 @@ function CustomerDetail(props: {
           <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, draft.eventTime].filter(Boolean).join(" · ")} />
           <ViewField label="Vorgespräch" value={draft.consultationDate} />
           <ViewField label="Kundenadresse" value={draft.customerAddress} />
-          <ViewField label="Location" value={draft.location || draft.locationAddress} />
+          <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Location</p>
+            <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{draft.location || draft.locationAddress || "Noch nicht erfasst"}</p>
+            <MapLink value={draft.locationAddress || draft.location} />
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -1163,11 +1234,36 @@ function CustomerDetail(props: {
           <LinkField label="Galerie" value={draft.galleryUrl} />
         </div>
 
+        {[...draft.bookedServices, ...draft.customServices].length > 0 && (
+          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+            <h3 className="font-semibold mb-3">Leistungen</h3>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {[...draft.bookedServices, ...draft.customServices].map((service) => (
+                <div key={service.id} className="flex items-center justify-between gap-3 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm">
+                  <span>{service.name}</span>
+                  <span className="text-black/55">{formatMoney(service.price) || "kein Preis"}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+          <h3 className="font-semibold mb-3">Zahlungen</h3>
+          <PaymentSummary customer={draft} />
+        </section>
+
         {draft.locations.length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
             <h3 className="font-semibold flex items-center gap-2 mb-3"><MapPin className="w-4 h-4" /> Weitere Locations</h3>
             <div className="grid sm:grid-cols-2 gap-2">
-              {draft.locations.map((location) => <ViewField key={location.id} label={location.title} value={location.address} />)}
+              {draft.locations.map((location) => (
+                <div key={location.id} className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">{location.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{location.address || "Noch nicht erfasst"}</p>
+                  <MapLink value={location.address || location.title} />
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -1215,6 +1311,8 @@ function CustomerDetail(props: {
         <Field label="Vertrag-Link" value={draft.contractUrl} onChange={(value) => setDraft({ ...draft, contractUrl: value })} />
         <Field label="Rechnungslink" value={draft.invoiceUrl} onChange={(value) => setDraft({ ...draft, invoiceUrl: value })} />
         <Field label="Galerie-Link" value={draft.galleryUrl} onChange={(value) => setDraft({ ...draft, galleryUrl: value })} />
+        <Field label="Anzahlung fällig bis" type="date" value={draft.depositDueDate} onChange={(value) => setDraft({ ...draft, depositDueDate: value })} />
+        <Field label="Gesamtbetrag fällig bis" type="date" value={draft.finalPaymentDueDate} onChange={(value) => setDraft({ ...draft, finalPaymentDueDate: value })} />
       </div>
 
       <section className="rounded-lg border border-black/8 p-4">
@@ -1246,6 +1344,21 @@ function CustomerDetail(props: {
               </button>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-black/8 p-4">
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Zahlungen</h3><button onClick={props.addPayment} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Zahlung</button></div>
+        <div className="space-y-2">
+          {draft.payments.map((payment) => (
+            <div key={payment.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px_145px_auto]">
+              <input value={payment.title} onChange={(event) => setDraft({ ...draft, payments: draft.payments.map((item) => (item.id === payment.id ? { ...item, title: event.target.value } : item)) })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="z.B. Anzahlung" />
+              <input value={payment.amount} onChange={(event) => setDraft({ ...draft, payments: draft.payments.map((item) => (item.id === payment.id ? { ...item, amount: event.target.value } : item)) })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Betrag" />
+              <input type="date" value={payment.paidAt} onChange={(event) => setDraft({ ...draft, payments: draft.payments.map((item) => (item.id === payment.id ? { ...item, paidAt: event.target.value } : item)) })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
+              <button onClick={() => props.removePayment(payment)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center" title="Zahlung entfernen"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+          {draft.payments.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 px-3 py-3 text-sm text-black/45">Noch keine Zahlungen geloggt.</p>}
         </div>
       </section>
 
@@ -1314,14 +1427,24 @@ function LinkField({ label, value }: { label: string; value?: string }) {
     <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
       <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">{label}</p>
       {value ? (
-        <a href={value} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md bg-white border border-black/10 px-3 py-2 text-sm text-black/70 hover:text-black">
-          <span className="truncate">Link oeffnen</span>
+        <a href={normalizeHref(value)} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md bg-white border border-black/10 px-3 py-2 text-sm text-black/70 hover:text-black">
+          <span className="truncate">Link öffnen</span>
           <ExternalLink className="w-4 h-4 shrink-0" />
         </a>
       ) : (
         <p className="mt-2 text-sm text-black/40">Noch nicht hinterlegt</p>
       )}
     </div>
+  );
+}
+
+function MapLink({ value }: { value?: string }) {
+  const href = mapsUrl(value);
+  if (!href) return null;
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746] hover:text-black">
+      In Google Maps öffnen <ExternalLink className="w-3 h-3" />
+    </a>
   );
 }
 
@@ -1356,6 +1479,35 @@ function updateService(draft: Customer, setDraft: (customer: Customer) => void, 
   setDraft(service.type === "custom" ? { ...draft, customServices: services } : { ...draft, bookedServices: services });
 }
 
+function PaymentSummary({ customer }: { customer: Customer }) {
+  const total = [...customer.bookedServices, ...customer.customServices].reduce((sum, service) => sum + moneyNumber(service.price), 0);
+  const paid = customer.payments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
+  const open = Math.max(total - paid, 0);
+  return (
+    <div className="space-y-3">
+      <div className="grid sm:grid-cols-3 gap-2">
+        <ViewField label="Gesamt" value={formatMoney(String(total)) || "Noch kein Betrag"} />
+        <ViewField label="Bezahlt" value={formatMoney(String(paid)) || "0,00 €"} />
+        <ViewField label="Offen" value={formatMoney(String(open)) || "0,00 €"} />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-2">
+        <ViewField label="Anzahlung fällig bis" value={customer.depositDueDate} />
+        <ViewField label="Gesamtbetrag fällig bis" value={customer.finalPaymentDueDate} />
+      </div>
+      {customer.payments.length > 0 && (
+        <div className="space-y-2">
+          {customer.payments.map((payment) => (
+            <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm">
+              <span>{payment.title} {payment.paidAt ? <span className="text-black/40">· {payment.paidAt}</span> : null}</span>
+              <span className="text-black/60">{formatMoney(payment.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InquiryDetail({ inquiry, onReply, onDelete, onConvert }: { inquiry: Inquiry; onReply: () => void; onDelete: () => void; onConvert: () => void }) {
   return (
     <div className="space-y-6">
@@ -1380,6 +1532,7 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal, re
     status: "Status sichtbar",
     tasks: "Aufgaben sichtbar",
     services: "Leistungen sichtbar",
+    payments: "Zahlungen sichtbar",
     offer: "Angebot sichtbar",
     contract: "Vertrag sichtbar",
     invoice: "Rechnung sichtbar",

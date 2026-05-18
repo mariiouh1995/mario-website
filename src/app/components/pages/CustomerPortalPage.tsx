@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, CheckCircle2, ExternalLink, FileText, Image, ListChecks, Lock, MapPin, MessageSquareText } from "lucide-react";
+import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, MapPin, MessageSquareText } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
 type LocationItem = { id: string; title: string; address: string };
+type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
 type PortalVisibility = {
   status?: boolean;
   tasks?: boolean;
   services?: boolean;
+  payments?: boolean;
   offer?: boolean;
   contract?: boolean;
   invoice?: boolean;
@@ -32,17 +34,20 @@ type Customer = {
   contractStatus: string;
   bookedServices: ServiceItem[];
   customServices: ServiceItem[];
+  payments?: PaymentItem[];
+  depositDueDate?: string;
+  finalPaymentDueDate?: string;
   tasks: TaskItem[];
   portalIntro: string;
   portalVisibility?: PortalVisibility;
   portalMessages?: PortalMessage[];
 };
-type WorkflowItem = { key: string; label: string };
 
 const defaultVisibility: Required<PortalVisibility> = {
   status: false,
   tasks: false,
   services: true,
+  payments: false,
   offer: false,
   contract: false,
   invoice: false,
@@ -50,10 +55,41 @@ const defaultVisibility: Required<PortalVisibility> = {
   messages: true,
 };
 
+const taskStatusLabels: Record<TaskItem["status"], string> = {
+  offen: "Offen",
+  in_arbeit: "In Arbeit",
+  erledigt: "Erledigt",
+  obsolet: "Nicht mehr relevant",
+};
+
+function normalizeHref(value?: string) {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function mapsUrl(value?: string) {
+  return value ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}` : "";
+}
+
+function formatMoney(value?: string) {
+  const clean = (value || "").trim();
+  if (!clean) return "";
+  if (/[€a-z]/i.test(clean)) return clean;
+  const parsed = Number(clean.replace(/\./g, "").replace(",", "."));
+  if (!Number.isFinite(parsed)) return clean;
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(parsed);
+}
+
+function moneyNumber(value?: string) {
+  const parsed = Number((value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function CustomerPortalPage() {
   const { token } = useParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [workflow, setWorkflow] = useState<WorkflowItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [portalPassword, setPortalPassword] = useState(() => sessionStorage.getItem(`portal_pw_${token}`) || "");
@@ -74,11 +110,9 @@ export function CustomerPortalPage() {
         }
         if (!res.ok) throw new Error(data.error || "Portal nicht gefunden");
         setCustomer(data.customer);
-        setWorkflow(data.workflow || []);
         setNeedsPassword(false);
       } catch (err: any) {
         setCustomer(null);
-        setWorkflow([]);
         setError(err.message || "Portal konnte nicht geladen werden");
       } finally {
         setLoading(false);
@@ -86,8 +120,6 @@ export function CustomerPortalPage() {
     }
     loadPortal();
   }, [token, portalPassword]);
-
-  const firstName = useMemo(() => customer?.name?.split(" ")[0] || "Servus", [customer]);
 
   if (loading) {
     return <div className="min-h-screen bg-[#11100f] text-white flex items-center justify-center">Lade Kundenbereich...</div>;
@@ -129,9 +161,12 @@ export function CustomerPortalPage() {
   }
 
   const visibility = { ...defaultVisibility, ...(customer.portalVisibility || {}) };
-  const activeIndex = workflow.findIndex((item) => item.key === customer.status);
   const services = [...(customer.bookedServices || []), ...(customer.customServices || [])];
-  const visibleTasks = (customer.tasks || []).filter((task) => task.status === "erledigt");
+  const visibleTasks = customer.tasks || [];
+  const payments = customer.payments || [];
+  const total = services.reduce((sum, service) => sum + moneyNumber(service.price), 0);
+  const paid = payments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
+  const openAmount = Math.max(total - paid, 0);
   const messages = (customer.portalMessages || []).filter((item) => item.visible);
   const locations = customer.locations || [];
 
@@ -140,7 +175,7 @@ export function CustomerPortalPage() {
       <section className="bg-[#11100f] text-white">
         <div className="max-w-5xl mx-auto px-5 py-14 md:py-20">
           <p className="text-white/45 text-xs uppercase tracking-[0.28em]">Mario Schubert Photography</p>
-          <h1 className="mt-5 text-3xl md:text-5xl font-light">Servus {firstName}</h1>
+          <h1 className="mt-5 text-3xl md:text-5xl font-light">Servus ihr Lieben</h1>
           <p className="mt-5 max-w-2xl text-white/60 leading-relaxed">
             {customer.portalIntro || "Hier findest du die wichtigsten Informationen zu unserem gemeinsamen Termin."}
           </p>
@@ -148,6 +183,33 @@ export function CustomerPortalPage() {
       </section>
 
       <main className="max-w-5xl mx-auto px-5 py-8 md:py-12 space-y-8">
+        {(visibility.status || visibility.tasks) && visibleTasks.length > 0 && (
+          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+            <h2 className="text-lg font-medium mb-5 flex items-center gap-2">
+              <ListChecks className="w-5 h-5" /> Status & Aufgaben
+            </h2>
+            <div className="grid md:grid-cols-2 gap-3">
+              {visibleTasks.map((task) => {
+                const done = task.status === "erledigt";
+                const active = task.status === "in_arbeit";
+                return (
+                  <article key={task.id} className={`rounded-lg border px-4 py-4 ${done ? "bg-[#eef6ef] border-[#b9d7bd]" : active ? "bg-[#f7ead8] border-[#ddbf91]" : "bg-[#faf8f5] border-black/8"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        {done ? <CheckCircle2 className="w-5 h-5 text-emerald-700 mt-0.5" /> : active ? <Clock3 className="w-5 h-5 text-[#8a5c21] mt-0.5" /> : <Circle className="w-5 h-5 text-black/30 mt-0.5" />}
+                        <div>
+                          <h3 className="font-medium">{task.title}</h3>
+                          <p className="text-sm text-black/50 mt-1">{taskStatusLabels[task.status]}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {visibility.messages && messages.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
@@ -164,23 +226,6 @@ export function CustomerPortalPage() {
           </section>
         )}
 
-        {visibility.status && (
-          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
-            <h2 className="text-lg font-medium mb-5">Status</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {workflow.map((step, index) => {
-                const complete = index <= activeIndex;
-                return (
-                  <div key={step.key} className={`rounded-md border px-3 py-3 text-sm ${complete ? "bg-[#11100f] border-[#11100f] text-white" : "bg-[#faf8f5] border-black/8 text-black/45"}`}>
-                    {complete && <CheckCircle2 className="w-4 h-4 mb-2" />}
-                    {step.label}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
         <div className="grid md:grid-cols-3 gap-5">
           <InfoCard icon={<Calendar className="w-5 h-5" />} title={customer.category || "Termin"}>
             <p>{customer.eventDate || "Datum folgt"}</p>
@@ -192,7 +237,7 @@ export function CustomerPortalPage() {
           {visibility.contract && (
             <InfoCard icon={<FileText className="w-5 h-5" />} title="Vertrag">
               {customer.contractUrl ? (
-                <a href={customer.contractUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
+                <a href={normalizeHref(customer.contractUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
                   Vertrag öffnen <ExternalLink className="w-4 h-4" />
                 </a>
               ) : (
@@ -203,7 +248,7 @@ export function CustomerPortalPage() {
           {visibility.offer && (
             <InfoCard icon={<FileText className="w-5 h-5" />} title="Angebot">
               {customer.offerUrl ? (
-                <a href={customer.offerUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
+                <a href={normalizeHref(customer.offerUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
                   Angebot öffnen <ExternalLink className="w-4 h-4" />
                 </a>
               ) : (
@@ -214,7 +259,7 @@ export function CustomerPortalPage() {
           {visibility.invoice && (
             <InfoCard icon={<FileText className="w-5 h-5" />} title="Rechnung">
               {customer.invoiceUrl ? (
-                <a href={customer.invoiceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
+                <a href={normalizeHref(customer.invoiceUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#6c5746] hover:text-black">
                   Rechnung öffnen <ExternalLink className="w-4 h-4" />
                 </a>
               ) : (
@@ -234,12 +279,18 @@ export function CustomerPortalPage() {
                 <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                   <p className="font-medium">Hauptlocation</p>
                   <p className="text-sm text-black/55 mt-1">{customer.locationAddress}</p>
+                  <a href={mapsUrl(customer.locationAddress)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746] hover:text-black">
+                    In Google Maps öffnen <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               )}
               {locations.map((location) => (
                 <div key={location.id} className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                   <p className="font-medium">{location.title}</p>
                   <p className="text-sm text-black/55 mt-1">{location.address}</p>
+                  <a href={mapsUrl(location.address || location.title)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746] hover:text-black">
+                    In Google Maps öffnen <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               ))}
             </div>
@@ -253,26 +304,44 @@ export function CustomerPortalPage() {
               {services.map((service) => (
                 <div key={service.id} className="flex items-center justify-between rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                   <span>{service.name}</span>
-                  {service.price && <span className="text-black/55">{service.price}</span>}
+                  {service.price && <span className="text-black/55">{formatMoney(service.price)}</span>}
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {visibility.tasks && visibleTasks.length > 0 && (
+        {visibility.payments && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <ListChecks className="w-5 h-5" /> Erledigt
-            </h2>
-            <div className="grid md:grid-cols-2 gap-2">
-              {visibleTasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-2 rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  {task.title}
-                </div>
-              ))}
+            <h2 className="text-lg font-medium mb-4">Zahlungsübersicht</h2>
+            <div className="grid sm:grid-cols-3 gap-3 mb-4">
+              <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-black/40">Gesamt</p>
+                <p className="mt-2 font-medium">{formatMoney(String(total)) || "Noch offen"}</p>
+              </div>
+              <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-black/40">Bezahlt</p>
+                <p className="mt-2 font-medium">{formatMoney(String(paid))}</p>
+              </div>
+              <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.16em] text-black/40">Offen</p>
+                <p className="mt-2 font-medium">{formatMoney(String(openAmount))}</p>
+              </div>
             </div>
+            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+              <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">Anzahlung fällig: <span className="text-black/55">{customer.depositDueDate || "noch offen"}</span></div>
+              <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">Restbetrag fällig: <span className="text-black/55">{customer.finalPaymentDueDate || "noch offen"}</span></div>
+            </div>
+            {payments.length > 0 && (
+              <div className="space-y-2">
+                {payments.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">
+                    <span>{payment.title} {payment.paidAt ? <span className="text-black/40">· {payment.paidAt}</span> : null}</span>
+                    <span className="text-black/55">{formatMoney(payment.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -282,7 +351,7 @@ export function CustomerPortalPage() {
               <Image className="w-5 h-5" /> Finale Galerie
             </h2>
             {customer.galleryUrl ? (
-              <a href={customer.galleryUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-white/80 hover:text-white mt-3">
+                <a href={normalizeHref(customer.galleryUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-white/80 hover:text-white mt-3">
                 Galerie öffnen <ExternalLink className="w-4 h-4" />
               </a>
             ) : (
