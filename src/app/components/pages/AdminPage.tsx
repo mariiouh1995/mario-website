@@ -306,6 +306,10 @@ export function AdminPage() {
   const [newTaskNote, setNewTaskNote] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem("mario_read_notifications");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(() => {
     const saved = localStorage.getItem("mario_reminder_settings");
     return saved ? JSON.parse(saved) : defaultReminderSettings;
@@ -314,7 +318,7 @@ export function AdminPage() {
   const selectedCustomer = useMemo(() => customers.find((customer) => customer.id === selectedId) || null, [customers, selectedId]);
   const selectedInquiry = useMemo(() => inquiries.find((inquiry) => inquiry.id === selectedInquiryId) || null, [inquiries, selectedInquiryId]);
 
-  const notifications = useMemo<NotificationItem[]>(() => {
+  const allNotifications = useMemo<NotificationItem[]>(() => {
     return customers.flatMap((customer) =>
       customer.tasks
         .filter((task) => task.dueDate && task.status !== "erledigt" && task.status !== "obsolet")
@@ -331,6 +335,11 @@ export function AdminPage() {
         })),
     );
   }, [customers, reminderSettings.days]);
+
+  const notifications = useMemo<NotificationItem[]>(() => {
+    const read = new Set(readNotificationIds);
+    return allNotifications.filter((item) => !read.has(item.id));
+  }, [allNotifications, readNotificationIds]);
 
   const notificationsByCustomer = useMemo(() => {
     return notifications.reduce<Record<string, number>>((acc, item) => {
@@ -668,6 +677,22 @@ export function AdminPage() {
     localStorage.setItem("mario_reminder_settings", JSON.stringify(next));
   };
 
+  const markNotificationRead = (id: string) => {
+    setReadNotificationIds((prev) => {
+      const next = Array.from(new Set([...prev, id]));
+      localStorage.setItem("mario_read_notifications", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const markAllNotificationsRead = () => {
+    setReadNotificationIds((prev) => {
+      const next = Array.from(new Set([...prev, ...notifications.map((item) => item.id)]));
+      localStorage.setItem("mario_read_notifications", JSON.stringify(next));
+      return next;
+    });
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#11100f] flex items-center justify-center px-4">
@@ -703,14 +728,22 @@ export function AdminPage() {
                 <div className="absolute right-0 top-12 z-30 w-[min(20rem,calc(100vw-2rem))] rounded-lg bg-white text-black shadow-xl border border-black/10 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Notifications</p>
-                    <button onClick={() => setSettingsOpen(true)} className="text-black/50 hover:text-black"><Settings className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-2">
+                      {notifications.length > 0 && <button onClick={markAllNotificationsRead} className="text-xs text-black/45 hover:text-black">Alle gelesen</button>}
+                      <button onClick={() => setSettingsOpen(true)} className="text-black/50 hover:text-black"><Settings className="w-4 h-4" /></button>
+                    </div>
                   </div>
                   <div className="space-y-2 max-h-80 overflow-auto">
                     {notifications.map((item) => (
-                      <button key={item.id} onClick={() => { selectCustomer(item.customerId); setNotificationsOpen(false); }} className="w-full text-left rounded-md bg-[#faf8f5] border border-black/8 p-3">
+                      <div key={item.id} className="rounded-md bg-[#faf8f5] border border-black/8 p-3">
+                        <button onClick={() => { selectCustomer(item.customerId); setNotificationsOpen(false); }} className="w-full text-left">
                         <p className="text-sm font-medium">{item.customerName}</p>
                         <p className="text-xs text-black/55 mt-1">{item.taskTitle} · in {item.daysLeft} Tag(en) fällig</p>
-                      </button>
+                        </button>
+                        <button onClick={() => markNotificationRead(item.id)} className="mt-3 inline-flex items-center gap-1 rounded-md border border-black/10 bg-white px-2 py-1 text-xs text-black/55 hover:text-black">
+                          <Check className="w-3 h-3" /> Gelesen
+                        </button>
+                      </div>
                     ))}
                     {notifications.length === 0 && <p className="text-sm text-black/45">Keine fälligen Reminder.</p>}
                   </div>
