@@ -76,6 +76,7 @@ export type PortalVisibility = {
   services: boolean;
   payments: boolean;
   documents: boolean;
+  locations: boolean;
   offer: boolean;
   contract: boolean;
   invoice: boolean;
@@ -182,6 +183,7 @@ export const DEFAULT_PORTAL_VISIBILITY: PortalVisibility = {
   services: true,
   payments: false,
   documents: true,
+  locations: true,
   offer: false,
   contract: false,
   invoice: false,

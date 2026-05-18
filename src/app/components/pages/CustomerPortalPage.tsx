@@ -13,6 +13,7 @@ type PortalVisibility = {
   services?: boolean;
   payments?: boolean;
   documents?: boolean;
+  locations?: boolean;
   offer?: boolean;
   contract?: boolean;
   invoice?: boolean;
@@ -53,6 +54,7 @@ const defaultVisibility: Required<PortalVisibility> = {
   services: true,
   payments: false,
   documents: true,
+  locations: true,
   offer: false,
   contract: false,
   invoice: false,
@@ -276,7 +278,7 @@ export function CustomerPortalPage() {
           </section>
         )}
 
-        {(customer.locationAddress || locations.length > 0) && (
+        {visibility.locations && (customer.locationAddress || locations.length > 0) && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
               <MapPin className="w-5 h-5" /> Locations

@@ -46,6 +46,7 @@ type PortalVisibility = {
   services: boolean;
   payments: boolean;
   documents: boolean;
+  locations: boolean;
   offer: boolean;
   contract: boolean;
   invoice: boolean;
@@ -162,6 +163,7 @@ const defaultPortalVisibility: PortalVisibility = {
   services: true,
   payments: false,
   documents: true,
+  locations: true,
   offer: false,
   contract: false,
   invoice: false,
@@ -1517,7 +1519,7 @@ function CustomerDetail(props: {
       </div>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Weitere Locations</h3><button onClick={props.addLocation} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Location</button></div>
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Weitere Locations</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="locations" /><button onClick={props.addLocation} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Location</button></div></div>
         <div className="space-y-2">
           {draft.locations.map((location) => (
             <div key={location.id} className="grid md:grid-cols-[180px_1fr] gap-2">
@@ -1843,6 +1845,8 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal, re
     tasks: "Aufgaben sichtbar",
     services: "Leistungen sichtbar",
     payments: "Zahlungen sichtbar",
+    documents: "Dokumente sichtbar",
+    locations: "Locations sichtbar",
     offer: "Angebot sichtbar",
     contract: "Vertrag sichtbar",
     invoice: "Rechnung sichtbar",
