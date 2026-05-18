@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
 import { google } from "googleapis";
-import { Readable } from "stream";
 import * as crm from "./crm-db.js";
 
 type CrmCustomer = any;
@@ -144,6 +143,19 @@ function driveClient() {
   return google.drive({ version: "v3", auth });
 }
 
+async function driveAccessToken() {
+  const credentials = getDriveCredentials();
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  const accessToken = typeof token === "string" ? token : token?.token;
+  if (!accessToken) throw new Error("Google Drive access token could not be created");
+  return accessToken;
+}
+
 async function ensureCustomerDriveFolder(customer: CrmCustomer) {
   const rootFolderId = normalizeString(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
   if (!rootFolderId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured");
@@ -274,28 +286,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const documentId = normalizeString(req.body?.documentId) || (kind === "custom" ? crm.createId("doc") : `doc-${kind}`);
       const fileName = normalizeString(req.body?.fileName) || `${title}.pdf`;
       const mimeType = normalizeString(req.body?.mimeType) || "application/octet-stream";
-      const contentBase64 = normalizeString(req.body?.contentBase64);
-      if (!customerId || !contentBase64) return res.status(400).json({ error: "customerId and contentBase64 are required" });
+      if (!customerId) return res.status(400).json({ error: "customerId is required" });
+      const customer = await crm.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      const folderId = await ensureCustomerDriveFolder(customer);
+      const accessToken = await driveAccessToken();
+      const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": mimeType,
+        },
+        body: JSON.stringify({ name: fileName, parents: [folderId] }),
+      });
+      if (!uploadResponse.ok) {
+        const detail = await uploadResponse.text();
+        throw new Error(`Google Drive upload session failed: ${detail || uploadResponse.statusText}`);
+      }
+      const uploadUrl = uploadResponse.headers.get("location");
+      if (!uploadUrl) throw new Error("Google Drive upload session did not return an upload URL");
+      return res.status(200).json({ uploadUrl, document: { id: documentId, kind, title, fileName, mimeType }, folderId });
+    }
+
+    if (req.method === "POST" && action === "finish-document-upload") {
+      const customerId = normalizeString(req.body?.customerId);
+      const title = normalizeString(req.body?.title) || "Dokument";
+      const kind = normalizeString(req.body?.kind) || "custom";
+      const documentId = normalizeString(req.body?.documentId) || (kind === "custom" ? crm.createId("doc") : `doc-${kind}`);
+      const fileName = normalizeString(req.body?.fileName) || `${title}.pdf`;
+      const mimeType = normalizeString(req.body?.mimeType) || "application/octet-stream";
+      const fileId = normalizeString(req.body?.fileId);
+      if (!customerId || !fileId) return res.status(400).json({ error: "customerId and fileId are required" });
       const customer = await crm.getCustomer(customerId);
       if (!customer) return res.status(404).json({ error: "Customer not found" });
 
       const existingDoc = (customer.documents || []).find((item: CustomerDocument) => item.id === documentId);
-      if (existingDoc?.driveFileId) await deleteDriveFile(existingDoc.driveFileId);
-
-      const folderId = await ensureCustomerDriveFolder(customer);
+      if (existingDoc?.driveFileId && existingDoc.driveFileId !== fileId) await deleteDriveFile(existingDoc.driveFileId);
+      const folderId = customer.driveFolderId || (await ensureCustomerDriveFolder(customer));
       const drive = driveClient();
-      const buffer = Buffer.from(contentBase64, "base64");
-      const uploaded = await drive.files.create({
-        requestBody: { name: fileName, parents: [folderId] },
-        media: { mimeType, body: Readable.from(buffer) },
-        supportsAllDrives: true,
-        fields: "id, webViewLink",
-      });
-      const fileId = uploaded.data.id;
-      if (!fileId) throw new Error("Google Drive file could not be uploaded");
       await drive.permissions.create({ fileId, supportsAllDrives: true, requestBody: { type: "anyone", role: "reader" } });
       const file = await drive.files.get({ fileId, supportsAllDrives: true, fields: "webViewLink" });
-      const url = file.data.webViewLink || uploaded.data.webViewLink || "";
+      const url = file.data.webViewLink || "";
       const document = { id: documentId, kind, title, url, driveFileId: fileId, fileName, mimeType, uploadedAt: new Date().toISOString() };
       const saved = await crm.upsertCustomer({
         ...customer,

@@ -326,15 +326,6 @@ function normalizeHref(value?: string) {
   return `https://${trimmed}`;
 }
 
-function readFileAsBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 function dateDiffDays(date: string) {
   const target = new Date(`${date}T00:00:00`);
   const today = new Date();
@@ -773,14 +764,13 @@ export function AdminPage() {
   };
   const uploadDocument = async (document: CustomerDocument, file: File) => {
     if (!draft) return;
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Datei ist zu groß für den direkten Upload. Bitte nutze aktuell eine Datei unter 4 MB oder trage einen Drive-Link als URL ein.");
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("Datei ist zu gross. Bitte nutze fuer sehr grosse Dateien einen Drive-Link.");
       return;
     }
     setSaving(true);
     try {
-      const contentBase64 = await readFileAsBase64(file);
-      const data = await api("upload-document", {
+      const session = await api("upload-document", {
         method: "POST",
         body: JSON.stringify({
           customerId: draft.id,
@@ -789,7 +779,27 @@ export function AdminPage() {
           title: document.title,
           fileName: file.name,
           mimeType: file.type || "application/octet-stream",
-          contentBase64,
+        }),
+      });
+      const uploadRes = await fetch(session.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const uploadData = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok) throw new Error(uploadData?.error?.message || uploadData?.error_description || "Google Drive Upload fehlgeschlagen");
+      const fileId = uploadData.id;
+      if (!fileId) throw new Error("Google Drive hat keine Datei-ID zurueckgegeben");
+      const data = await api("finish-document-upload", {
+        method: "POST",
+        body: JSON.stringify({
+          customerId: draft.id,
+          documentId: document.id,
+          kind: document.kind,
+          title: document.title,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileId,
         }),
       });
       const saved = normalizeCustomer(data.customer);
