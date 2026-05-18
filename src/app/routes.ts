@@ -8,6 +8,7 @@ import { AboutPage } from "./components/pages/AboutPage";
 import { ImpressumPage } from "./components/pages/ImpressumPage";
 import { DatenschutzPage } from "./components/pages/DatenschutzPage";
 import { AdminPage } from "./components/pages/AdminPage";
+import { CustomerPortalPage } from "./components/pages/CustomerPortalPage";
 import { NotFoundPage } from "./components/pages/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "impressum", Component: ImpressumPage },
       { path: "datenschutz", Component: DatenschutzPage },
       { path: "admin", Component: AdminPage },
+      { path: "kundenportal/:token", Component: CustomerPortalPage },
       { path: "*", Component: NotFoundPage },
     ],
   },
