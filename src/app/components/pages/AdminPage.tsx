@@ -13,6 +13,7 @@ import {
   Mail,
   MapPin,
   MessageSquareText,
+  Pencil,
   Plus,
   Save,
   Send,
@@ -117,6 +118,20 @@ type ConfirmAction = {
   target?: "customer" | "inquiry";
   inquiryId?: string;
   onConfirm: () => void | Promise<void>;
+};
+
+const taskStatusLabels: Record<TaskStatus, string> = {
+  offen: "offen",
+  in_arbeit: "in Arbeit",
+  erledigt: "erledigt",
+  obsolet: "obsolet",
+};
+
+const taskStatusStyles: Record<TaskStatus, string> = {
+  offen: "bg-white border-black/10 text-black/65",
+  in_arbeit: "bg-[#f6ead9] border-[#d6ad73] text-[#7b4d12]",
+  erledigt: "bg-[#e8f2ea] border-[#a8c9ad] text-[#2f6a38]",
+  obsolet: "bg-black/5 border-black/10 text-black/45",
 };
 
 const statusSteps: WorkflowItem[] = [
@@ -279,8 +294,13 @@ export function AdminPage() {
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
   const [view, setView] = useState<"customers" | "calendar">("customers");
+  const [editMode, setEditMode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskNote, setNewTaskNote] = useState("");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(() => {
@@ -434,6 +454,7 @@ export function AdminPage() {
     setSelectedId(id);
     setSelectedInquiryId("");
     setView("customers");
+    setEditMode(false);
   };
   const selectInquiry = (id: string) => {
     setSelectedInquiryId(id);
@@ -587,8 +608,36 @@ export function AdminPage() {
   };
 
   const addTask = () => {
-    if (!draft) return;
-    setDraft({ ...draft, tasks: [...draft.tasks, { id: `task-${Date.now()}`, title: "Neue Aufgabe", status: "offen" }] });
+    setNewTaskTitle("");
+    setNewTaskDueDate("");
+    setNewTaskNote("");
+    setNewTaskOpen(true);
+  };
+
+  const createTaskFromModal = async () => {
+    if (!draft || !newTaskTitle.trim()) return;
+    setSaving(true);
+    try {
+      await persistCustomerDraft({
+        ...draft,
+        tasks: [
+          ...draft.tasks,
+          {
+            id: `task-${Date.now()}`,
+            title: newTaskTitle.trim(),
+            status: "offen",
+            dueDate: newTaskDueDate,
+            note: newTaskNote,
+          },
+        ],
+      });
+      setNewTaskOpen(false);
+      setMessage("Aufgabe angelegt");
+    } catch (error: any) {
+      setMessage(error.message || "Aufgabe konnte nicht angelegt werden");
+    } finally {
+      setSaving(false);
+    }
   };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
   const addLocation = () => draft && setDraft({ ...draft, locations: [...draft.locations, { id: `location-${Date.now()}`, title: "Weitere Location", address: "" }] });
@@ -660,21 +709,21 @@ export function AdminPage() {
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17]">
       <header className="border-b border-black/10 bg-[#11100f] text-white">
-        <div className="max-w-7xl mx-auto px-5 py-5 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-5 py-4 sm:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-white/45 text-xs uppercase tracking-[0.25em]">Mario Schubert Photography</p>
             <h1 className="text-xl mt-1">Kundenverwaltung</h1>
             {previewMode && <p className="text-white/45 text-xs mt-1">Lokale Vorschau mit Mockdaten</p>}
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setView(view === "calendar" ? "customers" : "calendar")} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> Kalender</button>
+          <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
+            <button onClick={() => setView(view === "calendar" ? "customers" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> Kalender</button>
             <div className="relative">
               <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10">
                 <Bell className="w-4 h-4" />
                 {notifications.length > 0 && <span className="absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-600 text-white text-[11px] flex items-center justify-center">{notifications.length}</span>}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-12 z-30 w-80 rounded-lg bg-white text-black shadow-xl border border-black/10 p-3">
+                <div className="absolute right-0 top-12 z-30 w-[min(20rem,calc(100vw-2rem))] rounded-lg bg-white text-black shadow-xl border border-black/10 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Notifications</p>
                     <button onClick={() => setSettingsOpen(true)} className="text-black/50 hover:text-black"><Settings className="w-4 h-4" /></button>
@@ -691,8 +740,8 @@ export function AdminPage() {
                 </div>
               )}
             </div>
-            <button onClick={createCustomer} className="inline-flex items-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
-            <button onClick={logout} className="inline-flex items-center gap-2 text-white/55 hover:text-white text-sm"><LogOut className="w-4 h-4" /> Abmelden</button>
+            <button onClick={createCustomer} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
+            <button onClick={logout} className="inline-flex items-center justify-center gap-2 text-white/55 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
           </div>
         </div>
       </header>
@@ -707,7 +756,7 @@ export function AdminPage() {
         </Modal>
       )}
 
-      <main className="max-w-7xl mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[330px_1fr] gap-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-5 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[310px_minmax(0,1fr)] gap-5 sm:gap-6">
         <aside className="space-y-5">
           <section className="bg-white border border-black/8 rounded-lg p-4">
             <h2 className="text-sm font-semibold mb-3 flex items-center gap-2"><Mail className="w-4 h-4" /> Neue Anfragen</h2>
@@ -737,7 +786,7 @@ export function AdminPage() {
           </section>
         </aside>
 
-        <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6 min-h-[40rem]">
+        <section className="bg-white border border-black/8 rounded-lg p-4 sm:p-5 md:p-6 min-h-[40rem] min-w-0">
           {message && <p className="rounded-md bg-[#f4f0eb] px-3 py-2 text-sm text-black/65 mb-5">{message}</p>}
           {loading && <p className="text-black/45">Lade CRM...</p>}
           {!loading && view === "calendar" && <CalendarView month={calendarMonth} setMonth={setCalendarMonth} events={calendarEvents} onEvent={setCalendarEvent} />}
@@ -754,6 +803,8 @@ export function AdminPage() {
             <CustomerDetail
               draft={draft}
               workflow={workflow}
+              editMode={editMode}
+              setEditMode={setEditMode}
               saving={saving}
               mailTemplates={mailTemplates}
               activeMail={activeMail}
@@ -776,6 +827,29 @@ export function AdminPage() {
           )}
         </section>
       </main>
+
+      {newTaskOpen && (
+        <Modal title="Neue Aufgabe" onClose={() => setNewTaskOpen(false)}>
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-xs uppercase tracking-[0.16em] text-black/45">Titel</span>
+              <input value={newTaskTitle} onChange={(event) => setNewTaskTitle(event.target.value)} className="mt-2 w-full rounded-md border border-black/10 px-3 py-2 text-sm" autoFocus />
+            </label>
+            <label className="block">
+              <span className="text-xs uppercase tracking-[0.16em] text-black/45">Deadline</span>
+              <input type="date" value={newTaskDueDate} onChange={(event) => setNewTaskDueDate(event.target.value)} className="mt-2 w-full rounded-md border border-black/10 px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-xs uppercase tracking-[0.16em] text-black/45">Notiz</span>
+              <textarea value={newTaskNote} onChange={(event) => setNewTaskNote(event.target.value)} className="mt-2 w-full min-h-20 rounded-md border border-black/10 px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div className="flex justify-end gap-3 mt-5">
+            <button onClick={() => setNewTaskOpen(false)} className="rounded-md border border-black/10 px-4 py-2 text-sm">Abbrechen</button>
+            <button onClick={createTaskFromModal} disabled={saving || !newTaskTitle.trim()} className="rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50">Anlegen</button>
+          </div>
+        </Modal>
+      )}
 
       {calendarEvent && (
         <Modal title={calendarEvent.title} onClose={() => setCalendarEvent(null)}>
@@ -855,6 +929,8 @@ function CalendarView({ month, setMonth, events, onEvent }: { month: Date; setMo
 function CustomerDetail(props: {
   draft: Customer;
   workflow: WorkflowItem[];
+  editMode: boolean;
+  setEditMode: (value: boolean) => void;
   saving: boolean;
   mailTemplates: Record<string, MailTemplate>;
   activeMail: string;
@@ -878,6 +954,70 @@ function CustomerDetail(props: {
   const workflowTasksOnly = draft.tasks.filter(isWorkflowTask);
   const otherTasks = draft.tasks.filter((task) => !isWorkflowTask(task));
 
+  if (!props.editMode) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-black/40">Kundenansicht</p>
+            <h2 className="mt-1 text-2xl leading-tight">{draft.name || "Unbenannter Kunde"}</h2>
+            <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
+          </div>
+          <button onClick={() => props.setEditMode(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm">
+            <Pencil className="w-4 h-4" /> Bearbeiten
+          </button>
+        </div>
+
+        <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Status & Aufgaben</h3>
+            <button onClick={props.addTask} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">
+              <Plus className="w-4 h-4" /> Aufgabe
+            </button>
+          </div>
+          <TaskBoard tasks={workflowTasksOnly} requestTaskStatus={props.requestTaskStatus} />
+        </section>
+
+        {otherTasks.length > 0 && (
+          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+            <h3 className="font-semibold mb-4">Zusätzliche Aufgaben</h3>
+            <TaskBoard tasks={otherTasks} requestTaskStatus={props.requestTaskStatus} />
+          </section>
+        )}
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <ViewField label="E-Mail" value={draft.email} />
+          <ViewField label="Telefon" value={draft.phone} />
+          <ViewField label="Braut" value={draft.brideName} />
+          <ViewField label="Bräutigam" value={draft.groomName} />
+          <ViewField label="Kategorie" value={draft.category} />
+          <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, draft.eventTime].filter(Boolean).join(" · ")} />
+          <ViewField label="Vorgespräch" value={draft.consultationDate} />
+          <ViewField label="Kundenadresse" value={draft.customerAddress} />
+          <ViewField label="Location" value={draft.location || draft.locationAddress} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <LinkField label="Angebot" value={draft.offerUrl} />
+          <LinkField label="Vertrag" value={draft.contractUrl} />
+          <LinkField label="Rechnung" value={draft.invoiceUrl} />
+          <LinkField label="Galerie" value={draft.galleryUrl} />
+        </div>
+
+        {draft.locations.length > 0 && (
+          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+            <h3 className="font-semibold flex items-center gap-2 mb-3"><MapPin className="w-4 h-4" /> Weitere Locations</h3>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {draft.locations.map((location) => <ViewField key={location.id} label={location.title} value={location.address} />)}
+            </div>
+          </section>
+        )}
+
+        <PortalControls draft={draft} setDraft={setDraft} addPortalMessage={props.addPortalMessage} provisionPortal={props.provisionPortal} readOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-7">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -886,7 +1026,10 @@ function CustomerDetail(props: {
           <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="mt-1 text-2xl bg-transparent border-b border-transparent focus:border-black/20 outline-none" placeholder="Name" />
           <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
         </div>
-        <button onClick={props.saveCustomer} disabled={props.saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Save className="w-4 h-4" /> {props.saving ? "Speichere..." : "Speichern"}</button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button onClick={() => props.setEditMode(false)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">Ansicht</button>
+          <button onClick={props.saveCustomer} disabled={props.saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Save className="w-4 h-4" /> {props.saving ? "Speichere..." : "Speichern"}</button>
+        </div>
       </div>
 
       <section className="rounded-lg border border-black/8 p-4">
@@ -963,18 +1106,79 @@ function CustomerDetail(props: {
   );
 }
 
+function TaskBoard({ tasks, requestTaskStatus }: { tasks: TaskItem[]; requestTaskStatus: (task: TaskItem, status: TaskStatus) => void }) {
+  if (tasks.length === 0) {
+    return <p className="rounded-md border border-black/8 bg-[#faf8f5] px-3 py-3 text-sm text-black/45">Noch keine Aufgaben angelegt.</p>;
+  }
+
+  return (
+    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      {tasks.map((task) => (
+        <article key={task.id} className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-medium text-sm leading-snug break-words">{task.title}</p>
+              {task.dueDate && <p className="text-xs text-black/45 mt-1">Deadline: {task.dueDate}</p>}
+            </div>
+            <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${taskStatusStyles[task.status]}`}>{taskStatusLabels[task.status]}</span>
+          </div>
+          {task.note && <p className="mt-3 text-xs leading-relaxed text-black/55 whitespace-pre-wrap">{task.note}</p>}
+          <div className="mt-4 grid grid-cols-2 gap-1.5">
+            {(Object.keys(taskStatusLabels) as TaskStatus[]).map((status) => (
+              <button
+                key={status}
+                onClick={() => requestTaskStatus(task, status)}
+                disabled={task.status === status}
+                className={`rounded-md border px-2 py-2 text-xs transition ${task.status === status ? taskStatusStyles[status] : "border-black/8 bg-white text-black/55 hover:border-black/20"}`}
+              >
+                {taskStatusLabels[status]}
+              </button>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ViewField({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">{label}</p>
+      <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{value || "Noch nicht erfasst"}</p>
+    </div>
+  );
+}
+
+function LinkField({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
+      <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">{label}</p>
+      {value ? (
+        <a href={value} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md bg-white border border-black/10 px-3 py-2 text-sm text-black/70 hover:text-black">
+          <span className="truncate">Link oeffnen</span>
+          <ExternalLink className="w-4 h-4 shrink-0" />
+        </a>
+      ) : (
+        <p className="mt-2 text-sm text-black/40">Noch nicht hinterlegt</p>
+      )}
+    </div>
+  );
+}
+
 function TaskList({ tasks, updateTask, requestTaskStatus, compact = false }: { tasks: TaskItem[]; updateTask: (id: string, patch: Partial<TaskItem>) => void; requestTaskStatus: (task: TaskItem, status: TaskStatus) => void; compact?: boolean }) {
+  if (tasks.length === 0) {
+    return <p className="rounded-md border border-black/8 bg-[#faf8f5] px-3 py-3 text-sm text-black/45">Noch keine Aufgaben angelegt.</p>;
+  }
+
   return (
     <div className="space-y-2">
       {tasks.map((task) => (
-        <div key={task.id} className={`grid gap-2 ${compact ? "md:grid-cols-[1fr_140px_130px_auto]" : "md:grid-cols-[1fr_140px_130px_auto]"}`}>
+        <div key={task.id} className={`grid gap-2 ${compact ? "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto]" : "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto]"}`}>
           <input value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
           <input type="date" value={task.dueDate || ""} onChange={(event) => updateTask(task.id, { dueDate: event.target.value })} className="rounded-md border border-black/10 px-2 py-2 text-sm" />
           <select value={task.status} onChange={(event) => requestTaskStatus(task, event.target.value as TaskStatus)} className="rounded-md border border-black/10 px-2 py-2 text-sm">
-            <option value="offen">offen</option>
-            <option value="in_arbeit">in Arbeit</option>
-            <option value="erledigt">erledigt</option>
-            <option value="obsolet">obsolet</option>
+            {(Object.keys(taskStatusLabels) as TaskStatus[]).map((status) => <option key={status} value={status}>{taskStatusLabels[status]}</option>)}
           </select>
           <button onClick={() => requestTaskStatus(task, "erledigt")} className="rounded-md border border-black/10 px-3 py-2 text-sm inline-flex items-center gap-1 justify-center"><Check className="w-4 h-4" /> Fertig</button>
         </div>
@@ -1009,7 +1213,7 @@ function InquiryDetail({ inquiry, onReply, onDelete, onConvert }: { inquiry: Inq
   );
 }
 
-function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal }: { draft: Customer; setDraft: (customer: Customer) => void; addPortalMessage: () => void; provisionPortal: () => void }) {
+function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal, readOnly = false }: { draft: Customer; setDraft: (customer: Customer) => void; addPortalMessage: () => void; provisionPortal: () => void; readOnly?: boolean }) {
   const visibilityLabels: Record<keyof PortalVisibility, string> = {
     status: "Status sichtbar",
     tasks: "Aufgaben sichtbar",
@@ -1020,6 +1224,47 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal }: 
     gallery: "Galerie sichtbar",
     messages: "Nachrichten sichtbar",
   };
+
+  if (readOnly) {
+    const visibleItems = (Object.keys(visibilityLabels) as (keyof PortalVisibility)[]).filter((key) => draft.portalVisibility[key]);
+    return (
+      <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 className="font-semibold flex items-center gap-2"><MessageSquareText className="w-4 h-4" /> Kundenportal</h3>
+          <button onClick={provisionPortal} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm">{draft.portalEnabled ? "Portal erneut senden" : "Portal bereitstellen"}</button>
+        </div>
+        <div className="grid md:grid-cols-[1fr_220px] gap-3">
+          <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Portal-Intro</p>
+            <p className="mt-2 text-sm text-black/65 whitespace-pre-wrap">{draft.portalIntro || "Noch kein Intro hinterlegt."}</p>
+          </div>
+          <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Status</p>
+            <p className="mt-2 text-sm text-black/65">{draft.portalEnabled ? `aktiv · Passwort: ${draft.portalPassword}` : "noch nicht bereitgestellt"}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {visibleItems.length > 0 ? visibleItems.map((key) => (
+            <span key={key} className="rounded-full border border-black/8 bg-[#faf8f5] px-3 py-1 text-xs text-black/55">{visibilityLabels[key]}</span>
+          )) : <span className="text-sm text-black/40">Keine Portalbereiche sichtbar geschaltet.</span>}
+        </div>
+        {draft.portalMessages.length > 0 && (
+          <div className="mt-4 grid sm:grid-cols-2 gap-3">
+            {draft.portalMessages.map((portalMessage) => (
+              <article key={portalMessage.id} className="rounded-lg border border-black/8 bg-[#faf8f5] p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium text-sm">{portalMessage.title || "Nachricht"}</p>
+                  <span className={`rounded-full px-2 py-1 text-[11px] ${portalMessage.visible ? "bg-[#e8f2ea] text-[#2f6a38]" : "bg-black/5 text-black/40"}`}>{portalMessage.visible ? "sichtbar" : "intern"}</span>
+                </div>
+                <p className="mt-2 text-sm text-black/60 whitespace-pre-wrap">{portalMessage.message || "Keine Nachricht hinterlegt."}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-lg border border-black/8 p-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -1028,7 +1273,7 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal }: 
       </div>
       {draft.portalEnabled && <p className="rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm mb-4">Portal aktiv · Passwort: {draft.portalPassword}</p>}
       <label className="block mb-4"><span className="text-xs uppercase tracking-[0.16em] text-black/45">Portal-Intro</span><textarea value={draft.portalIntro} onChange={(event) => setDraft({ ...draft, portalIntro: event.target.value })} className="mt-2 w-full min-h-20 rounded-md border border-black/10 px-3 py-2 text-sm" /></label>
-      <div className="grid md:grid-cols-4 gap-2 mb-5">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2 mb-5">
         {(Object.keys(visibilityLabels) as (keyof PortalVisibility)[]).map((key) => (
           <label key={key} className="flex items-center gap-2 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm"><input type="checkbox" checked={Boolean(draft.portalVisibility[key])} onChange={(event) => setDraft({ ...draft, portalVisibility: { ...draft.portalVisibility, [key]: event.target.checked } })} />{visibilityLabels[key]}</label>
         ))}
@@ -1051,10 +1296,10 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal }: 
 
 function Modal({ title, children, onClose, wide = false }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 px-4 py-6 flex items-center justify-center">
-      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-lg bg-white shadow-2xl border border-black/10`}>
-        <div className="flex items-start justify-between gap-4 border-b border-black/8 p-5"><h2 className="text-lg font-semibold">{title}</h2><button onClick={onClose} className="text-black/45 hover:text-black"><X className="w-5 h-5" /></button></div>
-        <div className="p-5">{children}</div>
+    <div className="fixed inset-0 z-50 bg-black/50 px-3 sm:px-4 py-4 sm:py-6 flex items-center justify-center">
+      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100vh-2rem)] overflow-hidden rounded-lg bg-white shadow-2xl border border-black/10`}>
+        <div className="flex items-start justify-between gap-4 border-b border-black/8 p-4 sm:p-5"><h2 className="text-lg font-semibold">{title}</h2><button onClick={onClose} className="text-black/45 hover:text-black"><X className="w-5 h-5" /></button></div>
+        <div className="p-4 sm:p-5 overflow-auto max-h-[calc(100vh-7rem)]">{children}</div>
       </div>
     </div>
   );
