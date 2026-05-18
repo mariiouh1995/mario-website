@@ -1393,7 +1393,10 @@ function CustomerDetail(props: {
 
         {otherTasks.length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
-            <h3 className="font-semibold mb-4">Zusätzliche Aufgaben</h3>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="font-semibold">Zusätzliche Aufgaben</h3>
+              <button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button>
+            </div>
             <TaskBoard tasks={otherTasks} requestTaskStatus={props.requestTaskStatus} />
           </section>
         )}
