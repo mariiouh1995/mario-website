@@ -54,6 +54,25 @@ function createTransport() {
   });
 }
 
+const MARIO_LOGO_URL = process.env.MARIO_MAIL_LOGO_URL || "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
+const MARIO_SIGNATURE_TEXT = [
+  "Mario Schubert",
+  "Fotografie, Video und Fotospiegel",
+  "",
+  "Tirol & Bayern",
+  "AT: +43 67763681543",
+  "DE: +49 151 5533 8029",
+  "Mail: servus@marioschub.com",
+  "Web: www.marioschub.com",
+  "WhatsApp: https://wa.me/4915155338029",
+  "Instagram: @marioschub",
+].join("\n");
+
+function ensureMarioSignature(body: string) {
+  if (body.includes("Mario Schubert") && body.includes("servus@marioschub.com")) return body;
+  return `${body.trim()}\n\n${MARIO_SIGNATURE_TEXT}`;
+}
+
 function mailHtml(body: string) {
   const escaped = body
     .replace(/&/g, "&amp;")
@@ -76,14 +95,54 @@ function mailHtml(body: string) {
   `;
 }
 
+function marioMailHtml(body: string) {
+  const escaped = body
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br/>");
+
+  return `
+    <div style="margin:0;padding:28px 14px;background:#f4f0eb">
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:640px;margin:0 auto;color:#24211f;background:#fff;border:1px solid #ece8e2;border-radius:14px;overflow:hidden">
+        <div style="padding:34px 24px 26px;text-align:center;border-bottom:1px solid #ece8e2;background:#fff">
+          <img src="${MARIO_LOGO_URL}" alt="Mario Schubert" style="height:44px;max-width:220px" />
+          <p style="margin:14px 0 0;color:#8f8880;font-size:12px;letter-spacing:2px;text-transform:uppercase">Fotografie, Video und Fotospiegel</p>
+        </div>
+        <div style="padding:36px 28px 30px;font-size:15px;line-height:1.78;color:#4d4944">${escaped}</div>
+        <div style="padding:24px 28px 28px;border-top:1px solid #ece8e2;background:#faf8f5;color:#6f6860;font-size:12px;line-height:1.7">
+          <table role="presentation" style="width:100%;border-collapse:collapse">
+            <tr>
+              <td style="vertical-align:top;width:92px;padding-right:18px">
+                <img src="${MARIO_LOGO_URL}" alt="MS" style="width:74px;max-width:74px" />
+              </td>
+              <td style="vertical-align:top">
+                <p style="margin:0 0 5px;color:#24211f;font-size:14px;font-weight:700">Mario Schubert</p>
+                <p style="margin:0 0 12px">Fotografie, Video und Fotospiegel<br/>Tirol &amp; Bayern</p>
+                <p style="margin:0">
+                  AT: <a href="tel:+4367763681543" style="color:#4d4944;text-decoration:none">+43 67763681543</a><br/>
+                  DE: <a href="tel:+4915155338029" style="color:#4d4944;text-decoration:none">+49 151 5533 8029</a><br/>
+                  Mail: <a href="mailto:servus@marioschub.com" style="color:#4d4944;text-decoration:none">servus@marioschub.com</a><br/>
+                  Web: <a href="https://www.marioschub.com" style="color:#4d4944;text-decoration:none">www.marioschub.com</a><br/>
+                  WhatsApp: <a href="https://wa.me/4915155338029" style="color:#4d4944;text-decoration:none">https://wa.me/4915155338029</a><br/>
+                  Instagram: <a href="https://instagram.com/marioschub" style="color:#4d4944;text-decoration:none">@marioschub</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderInquiryTemplate(template: string, inquiry: { name: string; brideName?: string; email: string }) {
   const firstName = inquiry.brideName || inquiry.name.split(/[ &]+/)[0] || inquiry.name || "du";
-  const signature = "Mario Schubert Photography\nservus@marioschub.com\nmarioschub.com";
   return template
     .replaceAll("{firstName}", firstName)
     .replaceAll("{name}", inquiry.name || "")
     .replaceAll("{email}", inquiry.email || "")
-    .replaceAll("{signature}", signature);
+    .replaceAll("{signature}", MARIO_SIGNATURE_TEXT);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -177,14 +236,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!subject || !body) return res.status(400).json({ error: "subject and body are required" });
 
       const renderedSubject = renderInquiryTemplate(subject, inquiry);
-      const renderedBody = renderInquiryTemplate(body, inquiry);
+      const renderedBody = ensureMarioSignature(renderInquiryTemplate(body, inquiry));
 
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
         to: inquiry.email,
         bcc: process.env.SMTP_USER,
         subject: renderedSubject,
-        html: mailHtml(renderedBody),
+        html: marioMailHtml(renderedBody),
         text: renderedBody,
         attachments: attachmentUrl ? [{ filename: attachmentName, path: attachmentUrl }] : undefined,
       });
@@ -215,14 +274,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!subject || !body) return res.status(400).json({ error: "subject and body are required" });
 
       const renderedSubject = applyTemplate(subject, customer);
-      const renderedBody = applyTemplate(body, customer);
+      const renderedBody = ensureMarioSignature(applyTemplate(body, customer));
 
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
         to: customer.email,
         bcc: process.env.SMTP_USER,
         subject: renderedSubject,
-        html: mailHtml(renderedBody),
+        html: marioMailHtml(renderedBody),
         text: renderedBody,
         attachments: attachmentUrl ? [{ filename: attachmentName, path: attachmentUrl }] : undefined,
       });
@@ -265,14 +324,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       const template = MAIL_TEMPLATES.portal;
       const renderedSubject = applyTemplate(normalizeString(req.body?.subject) || template.subject, preparedCustomer);
-      const renderedBody = applyTemplate(normalizeString(req.body?.body) || template.body, preparedCustomer);
+      const renderedBody = ensureMarioSignature(applyTemplate(normalizeString(req.body?.body) || template.body, preparedCustomer));
 
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
         to: preparedCustomer.email,
         bcc: process.env.SMTP_USER,
         subject: renderedSubject,
-        html: mailHtml(renderedBody),
+        html: marioMailHtml(renderedBody),
         text: renderedBody,
       });
 

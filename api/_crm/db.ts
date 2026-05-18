@@ -565,11 +565,16 @@ export function applyTemplate(template: string, customer: CrmCustomer) {
   const firstName = customer.name.split(" ")[0] || customer.name || "du";
   const publicUrl = process.env.PUBLIC_URL || "https://marioschub.com";
   const signature = [
-    "Mario",
+    "Mario Schubert",
+    "Fotografie, Video und Fotospiegel",
     "",
-    "Mario Schubert Photography",
-    "servus@marioschub.com",
-    "https://marioschub.com",
+    "Tirol & Bayern",
+    "AT: +43 67763681543",
+    "DE: +49 151 5533 8029",
+    "Mail: servus@marioschub.com",
+    "Web: www.marioschub.com",
+    "WhatsApp: https://wa.me/4915155338029",
+    "Instagram: @marioschub",
   ].join("\n");
 
   return template

@@ -8,6 +8,53 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const MARIO_LOGO_URL = process.env.MARIO_MAIL_LOGO_URL || "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
+const MARIO_SIGNATURE_TEXT = [
+  "Mario Schubert",
+  "Fotografie, Video und Fotospiegel",
+  "",
+  "Tirol & Bayern",
+  "AT: +43 67763681543",
+  "DE: +49 151 5533 8029",
+  "Mail: servus@marioschub.com",
+  "Web: www.marioschub.com",
+  "WhatsApp: https://wa.me/4915155338029",
+  "Instagram: @marioschub",
+].join("\n");
+
+function escapeHtml(value: string | undefined): string {
+  return (value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function buildMarioSignatureHtml() {
+  return `
+    <div style="padding:24px 28px 28px;border-top:1px solid #ece8e2;background:#faf8f5;color:#6f6860;font-size:12px;line-height:1.7">
+      <table role="presentation" style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="vertical-align:top;width:92px;padding-right:18px">
+            <img src="${MARIO_LOGO_URL}" alt="MS" style="width:74px;max-width:74px" />
+          </td>
+          <td style="vertical-align:top">
+            <p style="margin:0 0 5px;color:#24211f;font-size:14px;font-weight:700">Mario Schubert</p>
+            <p style="margin:0 0 12px">Fotografie, Video und Fotospiegel<br/>Tirol &amp; Bayern</p>
+            <p style="margin:0">
+              AT: <a href="tel:+4367763681543" style="color:#4d4944;text-decoration:none">+43 67763681543</a><br/>
+              DE: <a href="tel:+4915155338029" style="color:#4d4944;text-decoration:none">+49 151 5533 8029</a><br/>
+              Mail: <a href="mailto:servus@marioschub.com" style="color:#4d4944;text-decoration:none">servus@marioschub.com</a><br/>
+              Web: <a href="https://www.marioschub.com" style="color:#4d4944;text-decoration:none">www.marioschub.com</a><br/>
+              WhatsApp: <a href="https://wa.me/4915155338029" style="color:#4d4944;text-decoration:none">https://wa.me/4915155338029</a><br/>
+              Instagram: <a href="https://instagram.com/marioschub" style="color:#4d4944;text-decoration:none">@marioschub</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
 // ── Build package summary HTML for emails ──
 function buildPackageSummaryHtml(
   selectedPackages: { name: string; price: string }[] | undefined,
@@ -128,6 +175,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     to: process.env.SMTP_USER,
     replyTo: email,
     subject: `Neue Anfrage von ${name} \u2013 ${interestsText}${estimatedTotal ? ` (\u2248 ${estimatedTotal})` : ""}`,
+    text: [
+      `Neue Anfrage von ${name}`,
+      `E-Mail: ${email}`,
+      `Telefon: ${phone}`,
+      `Interesse: ${interestsText}`,
+      `Datum: ${date || "-"}`,
+      `Nachricht: ${message || "-"}`,
+    ].join("\n"),
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:650px;margin:0 auto;color:#333">
         <h2 style="font-family:Georgia,serif;font-weight:300;font-size:24px;border-bottom:1px solid #eee;padding-bottom:16px">Neue Anfrage über die Website</h2>
@@ -159,10 +214,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Danke für deine Anfrage! \u2013 Mario Schubert Photography",
+    text: [
+      `Servus ${firstName}!`,
+      "",
+      "Vielen Dank für deine Anfrage! Ich habe deine Nachricht erhalten und melde mich so schnell wie möglich bei dir.",
+      "Ich freue mich schon darauf, mehr über eure Pläne zu erfahren und gemeinsam etwas Besonderes zu schaffen.",
+      "",
+      MARIO_SIGNATURE_TEXT,
+    ].join("\n"),
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
         <div style="text-align:center;padding:40px 20px 30px;border-bottom:1px solid #eee">
-          <img src="https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg" alt="Mario Schubert Photography" style="height:36px" />
+          <img src="${MARIO_LOGO_URL}" alt="Mario Schubert Photography" style="height:36px" />
         </div>
         <div style="padding:40px 24px">
           <h1 style="font-family:Georgia,serif;font-weight:300;font-size:28px;margin-bottom:8px;color:#111">Servus ${firstName}!</h1>
@@ -179,7 +242,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             <p style="margin:0;color:#555;font-size:14px;line-height:1.6">
               <strong>Eure Anfrage:</strong> ${interestsText}<br/>
               ${date ? `<strong>Datum:</strong> ${date}<br/>` : ""}
-              ${message ? `<strong>Nachricht:</strong> ${message.substring(0, 300)}${message.length > 300 ? "..." : ""}` : ""}
+              ${message ? `<strong>Nachricht:</strong> ${escapeHtml(message.substring(0, 300))}${message.length > 300 ? "..." : ""}` : ""}
             </p>
           </div>
 
@@ -188,11 +251,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             <strong style="color:#111">Mario</strong>
           </p>
         </div>
-        <div style="text-align:center;padding:24px 20px;border-top:1px solid #eee;color:#aaa;font-size:12px;line-height:1.6">
-          <p style="margin:4px 0">Mario Schubert Fotografie</p>
-          <p style="margin:4px 0">Bäckerbühelgasse 14, 6020 Innsbruck</p>
-          <p style="margin:4px 0">servus@marioschub.com</p>
-        </div>
+        ${buildMarioSignatureHtml()}
       </div>
     `,
   };
