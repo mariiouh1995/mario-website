@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
+import * as crm from "./crm-db.js";
 
 type CrmCustomer = any;
-type CrmDb = any;
 type CustomerStatus = string;
 type InquiryStatus = string;
 
@@ -138,8 +138,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = normalizeString(req.query.action) || normalizeString(req.body?.action);
 
   try {
-    const crm = (await import("./crm-db.js")) as CrmDb;
-
     if (action === "portal") {
       const token = normalizeString(req.query.token);
       const password = normalizeString(req.query.password);

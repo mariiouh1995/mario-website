@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { appendInquiry } from "./crm-db.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -15,7 +16,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { appendInquiry } = await import("./crm-db.js");
     const interestsText = Array.isArray(interests) ? interests.join(", ") : interests || "";
     const inquiry = await appendInquiry({
       name,
