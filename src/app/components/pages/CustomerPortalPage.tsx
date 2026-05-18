@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { Calendar, CheckCircle2, ExternalLink, FileText, Image, ListChecks, Lock, MapPin, MessageSquareText } from "lucide-react";
-import { mockCustomers, mockWorkflow } from "./adminMockData";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
@@ -78,14 +77,9 @@ export function CustomerPortalPage() {
         setWorkflow(data.workflow || []);
         setNeedsPassword(false);
       } catch (err: any) {
-        const mockCustomer = mockCustomers.find((item) => item.portalToken === token) || (token === "demo" ? mockCustomers[0] : null);
-        if (mockCustomer) {
-          setCustomer(mockCustomer as Customer);
-          setWorkflow(mockWorkflow as unknown as WorkflowItem[]);
-          setError("");
-        } else {
-          setError(err.message || "Portal konnte nicht geladen werden");
-        }
+        setCustomer(null);
+        setWorkflow([]);
+        setError(err.message || "Portal konnte nicht geladen werden");
       } finally {
         setLoading(false);
       }

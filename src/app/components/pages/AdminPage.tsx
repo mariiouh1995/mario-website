@@ -21,7 +21,6 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { mockCustomers, mockInquiries, mockMailTemplates, mockWorkflow } from "./adminMockData";
 
 type CustomerStatus =
   | "anfrage"
@@ -276,7 +275,6 @@ export function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [previewMode, setPreviewMode] = useState(false);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [workflow, setWorkflow] = useState<WorkflowItem[]>(statusSteps);
@@ -368,16 +366,6 @@ export function AdminPage() {
     });
   }, [customers]);
 
-  const loadMockPreview = useCallback((reason = "Lokale Vorschau mit Mockdaten aktiv.") => {
-    setPreviewMode(true);
-    setInquiries(mockInquiries as Inquiry[]);
-    setCustomers((mockCustomers as Customer[]).map(normalizeCustomer));
-    setWorkflow((mockWorkflow as unknown as WorkflowItem[]).length ? (mockWorkflow as unknown as WorkflowItem[]) : statusSteps);
-    setMailTemplates(mockMailTemplates);
-    setSelectedId((current) => current || mockCustomers[0].id);
-    setMessage(reason);
-  }, []);
-
   const api = useCallback(
     async (action: string, init: RequestInit = {}) => {
       const headers = { "Content-Type": "application/json", "x-admin-password": adminPassword, ...(init.headers || {}) };
@@ -391,8 +379,6 @@ export function AdminPage() {
 
   const loadCrm = useCallback(async () => {
     if (!adminPassword) return;
-    const isVitePreview = window.location.port.startsWith("517") && ["127.0.0.1", "localhost"].includes(window.location.hostname);
-    if (isVitePreview) return loadMockPreview("Lokale Vite-Vorschau mit Mockdaten aktiv. Echte API/DB läuft erst über Vercel.");
     setLoading(true);
     setMessage("");
     try {
@@ -403,7 +389,6 @@ export function AdminPage() {
       setMailTemplates(data.mailTemplates || {});
       if (!selectedId && data.customers?.[0]) setSelectedId(data.customers[0].id);
     } catch (error: any) {
-      setPreviewMode(false);
       setInquiries([]);
       setCustomers([]);
       setWorkflow(statusSteps);
@@ -415,7 +400,7 @@ export function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [adminPassword, api, loadMockPreview, selectedId]);
+  }, [adminPassword, api, selectedId]);
 
   useEffect(() => {
     if (isAuthenticated) loadCrm();
@@ -433,15 +418,6 @@ export function AdminPage() {
 
   const login = async () => {
     setAuthError("");
-    const isLocalVitePreview = window.location.port.startsWith("517") && ["127.0.0.1", "localhost"].includes(window.location.hostname);
-    if (isLocalVitePreview) {
-      if (password !== "admin") return setAuthError("Falsches Passwort");
-      sessionStorage.setItem("admin_auth", "true");
-      sessionStorage.setItem("admin_pw", password);
-      setAdminPassword(password);
-      setIsAuthenticated(true);
-      return;
-    }
     const res = await fetch("/api/admin-verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
     if (!res.ok) return setAuthError("Falsches Passwort");
     sessionStorage.setItem("admin_auth", "true");
@@ -473,10 +449,6 @@ export function AdminPage() {
   const persistCustomerDraft = async (updated: Customer) => {
     const normalized = normalizeCustomer({ ...updated, status: deriveStatus(updated.tasks) });
     setDraft(normalized);
-    if (previewMode) {
-      setCustomers((prev) => prev.map((item) => (item.id === normalized.id ? { ...normalized, updatedAt: new Date().toISOString() } : item)));
-      return normalized;
-    }
     const data = await api("customer", { method: "PUT", body: JSON.stringify({ customer: normalized }) });
     const saved = normalizeCustomer(data.customer);
     setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
@@ -488,7 +460,7 @@ export function AdminPage() {
     setSaving(true);
     try {
       await persistCustomerDraft(draft);
-      setMessage(previewMode ? "Mock-Kunde lokal gespeichert" : "Gespeichert");
+      setMessage("Gespeichert");
     } catch (error: any) {
       setMessage(error.message || "Speichern fehlgeschlagen");
     } finally {
@@ -507,7 +479,7 @@ export function AdminPage() {
   };
 
   const sendActionMail = async (action: ConfirmAction) => {
-    if (!confirmSendMail || !confirmSubject || !confirmBody || previewMode) return;
+    if (!confirmSendMail || !confirmSubject || !confirmBody) return;
     const payload = { templateKey: action.templateKey || "manual", subject: confirmSubject, body: confirmBody, attachmentUrl: confirmAttachmentUrl, attachmentName: confirmAttachmentName };
     if (action.target === "inquiry") {
       await api("send-inquiry-mail", { method: "POST", body: JSON.stringify({ ...payload, inquiryId: action.inquiryId }) });
@@ -523,7 +495,7 @@ export function AdminPage() {
     try {
       await sendActionMail(confirmAction);
       await confirmAction.onConfirm();
-      setMessage(previewMode && confirmSendMail ? "Aktion ausgeführt. Mockmodus: Mail wurde nicht wirklich versendet." : "Aktion ausgeführt");
+      setMessage("Aktion ausgeführt");
       setConfirmAction(null);
     } catch (error: any) {
       setMessage(error.message || "Aktion fehlgeschlagen");
@@ -533,66 +505,24 @@ export function AdminPage() {
   };
 
   const createCustomer = async () => {
-    if (previewMode) {
-      const customer = normalizeCustomer({ ...emptyCustomer(), id: `mock-new-${Date.now()}`, portalToken: `mock-${Date.now()}`, name: "Neuer Mock-Kunde" });
-      setCustomers((prev) => [customer, ...prev]);
-      selectCustomer(customer.id);
-      return;
-    }
     const data = await api("customer", { method: "POST", body: JSON.stringify({ customer: emptyCustomer() }) });
     setCustomers((prev) => [normalizeCustomer(data.customer), ...prev]);
     selectCustomer(data.customer.id);
   };
 
   const convertInquiry = async (inquiryId: string) => {
-    if (previewMode) {
-      const inquiry = inquiries.find((item) => item.id === inquiryId);
-      if (!inquiry) return;
-      const customer = normalizeCustomer({
-        ...emptyCustomer(),
-        id: `mock-converted-${Date.now()}`,
-        portalToken: `mock-converted-${Date.now()}`,
-        sourceInquiryId: inquiry.id,
-        name: inquiry.name,
-        brideName: inquiry.brideName || "",
-        groomName: inquiry.groomName || "",
-        email: inquiry.email,
-        phone: inquiry.phone,
-        category: inquiry.category,
-        eventDate: inquiry.eventDate,
-        customerAddress: inquiry.customerAddress || "",
-        locationAddress: inquiry.locationAddress || "",
-        locations: inquiry.locations || [],
-        location: inquiry.locationAddress || "",
-        bookedServices: inquiry.selectedPackages,
-        notes: inquiry.message,
-      });
-      setCustomers((prev) => [customer, ...prev]);
-      setInquiries((prev) => prev.map((item) => (item.id === inquiryId ? { ...item, status: "umgewandelt" } : item)));
-      selectCustomer(customer.id);
-      return;
-    }
     const data = await api("convert-inquiry", { method: "POST", body: JSON.stringify({ inquiryId }) });
     await loadCrm();
     selectCustomer(data.customer.id);
   };
 
   const deleteInquiryAction = async (inquiryId: string) => {
-    if (previewMode) {
-      setInquiries((prev) => prev.filter((item) => item.id !== inquiryId));
-      setSelectedInquiryId("");
-      return;
-    }
     await api("delete-inquiry", { method: "POST", body: JSON.stringify({ id: inquiryId }) });
     await loadCrm();
     setSelectedInquiryId("");
   };
 
   const markInquiryAnswered = async (inquiryId: string) => {
-    if (previewMode) {
-      setInquiries((prev) => prev.map((item) => (item.id === inquiryId ? { ...item, status: "beantwortet" } : item)));
-      return;
-    }
     await api("inquiry-status", { method: "PUT", body: JSON.stringify({ id: inquiryId, status: "beantwortet" }) });
     await loadCrm();
   };
@@ -653,7 +583,6 @@ export function AdminPage() {
 
   const sendMail = async () => {
     if (!draft) return;
-    if (previewMode) return setMessage("Mockmodus: Mail wurde nicht wirklich versendet.");
     setSaving(true);
     try {
       await api("send-mail", { method: "POST", body: JSON.stringify({ customerId: draft.id, templateKey: activeMail, subject: mailSubject, body: mailBody }) });
@@ -670,12 +599,6 @@ export function AdminPage() {
     if (!draft) return;
     const portalPassword = createPortalPassword(draft.eventDate);
     if (!portalPassword) return setMessage("Für das Portal-Passwort braucht der Kunde ein Hochzeits-/Shootingdatum.");
-    const updated = { ...draft, portalEnabled: true, portalPassword, portalPublishedAt: new Date().toISOString() };
-    if (previewMode) {
-      await persistCustomerDraft(updated);
-      setMessage(`Mockmodus: Portal bereitgestellt. Passwort: ${portalPassword}`);
-      return;
-    }
     setSaving(true);
     try {
       await persistCustomerDraft(draft);
@@ -721,7 +644,6 @@ export function AdminPage() {
           <div>
             <p className="text-white/45 text-xs uppercase tracking-[0.25em]">Mario Schubert Photography</p>
             <h1 className="text-xl mt-1">Kundenverwaltung</h1>
-            {previewMode && <p className="text-white/45 text-xs mt-1">Lokale Vorschau mit Mockdaten</p>}
           </div>
           <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
             <button onClick={() => setView(view === "calendar" ? "customersList" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> {view === "calendar" ? "Liste anzeigen" : "Kalender"}</button>
