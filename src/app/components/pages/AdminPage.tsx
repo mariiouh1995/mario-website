@@ -30,9 +30,13 @@ type CustomerStatus =
   | "angebot"
   | "vertrag"
   | "anzahlung"
+  | "spieglein"
   | "shooting"
+  | "fotopreview"
   | "editing"
   | "galerie"
+  | "dankesgeschenk"
+  | "google_bewertung"
   | "abgeschlossen";
 type TaskStatus = "offen" | "in_arbeit" | "erledigt" | "obsolet";
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
@@ -151,9 +155,13 @@ const statusSteps: WorkflowItem[] = [
   { key: "angebot", label: "Angebot" },
   { key: "vertrag", label: "Vertrag" },
   { key: "anzahlung", label: "Anzahlung" },
+  { key: "spieglein", label: "Spieglein einrichten" },
   { key: "shooting", label: "Shooting/Hochzeit" },
+  { key: "fotopreview", label: "Fotopreview" },
   { key: "editing", label: "Editing" },
   { key: "galerie", label: "Galerie geliefert" },
+  { key: "dankesgeschenk", label: "Dankesgeschenk" },
+  { key: "google_bewertung", label: "Google Bewertung" },
   { key: "abgeschlossen", label: "Abgeschlossen" },
 ];
 
