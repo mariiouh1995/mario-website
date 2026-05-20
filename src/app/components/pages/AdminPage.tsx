@@ -7,6 +7,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   ExternalLink,
   ListChecks,
   Lock,
@@ -332,6 +333,51 @@ function normalizeHref(value?: string) {
   if (!trimmed) return "";
   if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
   return `https://${trimmed}`;
+}
+
+function vcardEscape(value?: string) {
+  return (value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .trim();
+}
+
+function contactFileName(customer: Customer) {
+  return `${(customer.name || "mario-kunde").toLowerCase().replace(/[^a-z0-9äöüß]+/gi, "-").replace(/^-+|-+$/g, "") || "mario-kunde"}.vcf`;
+}
+
+function downloadCustomerContact(customer: Customer) {
+  const displayName = customer.name || [customer.brideName, customer.groomName].filter(Boolean).join(" & ") || "Mario Kunde";
+  const note = [
+    customer.category && `Kategorie: ${customer.category}`,
+    customer.eventDate && `Termin: ${formatDateDe(customer.eventDate)}${customer.eventTime ? ` ${customer.eventTime}` : ""}`,
+    customer.brideName && `Braut: ${customer.brideName}`,
+    customer.groomName && `Bräutigam: ${customer.groomName}`,
+    customer.locationAddress && `Location: ${customer.locationAddress}`,
+  ].filter(Boolean).join("\n");
+  const lines = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${vcardEscape(displayName)}`,
+    `N:${vcardEscape(displayName)};;;;`,
+    customer.phone ? `TEL;TYPE=CELL:${vcardEscape(customer.phone)}` : "",
+    customer.email ? `EMAIL;TYPE=INTERNET:${vcardEscape(customer.email)}` : "",
+    customer.customerAddress ? `ADR;TYPE=HOME:;;${vcardEscape(customer.customerAddress)};;;;` : "",
+    note ? `NOTE:${vcardEscape(note)}` : "",
+    "END:VCARD",
+  ].filter(Boolean);
+  const blob = new Blob([lines.join("\r\n")], { type: "text/vcard;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = contactFileName(customer);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  toast.success("Kontaktdatei heruntergeladen");
 }
 
 function readBlobAsBase64(blob: Blob) {
@@ -1416,6 +1462,9 @@ function CustomerDetail(props: {
             <button onClick={props.openPaymentModal} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
               <Plus className="w-4 h-4" /> Zahlung loggen
             </button>
+            <button onClick={() => downloadCustomerContact(draft)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
+              <Download className="w-4 h-4" /> Kontakt
+            </button>
             <button onClick={() => props.setEditMode(true)} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm">
               <Pencil className="w-4 h-4" /> Bearbeiten
             </button>
@@ -1523,6 +1572,7 @@ function CustomerDetail(props: {
           <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
+          <button onClick={() => downloadCustomerContact(draft)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm"><Download className="w-4 h-4" /> Kontakt</button>
           <button onClick={() => props.setEditMode(false)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">Ansicht</button>
           <button onClick={props.saveCustomer} disabled={props.saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Save className="w-4 h-4" /> {props.saving ? "Speichere..." : "Speichern"}</button>
           <button onClick={() => props.deleteCustomer(draft.id)} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 text-red-700 px-4 py-2 text-sm"><Trash2 className="w-4 h-4" /> Löschen</button>
