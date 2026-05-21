@@ -89,6 +89,7 @@ type Customer = {
   brideName: string;
   groomName: string;
   email: string;
+  secondaryEmail: string;
   phone: string;
   category: string;
   eventDate: string;
@@ -196,6 +197,7 @@ const emptyCustomer = (): Customer => ({
   brideName: "",
   groomName: "",
   email: "",
+  secondaryEmail: "",
   phone: "",
   category: "Hochzeit",
   eventDate: "",
@@ -256,6 +258,7 @@ function normalizeCustomer(customer: Customer): Customer {
   return {
     ...emptyCustomer(),
     ...customer,
+    secondaryEmail: customer.secondaryEmail || "",
     eventTime: customer.eventTime || "",
     offerUrl: customer.offerUrl || "",
     portalEnabled: Boolean(customer.portalEnabled),
@@ -364,6 +367,7 @@ function downloadCustomerContact(customer: Customer) {
     `N:${vcardEscape(displayName)};;;;`,
     customer.phone ? `TEL;TYPE=CELL:${vcardEscape(customer.phone)}` : "",
     customer.email ? `EMAIL;TYPE=INTERNET:${vcardEscape(customer.email)}` : "",
+    customer.secondaryEmail ? `EMAIL;TYPE=INTERNET:${vcardEscape(customer.secondaryEmail)}` : "",
     customer.customerAddress ? `ADR;TYPE=HOME:;;${vcardEscape(customer.customerAddress)};;;;` : "",
     note ? `NOTE:${vcardEscape(note)}` : "",
     "END:VCARD",
@@ -1260,7 +1264,7 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{statusSteps.find((item) => item.key === customer.status)?.label || customer.status}</span>
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{customer.portalEnabled ? "Portal aktiv" : "Portal nicht aktiv"}</span>
             </div>
-            <p className="mt-3 text-sm text-black/55">{customer.email || "Keine E-Mail"}</p>
+            <p className="mt-3 text-sm text-black/55">{[customer.email, customer.secondaryEmail].filter(Boolean).join(" / ") || "Keine E-Mail"}</p>
             {customer.phone && <p className="mt-1 text-sm text-black/55">{customer.phone}</p>}
           </button>
         ))}
@@ -1289,6 +1293,7 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
                 <td className="px-4 py-3">{customer.eventDate || "Noch offen"}</td>
                 <td className="px-4 py-3">
                   <p>{customer.email || "Keine E-Mail"}</p>
+                  {customer.secondaryEmail && <p className="text-xs text-black/45">{customer.secondaryEmail}</p>}
                   <p className="text-xs text-black/45">{customer.phone || "Keine Telefonnummer"}</p>
                 </td>
                 <td className="px-4 py-3">{customer.portalEnabled ? "aktiv" : "nicht aktiv"}</td>
@@ -1496,6 +1501,7 @@ function CustomerDetail(props: {
 
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           <ViewField label="E-Mail" value={draft.email} />
+          <ViewField label="E-Mail 2" value={draft.secondaryEmail} />
           <ViewField label="Telefon" value={draft.phone} />
           <ViewField label="Braut" value={draft.brideName} />
           <ViewField label="Bräutigam" value={draft.groomName} />
@@ -1592,6 +1598,7 @@ function CustomerDetail(props: {
 
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="E-Mail" value={draft.email} onChange={(value) => setDraft({ ...draft, email: value })} />
+        <Field label="E-Mail 2" value={draft.secondaryEmail} onChange={(value) => setDraft({ ...draft, secondaryEmail: value })} />
         <Field label="Telefon" value={draft.phone} onChange={(value) => setDraft({ ...draft, phone: value })} />
         <Field label="Name Braut" value={draft.brideName} onChange={(value) => setDraft({ ...draft, brideName: value })} />
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
@@ -1680,7 +1687,7 @@ function CustomerDetail(props: {
           <input value={props.mailSubject} onChange={(event) => props.setMailSubject(event.target.value)} className="w-full rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Betreff" />
           <textarea value={props.mailBody} onChange={(event) => props.setMailBody(event.target.value)} className="w-full min-h-44 rounded-md border border-black/10 px-3 py-2 text-sm font-mono" />
           <div className="flex flex-wrap items-center gap-3">
-            <button onClick={props.sendMail} disabled={props.saving || !draft.email} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Send className="w-4 h-4" /> Mail senden</button>
+            <button onClick={props.sendMail} disabled={props.saving || (!draft.email && !draft.secondaryEmail)} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50"><Send className="w-4 h-4" /> Mail senden</button>
             <a href={`/kundenportal/${draft.portalToken}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-black/55 hover:text-black">Portal öffnen <ExternalLink className="w-4 h-4" /></a>
           </div>
         </div>

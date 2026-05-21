@@ -202,6 +202,10 @@ async function deleteDriveFile(fileId?: string) {
   }
 }
 
+function customerMailRecipients(customer: CrmCustomer) {
+  return [customer.email, customer.secondaryEmail].map(normalizeString).filter(Boolean);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -443,7 +447,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const attachmentName = normalizeString(req.body?.attachmentName) || "Anhang";
       const customer = await crm.getCustomer(customerId);
       if (!customer) return res.status(404).json({ error: "Customer not found" });
-      if (!customer.email) return res.status(400).json({ error: "Customer has no email" });
+      const recipients = customerMailRecipients(customer);
+      if (recipients.length === 0) return res.status(400).json({ error: "Customer has no email" });
       if (!subject || !body) return res.status(400).json({ error: "subject and body are required" });
 
       const renderedSubject = crm.applyTemplate(subject, customer);
@@ -451,7 +456,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
-        to: customer.email,
+        to: recipients,
         bcc: process.env.SMTP_USER,
         subject: renderedSubject,
         html: marioMailHtml(renderedBody),
@@ -463,7 +468,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: crm.createId("mail"),
         customerId: customer.id,
         templateKey,
-        to: customer.email,
+        to: recipients.join(", "),
         subject: renderedSubject,
         body: renderedBody,
         sentAt: new Date().toISOString(),
@@ -486,7 +491,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const customerId = normalizeString(req.body?.customerId);
       const customer = await crm.getCustomer(customerId);
       if (!customer) return res.status(404).json({ error: "Customer not found" });
-      if (!customer.email) return res.status(400).json({ error: "Customer has no email" });
+      const recipients = customerMailRecipients(customer);
+      if (recipients.length === 0) return res.status(400).json({ error: "Customer has no email" });
       const portalPassword = crm.createPortalPassword(customer.eventDate);
       if (!portalPassword) return res.status(400).json({ error: "Customer eventDate is required for portal password" });
       const preparedCustomer = await crm.upsertCustomer({
@@ -501,7 +507,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
-        to: preparedCustomer.email,
+        to: recipients,
         bcc: process.env.SMTP_USER,
         subject: renderedSubject,
         html: marioMailHtml(renderedBody),
@@ -512,7 +518,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: crm.createId("mail"),
         customerId: preparedCustomer.id,
         templateKey: "portal",
-        to: preparedCustomer.email,
+        to: recipients.join(", "),
         subject: renderedSubject,
         body: renderedBody,
         sentAt: new Date().toISOString(),
