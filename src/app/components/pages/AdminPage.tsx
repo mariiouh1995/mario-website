@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster, toast } from "sonner";
 import {
   ArrowRight,
@@ -444,6 +444,7 @@ export function AdminPage() {
   const [selectedId, setSelectedId] = useState("");
   const [selectedInquiryId, setSelectedInquiryId] = useState("");
   const [draft, setDraft] = useState<Customer | null>(null);
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [activeMail, setActiveMail] = useState("reply");
   const [mailSubject, setMailSubject] = useState("");
   const [mailBody, setMailBody] = useState("");
@@ -476,6 +477,8 @@ export function AdminPage() {
     const saved = localStorage.getItem("mario_reminder_settings");
     return saved ? JSON.parse(saved) : defaultReminderSettings;
   });
+  const autosaveSnapshotRef = useRef("");
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedCustomer = useMemo(() => customers.find((customer) => customer.id === selectedId) || null, [customers, selectedId]);
   const selectedInquiry = useMemo(() => inquiries.find((inquiry) => inquiry.id === selectedInquiryId) || null, [inquiries, selectedInquiryId]);
@@ -584,8 +587,12 @@ export function AdminPage() {
   }, [isAuthenticated, loadCrm]);
 
   useEffect(() => {
-    setDraft(selectedCustomer ? structuredClone(normalizeCustomer(selectedCustomer)) : null);
-  }, [selectedCustomer]);
+    if (editMode && draft?.id && selectedCustomer?.id === draft.id) return;
+    const nextDraft = selectedCustomer ? structuredClone(normalizeCustomer(selectedCustomer)) : null;
+    setDraft(nextDraft);
+    autosaveSnapshotRef.current = nextDraft ? JSON.stringify(nextDraft) : "";
+    setAutosaveStatus("idle");
+  }, [selectedCustomer, editMode, draft?.id]);
 
   useEffect(() => {
     const template = mailTemplates[activeMail];
@@ -628,16 +635,19 @@ export function AdminPage() {
     setDraft(normalized);
     const data = await api("customer", { method: "PUT", body: JSON.stringify({ customer: normalized }) });
     const saved = normalizeCustomer(data.customer);
+    autosaveSnapshotRef.current = JSON.stringify(saved);
     setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
     return saved;
   };
 
   const saveCustomer = async () => {
     if (!draft) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     setSaving(true);
     try {
       await persistCustomerDraft(draft);
       setMessage("Gespeichert");
+      setAutosaveStatus("saved");
       toast.success("Kunde gespeichert");
       setEditMode(false);
     } catch (error: any) {
@@ -647,6 +657,30 @@ export function AdminPage() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!editMode || !draft?.id) return;
+    const snapshot = JSON.stringify(draft);
+    if (snapshot === autosaveSnapshotRef.current) return;
+    setAutosaveStatus("saving");
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(async () => {
+      try {
+        const normalized = normalizeCustomer({ ...draft, status: deriveStatus(draft.tasks) });
+        const data = await api("customer", { method: "PUT", body: JSON.stringify({ customer: normalized }) });
+        const saved = normalizeCustomer(data.customer);
+        autosaveSnapshotRef.current = JSON.stringify(saved);
+        setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+        setAutosaveStatus("saved");
+      } catch (error: any) {
+        setAutosaveStatus("error");
+        toast.error(error.message || "Autosave fehlgeschlagen");
+      }
+    }, 1200);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [draft, editMode, api]);
 
   const openConfirm = (action: ConfirmAction) => {
     const template = action.templateKey ? mailTemplates[action.templateKey] : null;
@@ -1173,6 +1207,7 @@ export function AdminPage() {
               editMode={editMode}
               setEditMode={setEditMode}
               saving={saving}
+              autosaveStatus={autosaveStatus}
               mailTemplates={mailTemplates}
               activeMail={activeMail}
               mailSubject={mailSubject}
@@ -1447,6 +1482,7 @@ function CustomerDetail(props: {
   editMode: boolean;
   setEditMode: (value: boolean) => void;
   saving: boolean;
+  autosaveStatus: "idle" | "saving" | "saved" | "error";
   mailTemplates: Record<string, MailTemplate>;
   activeMail: string;
   mailSubject: string;
@@ -1608,6 +1644,11 @@ function CustomerDetail(props: {
           <p className="text-xs uppercase tracking-[0.22em] text-black/40">Kundendetail</p>
           <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="mt-1 text-2xl bg-transparent border-b border-transparent focus:border-black/20 outline-none" placeholder="Name" />
           <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
+          {props.autosaveStatus !== "idle" && (
+            <p className={`mt-1 text-xs ${props.autosaveStatus === "error" ? "text-red-700" : "text-black/45"}`}>
+              {props.autosaveStatus === "saving" ? "Autosave speichert..." : props.autosaveStatus === "saved" ? "Automatisch gespeichert" : "Autosave fehlgeschlagen"}
+            </p>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={() => downloadCustomerContact(draft)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm"><Download className="w-4 h-4" /> Kontakt</button>
