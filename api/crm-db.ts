@@ -15,6 +15,7 @@ export type CustomerStatus =
   | "angebot"
   | "vertrag"
   | "anzahlung"
+  | "vorbesprechung_terminieren"
   | "spieglein"
   | "shooting"
   | "fotopreview"
@@ -174,6 +175,7 @@ export const WORKFLOW: { key: CustomerStatus; label: string }[] = [
   { key: "angebot", label: "Angebot" },
   { key: "vertrag", label: "Vertrag" },
   { key: "anzahlung", label: "Anzahlung" },
+  { key: "vorbesprechung_terminieren", label: "Vorbesprechung Terminieren" },
   { key: "spieglein", label: "Spieglein einrichten" },
   { key: "shooting", label: "Shooting/Hochzeit" },
   { key: "fotopreview", label: "Fotopreview" },

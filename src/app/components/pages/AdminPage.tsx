@@ -31,6 +31,7 @@ type CustomerStatus =
   | "angebot"
   | "vertrag"
   | "anzahlung"
+  | "vorbesprechung_terminieren"
   | "spieglein"
   | "shooting"
   | "fotopreview"
@@ -161,6 +162,7 @@ const statusSteps: WorkflowItem[] = [
   { key: "angebot", label: "Angebot" },
   { key: "vertrag", label: "Vertrag" },
   { key: "anzahlung", label: "Anzahlung" },
+  { key: "vorbesprechung_terminieren", label: "Vorbesprechung Terminieren" },
   { key: "spieglein", label: "Spieglein einrichten" },
   { key: "shooting", label: "Shooting/Hochzeit" },
   { key: "fotopreview", label: "Fotopreview" },
@@ -188,6 +190,7 @@ const defaultPortalVisibility: PortalVisibility = {
 const defaultReminderSettings: ReminderSettings = { days: [14, 7, 3, 1] };
 const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
+const preTalkTaskId = "step-vorbesprechung_terminieren";
 const workflowTasks = () => statusSteps.map((step) => ({ id: `step-${step.key}`, title: step.label, status: "offen" as TaskStatus }));
 
 const emptyCustomer = (): Customer => ({
@@ -250,19 +253,30 @@ function deriveStatus(tasks: TaskItem[]): CustomerStatus {
   return (lastDone?.id.replace("step-", "") as CustomerStatus) || "anfrage";
 }
 
-function normalizeTasks(tasks: TaskItem[] = []) {
-  if (!tasks.length) return workflowTasks();
-  return tasks.map((task) => ({
+function dateMinusWeeks(date: string, weeks: number) {
+  if (!date) return "";
+  const target = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return "";
+  target.setDate(target.getDate() - weeks * 7);
+  return target.toISOString().slice(0, 10);
+}
+
+function normalizeTasks(tasks: TaskItem[] = [], eventDate = "") {
+  const merged = tasks.length ? [...tasks] : workflowTasks();
+  const preTalkTask = workflowTasks().find((task) => task.id === preTalkTaskId);
+  if (tasks.length && preTalkTask && !merged.some((item) => item.id === preTalkTaskId)) merged.push(preTalkTask);
+  const preTalkDeadline = dateMinusWeeks(eventDate, 6);
+  return merged.map((task) => ({
     id: task.id || `task-${Date.now()}`,
     title: task.title || "Neue Aufgabe",
     status: task.status || "offen",
-    dueDate: task.dueDate || "",
+    dueDate: task.id === preTalkTaskId ? preTalkDeadline : task.dueDate || "",
     note: task.note || "",
   }));
 }
 
 function normalizeCustomer(customer: Customer): Customer {
-  const tasks = normalizeTasks(customer.tasks || []);
+  const tasks = normalizeTasks(customer.tasks || [], customer.eventDate || "");
   return {
     ...emptyCustomer(),
     ...customer,
@@ -1622,7 +1636,7 @@ function CustomerDetail(props: {
         <Field label="Name Braut" value={draft.brideName} onChange={(value) => setDraft({ ...draft, brideName: value })} />
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />
-        <Field label="Hochzeit/Shooting" type="date" value={draft.eventDate} onChange={(value) => setDraft({ ...draft, eventDate: value })} />
+        <Field label="Hochzeit/Shooting" type="date" value={draft.eventDate} onChange={(value) => setDraft(normalizeCustomer({ ...draft, eventDate: value }))} />
         <Field label="Von" type="time" value={draft.eventTime} onChange={(value) => setDraft({ ...draft, eventTime: value })} />
         <Field label="Bis" type="time" value={draft.eventEndTime} onChange={(value) => setDraft({ ...draft, eventEndTime: value })} />
         <Field label="Dauer der Begleitung" value={draft.coverageDuration} onChange={(value) => setDraft({ ...draft, coverageDuration: value })} placeholder="z.B. 8 Stunden" />
