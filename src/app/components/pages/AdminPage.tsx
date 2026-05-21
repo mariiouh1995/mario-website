@@ -91,6 +91,7 @@ type Customer = {
   email: string;
   secondaryEmail: string;
   phone: string;
+  secondaryPhone: string;
   category: string;
   eventDate: string;
   eventTime: string;
@@ -199,6 +200,7 @@ const emptyCustomer = (): Customer => ({
   email: "",
   secondaryEmail: "",
   phone: "",
+  secondaryPhone: "",
   category: "Hochzeit",
   eventDate: "",
   eventTime: "",
@@ -259,6 +261,7 @@ function normalizeCustomer(customer: Customer): Customer {
     ...emptyCustomer(),
     ...customer,
     secondaryEmail: customer.secondaryEmail || "",
+    secondaryPhone: customer.secondaryPhone || "",
     eventTime: customer.eventTime || "",
     offerUrl: customer.offerUrl || "",
     portalEnabled: Boolean(customer.portalEnabled),
@@ -366,6 +369,7 @@ function downloadCustomerContact(customer: Customer) {
     `FN:${vcardEscape(displayName)}`,
     `N:${vcardEscape(displayName)};;;;`,
     customer.phone ? `TEL;TYPE=CELL:${vcardEscape(customer.phone)}` : "",
+    customer.secondaryPhone ? `TEL;TYPE=CELL:${vcardEscape(customer.secondaryPhone)}` : "",
     customer.email ? `EMAIL;TYPE=INTERNET:${vcardEscape(customer.email)}` : "",
     customer.secondaryEmail ? `EMAIL;TYPE=INTERNET:${vcardEscape(customer.secondaryEmail)}` : "",
     customer.customerAddress ? `ADR;TYPE=HOME:;;${vcardEscape(customer.customerAddress)};;;;` : "",
@@ -1265,7 +1269,7 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{customer.portalEnabled ? "Portal aktiv" : "Portal nicht aktiv"}</span>
             </div>
             <p className="mt-3 text-sm text-black/55">{[customer.email, customer.secondaryEmail].filter(Boolean).join(" / ") || "Keine E-Mail"}</p>
-            {customer.phone && <p className="mt-1 text-sm text-black/55">{customer.phone}</p>}
+            {[customer.phone, customer.secondaryPhone].filter(Boolean).map((phone) => <p key={phone} className="mt-1 text-sm text-black/55">{phone}</p>)}
           </button>
         ))}
         {customers.length === 0 && <p className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Noch keine Kunden angelegt.</p>}
@@ -1294,7 +1298,7 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
                 <td className="px-4 py-3">
                   <p>{customer.email || "Keine E-Mail"}</p>
                   {customer.secondaryEmail && <p className="text-xs text-black/45">{customer.secondaryEmail}</p>}
-                  <p className="text-xs text-black/45">{customer.phone || "Keine Telefonnummer"}</p>
+                  <p className="text-xs text-black/45">{[customer.phone, customer.secondaryPhone].filter(Boolean).join(" / ") || "Keine Telefonnummer"}</p>
                 </td>
                 <td className="px-4 py-3">{customer.portalEnabled ? "aktiv" : "nicht aktiv"}</td>
                 <td className="px-4 py-3 text-right">
@@ -1503,6 +1507,7 @@ function CustomerDetail(props: {
           <ViewField label="E-Mail" value={draft.email} />
           <ViewField label="E-Mail 2" value={draft.secondaryEmail} />
           <ViewField label="Telefon" value={draft.phone} />
+          <ViewField label="Telefon 2" value={draft.secondaryPhone} />
           <ViewField label="Braut" value={draft.brideName} />
           <ViewField label="Bräutigam" value={draft.groomName} />
           <ViewField label="Kategorie" value={draft.category} />
@@ -1600,6 +1605,7 @@ function CustomerDetail(props: {
         <Field label="E-Mail" value={draft.email} onChange={(value) => setDraft({ ...draft, email: value })} />
         <Field label="E-Mail 2" value={draft.secondaryEmail} onChange={(value) => setDraft({ ...draft, secondaryEmail: value })} />
         <Field label="Telefon" value={draft.phone} onChange={(value) => setDraft({ ...draft, phone: value })} />
+        <Field label="Telefon 2" value={draft.secondaryPhone} onChange={(value) => setDraft({ ...draft, secondaryPhone: value })} />
         <Field label="Name Braut" value={draft.brideName} onChange={(value) => setDraft({ ...draft, brideName: value })} />
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />

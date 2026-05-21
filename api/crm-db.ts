@@ -123,6 +123,7 @@ export type CrmCustomer = {
   email: string;
   secondaryEmail: string;
   phone: string;
+  secondaryPhone: string;
   category: string;
   eventDate: string;
   eventTime: string;
@@ -323,6 +324,7 @@ export async function ensureMarioCrmSchema() {
         email text NOT NULL DEFAULT '',
         secondary_email text NOT NULL DEFAULT '',
         phone text NOT NULL DEFAULT '',
+        secondary_phone text NOT NULL DEFAULT '',
         category text NOT NULL DEFAULT '',
         event_date text NOT NULL DEFAULT '',
         event_time text NOT NULL DEFAULT '',
@@ -363,6 +365,7 @@ export async function ensureMarioCrmSchema() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS bride_name text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS groom_name text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS secondary_email text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS secondary_phone text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS customer_address text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
@@ -440,6 +443,7 @@ function mapCustomer(row: any): CrmCustomer {
     email: row.email,
     secondaryEmail: row.secondary_email || "",
     phone: row.phone,
+    secondaryPhone: row.secondary_phone || "",
     category: row.category,
     eventDate: row.event_date,
     eventTime: row.event_time,
@@ -541,14 +545,14 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
   const portalToken = input.portalToken || createPortalToken();
   const rows = await sql()`
     INSERT INTO mario_customers (
-      id, portal_token, source_inquiry_id, status, name, email, secondary_email, phone, category, event_date, location,
+      id, portal_token, source_inquiry_id, status, name, email, secondary_email, phone, secondary_phone, category, event_date, location,
       bride_name, groom_name, customer_address, location_address, locations,
       event_time, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
       booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${id}, ${portalToken}, ${input.sourceInquiryId || ""}, ${input.status || "anfrage"},
-      ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.category || ""},
+      ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.secondaryPhone || ""}, ${input.category || ""},
       ${input.eventDate || ""}, ${input.location || ""}, ${input.brideName || ""}, ${input.groomName || ""},
       ${input.customerAddress || ""}, ${input.locationAddress || ""}, ${JSON.stringify(input.locations || [])}::jsonb,
       ${input.eventTime || ""}, ${input.consultationDate || ""}, ${input.consultationType || ""}, ${input.galleryUrl || ""},
@@ -572,13 +576,13 @@ export async function upsertCustomer(customer: CrmCustomer) {
   await ensureMarioCrmSchema();
   const rows = await sql()`
     INSERT INTO mario_customers (
-      id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, category, event_date, event_time, location,
+      id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, event_time, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
       booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
-      now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.category},
+      now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.secondaryPhone || ""}, ${customer.category},
       ${customer.eventDate}, ${customer.eventTime}, ${customer.location}, ${customer.customerAddress}, ${customer.locationAddress},
       ${JSON.stringify(customer.locations || [])}::jsonb, ${customer.consultationDate}, ${customer.consultationType},
       ${customer.galleryUrl}, ${customer.offerUrl}, ${customer.contractUrl}, ${customer.invoiceUrl},
@@ -599,6 +603,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       email = EXCLUDED.email,
       secondary_email = EXCLUDED.secondary_email,
       phone = EXCLUDED.phone,
+      secondary_phone = EXCLUDED.secondary_phone,
       category = EXCLUDED.category,
       event_date = EXCLUDED.event_date,
       event_time = EXCLUDED.event_time,
