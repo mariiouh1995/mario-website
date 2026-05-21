@@ -1565,27 +1565,28 @@ function CustomerDetail(props: {
         )}
 
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          <ViewField label="E-Mail" value={draft.email} />
-          <ViewField label="E-Mail 2" value={draft.secondaryEmail} />
-          <ViewField label="Telefon" value={draft.phone} />
-          <ViewField label="Telefon 2" value={draft.secondaryPhone} />
-          <ViewField label="Braut" value={draft.brideName} />
-          <ViewField label="Bräutigam" value={draft.groomName} />
-          <ViewField label="Kategorie" value={draft.category} />
-          <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, [draft.eventTime, draft.eventEndTime].filter(Boolean).join(" - ")].filter(Boolean).join(" · ")} />
-          <ViewField label="Dauer der Begleitung" value={draft.coverageDuration} />
-          <ViewField label="Anzahl Gäste" value={draft.guestCount} />
-          <ViewField label="Vorgespräch" value={draft.consultationDate} />
           <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
             <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Kundenadresse</p>
             <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{draft.customerAddress || "Noch nicht erfasst"}</p>
             <MapLink value={draft.customerAddress} />
           </div>
+          <ViewField label="Telefon" value={draft.phone} />
+          <ViewField label="Telefon 2" value={draft.secondaryPhone} />
+          <ViewField label="E-Mail" value={draft.email} />
+          <ViewField label="E-Mail 2" value={draft.secondaryEmail} />
+          <ViewField label="Von - Bis" value={[draft.eventTime, draft.eventEndTime].filter(Boolean).join(" - ")} />
+          <ViewField label="Gesamtdauer" value={draft.coverageDuration} />
+          <ViewField label="Anzahl Gäste" value={draft.guestCount} />
+          <ViewField label="Vorgespräch" value={draft.consultationDate} />
           <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Location</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Location-Adresse</p>
             <p className="mt-2 text-sm leading-relaxed text-black/75 whitespace-pre-wrap break-words">{draft.location || draft.locationAddress || "Noch nicht erfasst"}</p>
             <MapLink value={draft.locationAddress || draft.location} />
           </div>
+          <ViewField label="Braut" value={draft.brideName} />
+          <ViewField label="Bräutigam" value={draft.groomName} />
+          <ViewField label="Kategorie" value={draft.category} />
+          <ViewField label="Hochzeit/Shooting" value={draft.eventDate} />
         </div>
 
         {[...draft.bookedServices, ...draft.customServices].length > 0 && (
@@ -1670,21 +1671,21 @@ function CustomerDetail(props: {
       </section>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <Field label="E-Mail" value={draft.email} onChange={(value) => setDraft({ ...draft, email: value })} />
-        <Field label="E-Mail 2" value={draft.secondaryEmail} onChange={(value) => setDraft({ ...draft, secondaryEmail: value })} />
+        <Field label="Kundenadresse" value={draft.customerAddress} onChange={(value) => setDraft({ ...draft, customerAddress: value })} />
         <Field label="Telefon" value={draft.phone} onChange={(value) => setDraft({ ...draft, phone: value })} />
         <Field label="Telefon 2" value={draft.secondaryPhone} onChange={(value) => setDraft({ ...draft, secondaryPhone: value })} />
+        <Field label="E-Mail" value={draft.email} onChange={(value) => setDraft({ ...draft, email: value })} />
+        <Field label="E-Mail 2" value={draft.secondaryEmail} onChange={(value) => setDraft({ ...draft, secondaryEmail: value })} />
+        <Field label="Von" type="time" value={draft.eventTime} onChange={(value) => setDraft({ ...draft, eventTime: value })} />
+        <Field label="Bis" type="time" value={draft.eventEndTime} onChange={(value) => setDraft({ ...draft, eventEndTime: value })} />
+        <Field label="Gesamtdauer" value={draft.coverageDuration} onChange={(value) => setDraft({ ...draft, coverageDuration: value })} placeholder="z.B. 8 Stunden" />
+        <Field label="Anzahl Gäste" value={draft.guestCount} onChange={(value) => setDraft({ ...draft, guestCount: value })} placeholder="z.B. 80" />
+        <Field label="Vorgespräch" value={draft.consultationDate} onChange={(value) => setDraft({ ...draft, consultationDate: value })} placeholder="22. Mai 2026, 18:30 Uhr · Google Meet" />
+        <Field label="Location-Adresse" value={draft.locationAddress} onChange={(value) => setDraft({ ...draft, locationAddress: value })} />
         <Field label="Name Braut" value={draft.brideName} onChange={(value) => setDraft({ ...draft, brideName: value })} />
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />
         <Field label="Hochzeit/Shooting" type="date" value={draft.eventDate} onChange={(value) => setDraft(normalizeCustomer({ ...draft, eventDate: value }))} />
-        <Field label="Von" type="time" value={draft.eventTime} onChange={(value) => setDraft({ ...draft, eventTime: value })} />
-        <Field label="Bis" type="time" value={draft.eventEndTime} onChange={(value) => setDraft({ ...draft, eventEndTime: value })} />
-        <Field label="Dauer der Begleitung" value={draft.coverageDuration} onChange={(value) => setDraft({ ...draft, coverageDuration: value })} placeholder="z.B. 8 Stunden" />
-        <Field label="Anzahl Gäste" value={draft.guestCount} onChange={(value) => setDraft({ ...draft, guestCount: value })} placeholder="z.B. 80" />
-        <Field label="Vorgespräch" value={draft.consultationDate} onChange={(value) => setDraft({ ...draft, consultationDate: value })} placeholder="22. Mai 2026, 18:30 Uhr · Google Meet" />
-        <Field label="Kundenadresse" value={draft.customerAddress} onChange={(value) => setDraft({ ...draft, customerAddress: value })} />
-        <Field label="Location-Adresse" value={draft.locationAddress} onChange={(value) => setDraft({ ...draft, locationAddress: value })} />
         <Field label="Location-Name" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} placeholder="z.B. Schloss Elmau" />
         <Field label="Angebotslink" value={draft.offerUrl} onChange={(value) => setDraft({ ...draft, offerUrl: value })} />
         <Field label="Vertrag-Link" value={draft.contractUrl} onChange={(value) => setDraft({ ...draft, contractUrl: value })} />
