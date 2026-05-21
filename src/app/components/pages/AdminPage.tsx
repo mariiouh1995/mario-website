@@ -95,6 +95,9 @@ type Customer = {
   category: string;
   eventDate: string;
   eventTime: string;
+  eventEndTime: string;
+  coverageDuration: string;
+  guestCount: string;
   location: string;
   customerAddress: string;
   locationAddress: string;
@@ -204,6 +207,9 @@ const emptyCustomer = (): Customer => ({
   category: "Hochzeit",
   eventDate: "",
   eventTime: "",
+  eventEndTime: "",
+  coverageDuration: "",
+  guestCount: "",
   location: "",
   customerAddress: "",
   locationAddress: "",
@@ -263,6 +269,9 @@ function normalizeCustomer(customer: Customer): Customer {
     secondaryEmail: customer.secondaryEmail || "",
     secondaryPhone: customer.secondaryPhone || "",
     eventTime: customer.eventTime || "",
+    eventEndTime: customer.eventEndTime || "",
+    coverageDuration: customer.coverageDuration || "",
+    guestCount: customer.guestCount || "",
     offerUrl: customer.offerUrl || "",
     portalEnabled: Boolean(customer.portalEnabled),
     portalPassword: customer.portalPassword || "",
@@ -358,7 +367,9 @@ function downloadCustomerContact(customer: Customer) {
   const displayName = customer.name || [customer.brideName, customer.groomName].filter(Boolean).join(" & ") || "Mario Kunde";
   const note = [
     customer.category && `Kategorie: ${customer.category}`,
-    customer.eventDate && `Termin: ${formatDateDe(customer.eventDate)}${customer.eventTime ? ` ${customer.eventTime}` : ""}`,
+    customer.eventDate && `Termin: ${formatDateDe(customer.eventDate)}${[customer.eventTime, customer.eventEndTime].filter(Boolean).length ? ` ${[customer.eventTime, customer.eventEndTime].filter(Boolean).join(" - ")}` : ""}`,
+    customer.coverageDuration && `Dauer der Begleitung: ${customer.coverageDuration}`,
+    customer.guestCount && `Anzahl Gäste: ${customer.guestCount}`,
     customer.brideName && `Braut: ${customer.brideName}`,
     customer.groomName && `Bräutigam: ${customer.groomName}`,
     customer.locationAddress && `Location: ${customer.locationAddress}`,
@@ -495,7 +506,7 @@ export function AdminPage() {
           customerName: customer.name,
           type: "shooting",
           date: customer.eventDate,
-          time: customer.eventTime || "ganztags",
+          time: [customer.eventTime, customer.eventEndTime].filter(Boolean).join(" - ") || "ganztags",
           title: customer.category || "Shooting/Hochzeit",
           location: customer.location || customer.locationAddress,
         });
@@ -1511,7 +1522,9 @@ function CustomerDetail(props: {
           <ViewField label="Braut" value={draft.brideName} />
           <ViewField label="Bräutigam" value={draft.groomName} />
           <ViewField label="Kategorie" value={draft.category} />
-          <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, draft.eventTime].filter(Boolean).join(" · ")} />
+          <ViewField label="Hochzeit/Shooting" value={[draft.eventDate, [draft.eventTime, draft.eventEndTime].filter(Boolean).join(" - ")].filter(Boolean).join(" · ")} />
+          <ViewField label="Dauer der Begleitung" value={draft.coverageDuration} />
+          <ViewField label="Anzahl Gäste" value={draft.guestCount} />
           <ViewField label="Vorgespräch" value={draft.consultationDate} />
           <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
             <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Kundenadresse</p>
@@ -1610,7 +1623,10 @@ function CustomerDetail(props: {
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />
         <Field label="Hochzeit/Shooting" type="date" value={draft.eventDate} onChange={(value) => setDraft({ ...draft, eventDate: value })} />
-        <Field label="Uhrzeit Hochzeit/Shooting" type="time" value={draft.eventTime} onChange={(value) => setDraft({ ...draft, eventTime: value })} />
+        <Field label="Von" type="time" value={draft.eventTime} onChange={(value) => setDraft({ ...draft, eventTime: value })} />
+        <Field label="Bis" type="time" value={draft.eventEndTime} onChange={(value) => setDraft({ ...draft, eventEndTime: value })} />
+        <Field label="Dauer der Begleitung" value={draft.coverageDuration} onChange={(value) => setDraft({ ...draft, coverageDuration: value })} placeholder="z.B. 8 Stunden" />
+        <Field label="Anzahl Gäste" value={draft.guestCount} onChange={(value) => setDraft({ ...draft, guestCount: value })} placeholder="z.B. 80" />
         <Field label="Vorgespräch" value={draft.consultationDate} onChange={(value) => setDraft({ ...draft, consultationDate: value })} placeholder="22. Mai 2026, 18:30 Uhr · Google Meet" />
         <Field label="Kundenadresse" value={draft.customerAddress} onChange={(value) => setDraft({ ...draft, customerAddress: value })} />
         <Field label="Location-Adresse" value={draft.locationAddress} onChange={(value) => setDraft({ ...draft, locationAddress: value })} />
