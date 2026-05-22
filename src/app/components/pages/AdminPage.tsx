@@ -1550,26 +1550,6 @@ function CustomerDetail(props: {
           </div>
         </div>
 
-        <section className="rounded-lg border border-black/8 p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Status & Aufgaben</h3>
-            <button onClick={props.addTask} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">
-              <Plus className="w-4 h-4" /> Aufgabe
-            </button>
-          </div>
-          <TaskBoard tasks={workflowTasksOnly} requestTaskStatus={props.requestTaskStatus} />
-        </section>
-
-        {otherTasks.length > 0 && (
-          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h3 className="font-semibold">Zusätzliche Aufgaben</h3>
-              <button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button>
-            </div>
-            <TaskBoard tasks={otherTasks} requestTaskStatus={props.requestTaskStatus} />
-          </section>
-        )}
-
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
           <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-3 min-w-0">
             <p className="text-[11px] uppercase tracking-[0.16em] text-black/40">Kundenadresse</p>
@@ -1594,6 +1574,26 @@ function CustomerDetail(props: {
           <ViewField label="Kategorie" value={draft.category} />
           <ViewField label="Hochzeit/Shooting" value={draft.eventDate} />
         </div>
+
+        <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Status & Aufgaben</h3>
+            <button onClick={props.addTask} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">
+              <Plus className="w-4 h-4" /> Aufgabe
+            </button>
+          </div>
+          <TaskBoard tasks={workflowTasksOnly} requestTaskStatus={props.requestTaskStatus} />
+        </section>
+
+        {otherTasks.length > 0 && (
+          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="font-semibold">Zusätzliche Aufgaben</h3>
+              <button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button>
+            </div>
+            <TaskBoard tasks={otherTasks} requestTaskStatus={props.requestTaskStatus} />
+          </section>
+        )}
 
         {[...draft.bookedServices, ...draft.customServices].length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
@@ -1665,17 +1665,6 @@ function CustomerDetail(props: {
         </div>
       </div>
 
-      <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Schritte & Status</h3>
-          <div className="flex items-center gap-3">
-            <PortalToggle draft={draft} setDraft={setDraft} field="status" />
-            <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
-          </div>
-        </div>
-        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
-      </section>
-
       <div className="grid md:grid-cols-2 gap-4">
         <Field label="Kundenadresse" value={draft.customerAddress} onChange={(value) => setDraft({ ...draft, customerAddress: value })} />
         <Field label="Telefon" value={draft.phone} onChange={(value) => setDraft({ ...draft, phone: value })} />
@@ -1700,6 +1689,17 @@ function CustomerDetail(props: {
         <Field label="Anzahlung fällig bis" type="date" value={draft.depositDueDate} onChange={(value) => setDraft({ ...draft, depositDueDate: value })} />
         <Field label="Gesamtbetrag fällig bis" type="date" value={draft.finalPaymentDueDate} onChange={(value) => setDraft({ ...draft, finalPaymentDueDate: value })} />
       </div>
+
+      <section className="rounded-lg border border-black/8 p-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Schritte & Status</h3>
+          <div className="flex items-center gap-3">
+            <PortalToggle draft={draft} setDraft={setDraft} field="status" />
+            <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
+          </div>
+        </div>
+        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
+      </section>
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" /> Weitere Locations</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="locations" /><button onClick={props.addLocation} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Location</button></div></div>
