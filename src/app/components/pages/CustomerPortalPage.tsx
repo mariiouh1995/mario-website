@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, MapPin, MessageSquareText } from "lucide-react";
+import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
@@ -211,7 +211,7 @@ export function CustomerPortalPage() {
           <p className="text-white/45 text-xs uppercase tracking-[0.28em]">Mario Schubert Photography</p>
           <h1 className="mt-5 text-3xl md:text-5xl font-light">Servus ihr Lieben</h1>
           <p className="mt-5 max-w-2xl text-white/60 leading-relaxed">
-            {customer.portalIntro || "Hier findest du die wichtigsten Informationen zu unserem gemeinsamen Termin."}
+            {customer.portalIntro || "Hier sind die wichtigsten Informationen zu unserem gemeinsamen Termin."}
           </p>
         </div>
       </section>
@@ -393,6 +393,19 @@ export function CustomerPortalPage() {
             )}
           </section>
         )}
+
+        <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+          <h2 className="text-lg font-medium mb-2">Direkt zu Mario</h2>
+          <p className="text-sm text-black/55 mb-4">Wenn etwas offen ist oder ihr kurz etwas abstimmen wollt, erreicht ihr Mario direkt hier.</p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <a href="https://wa.me/4915155338029" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm hover:bg-black">
+              <MessageCircle className="w-4 h-4" /> WhatsApp
+            </a>
+            <a href="mailto:servus@marioschub.com" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-3 text-sm hover:border-black/25">
+              <Mail className="w-4 h-4" /> E-Mail
+            </a>
+          </div>
+        </section>
       </main>
     </div>
   );
