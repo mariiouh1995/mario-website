@@ -253,6 +253,11 @@ function deriveStatus(tasks: TaskItem[]): CustomerStatus {
   return (lastDone?.id.replace("step-", "") as CustomerStatus) || "anfrage";
 }
 
+function nextOpenTaskLabel(tasks: TaskItem[]) {
+  const workflow = statusSteps.map((step) => tasks.find((task) => task.id === `step-${step.key}`)).filter(Boolean) as TaskItem[];
+  return workflow.find((task) => task.status === "in_arbeit")?.title || workflow.find((task) => task.status === "offen")?.title || "Abgeschlossen";
+}
+
 function dateMinusWeeks(date: string, weeks: number) {
   if (!date) return "";
   const target = new Date(`${date}T00:00:00`);
@@ -1515,6 +1520,7 @@ function CustomerDetail(props: {
   const { draft, setDraft } = props;
   const workflowTasksOnly = draft.tasks.filter(isWorkflowTask);
   const otherTasks = draft.tasks.filter((task) => !isWorkflowTask(task));
+  const nextTaskStatus = nextOpenTaskLabel(draft.tasks);
 
   if (!props.editMode) {
     return (
@@ -1523,7 +1529,7 @@ function CustomerDetail(props: {
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-black/40">Kundenansicht</p>
             <h2 className="mt-1 text-2xl leading-tight">{draft.name || "Unbenannter Kunde"}</h2>
-            <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
+            <p className="text-sm text-black/45 mt-2">Status: {nextTaskStatus}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a href={`/kundenportal/${draft.portalToken}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
@@ -1644,7 +1650,7 @@ function CustomerDetail(props: {
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-black/40">Kundendetail</p>
           <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="mt-1 text-2xl bg-transparent border-b border-transparent focus:border-black/20 outline-none" placeholder="Name" />
-          <p className="text-sm text-black/45 mt-2">Status: {statusSteps.find((item) => item.key === draft.status)?.label || draft.status}</p>
+          <p className="text-sm text-black/45 mt-2">Status: {nextTaskStatus}</p>
           {props.autosaveStatus !== "idle" && (
             <p className={`mt-1 text-xs ${props.autosaveStatus === "error" ? "text-red-700" : "text-black/45"}`}>
               {props.autosaveStatus === "saving" ? "Autosave speichert..." : props.autosaveStatus === "saved" ? "Automatisch gespeichert" : "Autosave fehlgeschlagen"}
