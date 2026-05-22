@@ -1723,9 +1723,6 @@ function CustomerDetail(props: {
         <Field label="Location-Adresse" value={draft.locationAddress} onChange={(value) => setDraft({ ...draft, locationAddress: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />
         <Field label="Location-Name" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} placeholder="z.B. Schloss Elmau" />
-        <Field label="Angebotslink" value={draft.offerUrl} onChange={(value) => setDraft({ ...draft, offerUrl: value })} />
-        <Field label="Vertrag-Link" value={draft.contractUrl} onChange={(value) => setDraft({ ...draft, contractUrl: value })} />
-        <Field label="Rechnungslink" value={draft.invoiceUrl} onChange={(value) => setDraft({ ...draft, invoiceUrl: value })} />
         <Field label="Galerie-Link" value={draft.galleryUrl} onChange={(value) => setDraft({ ...draft, galleryUrl: value })} />
         <Field label="Anzahlung fällig bis" type="date" value={draft.depositDueDate} onChange={(value) => setDraft({ ...draft, depositDueDate: value })} />
         <Field label="Gesamtbetrag fällig bis" type="date" value={draft.finalPaymentDueDate} onChange={(value) => setDraft({ ...draft, finalPaymentDueDate: value })} />
