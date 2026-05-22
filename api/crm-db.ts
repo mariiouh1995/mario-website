@@ -127,6 +127,7 @@ export type CrmCustomer = {
   secondaryPhone: string;
   category: string;
   eventDate: string;
+  registryOfficeDate: string;
   eventTime: string;
   eventEndTime: string;
   coverageDuration: string;
@@ -333,6 +334,7 @@ export async function ensureMarioCrmSchema() {
         secondary_phone text NOT NULL DEFAULT '',
         category text NOT NULL DEFAULT '',
         event_date text NOT NULL DEFAULT '',
+        registry_office_date text NOT NULL DEFAULT '',
         event_time text NOT NULL DEFAULT '',
         event_end_time text NOT NULL DEFAULT '',
         coverage_duration text NOT NULL DEFAULT '',
@@ -379,6 +381,7 @@ export async function ensureMarioCrmSchema() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS location_address text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS locations jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS event_time text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS registry_office_date text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS event_end_time text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS coverage_duration text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS guest_count text NOT NULL DEFAULT ''`;
@@ -458,6 +461,7 @@ function mapCustomer(row: any): CrmCustomer {
     secondaryPhone: row.secondary_phone || "",
     category: row.category,
     eventDate: row.event_date,
+    registryOfficeDate: row.registry_office_date || "",
     eventTime: row.event_time,
     eventEndTime: row.event_end_time || "",
     coverageDuration: row.coverage_duration || "",
@@ -562,7 +566,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
     INSERT INTO mario_customers (
       id, portal_token, source_inquiry_id, status, name, email, secondary_email, phone, secondary_phone, category, event_date, location,
       bride_name, groom_name, customer_address, location_address, locations,
-      event_time, event_end_time, coverage_duration, guest_count, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
+      registry_office_date, event_time, event_end_time, coverage_duration, guest_count, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
       booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
@@ -570,7 +574,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.secondaryPhone || ""}, ${input.category || ""},
       ${input.eventDate || ""}, ${input.location || ""}, ${input.brideName || ""}, ${input.groomName || ""},
       ${input.customerAddress || ""}, ${input.locationAddress || ""}, ${JSON.stringify(input.locations || [])}::jsonb,
-      ${input.eventTime || ""}, ${input.eventEndTime || ""}, ${input.coverageDuration || ""}, ${input.guestCount || ""},
+      ${input.registryOfficeDate || ""}, ${input.eventTime || ""}, ${input.eventEndTime || ""}, ${input.coverageDuration || ""}, ${input.guestCount || ""},
       ${input.consultationDate || ""}, ${input.consultationType || ""}, ${input.galleryUrl || ""},
       ${input.offerUrl || ""}, ${input.contractUrl || ""}, ${input.invoiceUrl || ""},
       ${input.portalEnabled || false}, ${input.portalPassword || ""}, ${input.portalPublishedAt || ""},
@@ -592,14 +596,14 @@ export async function upsertCustomer(customer: CrmCustomer) {
   await ensureMarioCrmSchema();
   const rows = await sql()`
     INSERT INTO mario_customers (
-      id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, event_time, event_end_time, coverage_duration, guest_count, location,
+      id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, registry_office_date, event_time, event_end_time, coverage_duration, guest_count, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
       booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
       now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.secondaryPhone || ""}, ${customer.category},
-      ${customer.eventDate}, ${customer.eventTime}, ${customer.eventEndTime || ""}, ${customer.coverageDuration || ""}, ${customer.guestCount || ""},
+      ${customer.eventDate}, ${customer.registryOfficeDate || ""}, ${customer.eventTime}, ${customer.eventEndTime || ""}, ${customer.coverageDuration || ""}, ${customer.guestCount || ""},
       ${customer.location}, ${customer.customerAddress}, ${customer.locationAddress},
       ${JSON.stringify(customer.locations || [])}::jsonb, ${customer.consultationDate}, ${customer.consultationType},
       ${customer.galleryUrl}, ${customer.offerUrl}, ${customer.contractUrl}, ${customer.invoiceUrl},
@@ -623,6 +627,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       secondary_phone = EXCLUDED.secondary_phone,
       category = EXCLUDED.category,
       event_date = EXCLUDED.event_date,
+      registry_office_date = EXCLUDED.registry_office_date,
       event_time = EXCLUDED.event_time,
       event_end_time = EXCLUDED.event_end_time,
       coverage_duration = EXCLUDED.coverage_duration,
@@ -674,6 +679,7 @@ export function applyTemplate(template: string, customer: CrmCustomer) {
     .replaceAll("{firstName}", firstName)
     .replaceAll("{fullName}", customer.name)
     .replaceAll("{shootingDate}", customer.eventDate || "")
+    .replaceAll("{registryOfficeDate}", customer.registryOfficeDate || "")
     .replaceAll("{shootingTime}", [customer.eventTime, customer.eventEndTime].filter(Boolean).join(" - "))
     .replaceAll("{consultationDate}", customer.consultationDate || "")
     .replaceAll("{portalUrl}", `${publicUrl}/kundenportal/${customer.portalToken}`)

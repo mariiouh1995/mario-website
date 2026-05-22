@@ -95,6 +95,7 @@ type Customer = {
   secondaryPhone: string;
   category: string;
   eventDate: string;
+  registryOfficeDate: string;
   eventTime: string;
   eventEndTime: string;
   coverageDuration: string;
@@ -130,7 +131,7 @@ type WorkflowItem = { key: CustomerStatus; label: string };
 type MailTemplate = { label: string; subject: string; body: string };
 type ReminderSettings = { days: number[] };
 type NotificationItem = { id: string; customerId: string; customerName: string; taskId: string; taskTitle: string; dueDate: string; daysLeft: number };
-type CalendarEvent = { id: string; customerId: string; customerName: string; type: "shooting" | "consultation"; date: string; time: string; title: string; location: string };
+type CalendarEvent = { id: string; customerId: string; customerName: string; type: "shooting" | "consultation" | "registry"; date: string; time: string; title: string; location: string };
 type ConfirmAction = {
   title: string;
   description: string;
@@ -209,6 +210,7 @@ const emptyCustomer = (): Customer => ({
   secondaryPhone: "",
   category: "Hochzeit",
   eventDate: "",
+  registryOfficeDate: "",
   eventTime: "",
   eventEndTime: "",
   coverageDuration: "",
@@ -287,6 +289,7 @@ function normalizeCustomer(customer: Customer): Customer {
     ...customer,
     secondaryEmail: customer.secondaryEmail || "",
     secondaryPhone: customer.secondaryPhone || "",
+    registryOfficeDate: customer.registryOfficeDate || "",
     eventTime: customer.eventTime || "",
     eventEndTime: customer.eventEndTime || "",
     coverageDuration: customer.coverageDuration || "",
@@ -387,6 +390,7 @@ function downloadCustomerContact(customer: Customer) {
   const note = [
     customer.category && `Kategorie: ${customer.category}`,
     customer.eventDate && `Termin: ${formatDateDe(customer.eventDate)}${[customer.eventTime, customer.eventEndTime].filter(Boolean).length ? ` ${[customer.eventTime, customer.eventEndTime].filter(Boolean).join(" - ")}` : ""}`,
+    customer.registryOfficeDate && `Standesamt: ${formatDateDe(customer.registryOfficeDate)}`,
     customer.coverageDuration && `Dauer der Begleitung: ${customer.coverageDuration}`,
     customer.guestCount && `Anzahl Gäste: ${customer.guestCount}`,
     customer.brideName && `Braut: ${customer.brideName}`,
@@ -531,6 +535,18 @@ export function AdminPage() {
           time: [customer.eventTime, customer.eventEndTime].filter(Boolean).join(" - ") || "ganztags",
           title: customer.category || "Shooting/Hochzeit",
           location: customer.location || customer.locationAddress,
+        });
+      }
+      if (customer.registryOfficeDate) {
+        events.push({
+          id: `${customer.id}-registry`,
+          customerId: customer.id,
+          customerName: customer.name,
+          type: "registry",
+          date: customer.registryOfficeDate,
+          time: "offen",
+          title: "Standesamt",
+          location: customer.locationAddress || customer.location,
         });
       }
       const consultationDate = parseDate(customer.consultationDate);
@@ -1573,6 +1589,7 @@ function CustomerDetail(props: {
           <ViewField label="Bräutigam" value={draft.groomName} />
           <ViewField label="Kategorie" value={draft.category} />
           <ViewField label="Hochzeit/Shooting" value={draft.eventDate} />
+          <ViewField label="Standesamt Datum" value={draft.registryOfficeDate} />
         </div>
 
         <section className="rounded-lg border border-black/8 p-3 sm:p-4">
@@ -1681,6 +1698,7 @@ function CustomerDetail(props: {
         <Field label="Name Bräutigam" value={draft.groomName} onChange={(value) => setDraft({ ...draft, groomName: value })} />
         <Field label="Kategorie" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} />
         <Field label="Hochzeit/Shooting" type="date" value={draft.eventDate} onChange={(value) => setDraft(normalizeCustomer({ ...draft, eventDate: value }))} />
+        <Field label="Standesamt Datum" type="date" value={draft.registryOfficeDate} onChange={(value) => setDraft({ ...draft, registryOfficeDate: value })} />
         <Field label="Location-Name" value={draft.location} onChange={(value) => setDraft({ ...draft, location: value })} placeholder="z.B. Schloss Elmau" />
         <Field label="Angebotslink" value={draft.offerUrl} onChange={(value) => setDraft({ ...draft, offerUrl: value })} />
         <Field label="Vertrag-Link" value={draft.contractUrl} onChange={(value) => setDraft({ ...draft, contractUrl: value })} />

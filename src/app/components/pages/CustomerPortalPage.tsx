@@ -26,6 +26,7 @@ type Customer = {
   status: string;
   category: string;
   eventDate: string;
+  registryOfficeDate?: string;
   location: string;
   customerAddress?: string;
   locationAddress?: string;
@@ -92,6 +93,13 @@ function formatMoney(value?: string) {
 function moneyNumber(value?: string) {
   const parsed = Number((value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatDateDe(value?: string) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
 }
 
 function portalDocuments(customer: Customer, visibility: Required<PortalVisibility>) {
@@ -254,9 +262,14 @@ export function CustomerPortalPage() {
 
         <div className="grid md:grid-cols-3 gap-5">
           <InfoCard icon={<Calendar className="w-5 h-5" />} title={customer.category || "Termin"}>
-            <p>{customer.eventDate || "Datum folgt"}</p>
+            <p>{formatDateDe(customer.eventDate) || "Datum folgt"}</p>
             {customer.location && <p className="text-black/50 text-sm mt-1">{customer.location}</p>}
           </InfoCard>
+          {customer.registryOfficeDate && (
+            <InfoCard icon={<Calendar className="w-5 h-5" />} title="Standesamt">
+              <p>{formatDateDe(customer.registryOfficeDate)}</p>
+            </InfoCard>
+          )}
           <InfoCard icon={<Calendar className="w-5 h-5" />} title="Vorgespräch">
             <p>{customer.consultationDate || "Noch nicht festgelegt"}</p>
           </InfoCard>
