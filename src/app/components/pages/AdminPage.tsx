@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Download,
   ExternalLink,
+  GripVertical,
   ListChecks,
   Lock,
   LogOut,
@@ -784,6 +785,26 @@ export function AdminPage() {
     setDraft(normalizeCustomer({ ...draft, tasks, status: deriveStatus(tasks) }));
   };
 
+  const reorderTask = (draggedId: string, targetId: string) => {
+    if (!draft || draggedId === targetId) return;
+    const draggedTask = draft.tasks.find((task) => task.id === draggedId);
+    const targetTask = draft.tasks.find((task) => task.id === targetId);
+    if (!draggedTask || !targetTask || isWorkflowTask(draggedTask) !== isWorkflowTask(targetTask)) return;
+
+    const groupMatcher = isWorkflowTask(draggedTask) ? isWorkflowTask : (task: TaskItem) => !isWorkflowTask(task);
+    const groupTasks = draft.tasks.filter(groupMatcher);
+    const fromIndex = groupTasks.findIndex((task) => task.id === draggedId);
+    const toIndex = groupTasks.findIndex((task) => task.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const reorderedGroup = [...groupTasks];
+    const [moved] = reorderedGroup.splice(fromIndex, 1);
+    reorderedGroup.splice(toIndex, 0, moved);
+    let groupIndex = 0;
+    const tasks = draft.tasks.map((task) => (groupMatcher(task) ? reorderedGroup[groupIndex++] : task));
+    setDraft(normalizeCustomer({ ...draft, tasks, status: deriveStatus(tasks) }));
+  };
+
   const requestTaskStatus = (task: TaskItem, status: TaskStatus) => {
     if (!draft) return;
     const tasks = draft.tasks.map((item) => (item.id === task.id ? { ...item, status } : item));
@@ -1239,6 +1260,7 @@ export function AdminPage() {
               setMailBody={setMailBody}
               saveCustomer={saveCustomer}
               updateTask={updateTask}
+              reorderTask={reorderTask}
               requestTaskStatus={requestTaskStatus}
               addWorkflowStep={addWorkflowStep}
               addTask={addTask}
@@ -1514,6 +1536,7 @@ function CustomerDetail(props: {
   setMailBody: (value: string) => void;
   saveCustomer: () => void;
   updateTask: (id: string, patch: Partial<TaskItem>) => void;
+  reorderTask: (draggedId: string, targetId: string) => void;
   requestTaskStatus: (task: TaskItem, status: TaskStatus) => void;
   addWorkflowStep: () => void;
   addTask: () => void;
@@ -1716,7 +1739,7 @@ function CustomerDetail(props: {
             <button onClick={props.addWorkflowStep} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Schritt</button>
           </div>
         </div>
-        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
+        <TaskList tasks={workflowTasksOnly} updateTask={props.updateTask} reorderTask={props.reorderTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} compact />
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
@@ -1733,7 +1756,7 @@ function CustomerDetail(props: {
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between mb-3"><h3 className="font-semibold flex items-center gap-2"><ListChecks className="w-4 h-4" /> Zusätzliche Aufgaben</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="tasks" /><button onClick={props.addTask} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Aufgabe</button></div></div>
-        <TaskList tasks={otherTasks} updateTask={props.updateTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} />
+        <TaskList tasks={otherTasks} updateTask={props.updateTask} reorderTask={props.reorderTask} requestTaskStatus={props.requestTaskStatus} removeTask={props.removeTask} />
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
@@ -1871,7 +1894,23 @@ function PortalToggle({ draft, setDraft, field }: { draft: Customer; setDraft: (
   );
 }
 
-function TaskList({ tasks, updateTask, requestTaskStatus, removeTask, compact = false }: { tasks: TaskItem[]; updateTask: (id: string, patch: Partial<TaskItem>) => void; requestTaskStatus: (task: TaskItem, status: TaskStatus) => void; removeTask: (task: TaskItem) => void; compact?: boolean }) {
+function TaskList({
+  tasks,
+  updateTask,
+  reorderTask,
+  requestTaskStatus,
+  removeTask,
+  compact = false,
+}: {
+  tasks: TaskItem[];
+  updateTask: (id: string, patch: Partial<TaskItem>) => void;
+  reorderTask: (draggedId: string, targetId: string) => void;
+  requestTaskStatus: (task: TaskItem, status: TaskStatus) => void;
+  removeTask: (task: TaskItem) => void;
+  compact?: boolean;
+}) {
+  const [draggedTaskId, setDraggedTaskId] = useState("");
+
   if (tasks.length === 0) {
     return <p className="rounded-md border border-black/8 bg-[#faf8f5] px-3 py-3 text-sm text-black/45">Noch keine Aufgaben angelegt.</p>;
   }
@@ -1879,7 +1918,32 @@ function TaskList({ tasks, updateTask, requestTaskStatus, removeTask, compact = 
   return (
     <div className="space-y-2">
       {tasks.map((task) => (
-        <div key={task.id} className={`grid gap-2 ${compact ? "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto_auto]" : "sm:grid-cols-[minmax(0,1fr)_140px_130px_auto_auto]"}`}>
+        <div
+          key={task.id}
+          onDragOver={(event) => {
+            if (draggedTaskId && draggedTaskId !== task.id) event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (draggedTaskId) reorderTask(draggedTaskId, task.id);
+            setDraggedTaskId("");
+          }}
+          className={`grid gap-2 rounded-md ${draggedTaskId === task.id ? "opacity-55" : ""} ${compact ? "sm:grid-cols-[34px_minmax(0,1fr)_140px_130px_auto_auto]" : "sm:grid-cols-[34px_minmax(0,1fr)_140px_130px_auto_auto]"}`}
+        >
+          <button
+            type="button"
+            draggable
+            onDragStart={(event) => {
+              setDraggedTaskId(task.id);
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", task.id);
+            }}
+            onDragEnd={() => setDraggedTaskId("")}
+            className="hidden sm:inline-flex items-center justify-center rounded-md border border-black/10 bg-white text-black/35 hover:text-black/70 cursor-grab active:cursor-grabbing"
+            title="Aufgabe ziehen, um die Reihenfolge zu ändern"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
           <input value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
           <input type="date" value={task.dueDate || ""} onChange={(event) => updateTask(task.id, { dueDate: event.target.value })} className="rounded-md border border-black/10 px-2 py-2 text-sm" />
           <select value={task.status} onChange={(event) => requestTaskStatus(task, event.target.value as TaskStatus)} className="rounded-md border border-black/10 px-2 py-2 text-sm">
