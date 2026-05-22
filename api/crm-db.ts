@@ -58,13 +58,19 @@ export type PaymentItem = {
 
 export type CustomerDocument = {
   id: string;
-  kind: "offer" | "contract" | "invoice" | "custom";
+  kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom";
   title: string;
   url: string;
   driveFileId?: string;
   fileName?: string;
   mimeType?: string;
   uploadedAt?: string;
+};
+
+export type InspirationLink = {
+  id: string;
+  title: string;
+  url: string;
 };
 
 export type PortalMessage = {
@@ -152,6 +158,7 @@ export type CrmCustomer = {
   depositDueDate: string;
   finalPaymentDueDate: string;
   documents: CustomerDocument[];
+  inspirationLinks: InspirationLink[];
   driveFolderId: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
@@ -359,6 +366,7 @@ export async function ensureMarioCrmSchema() {
         deposit_due_date text NOT NULL DEFAULT '',
         final_payment_due_date text NOT NULL DEFAULT '',
         documents jsonb NOT NULL DEFAULT '[]',
+        inspiration_links jsonb NOT NULL DEFAULT '[]',
         drive_folder_id text NOT NULL DEFAULT '',
         tasks jsonb NOT NULL DEFAULT '[]',
         portal_visibility jsonb NOT NULL DEFAULT '{}',
@@ -396,6 +404,7 @@ export async function ensureMarioCrmSchema() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS deposit_due_date text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS final_payment_due_date text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS documents jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS inspiration_links jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS drive_folder_id text NOT NULL DEFAULT ''`;
 
     await db`
@@ -486,6 +495,7 @@ function mapCustomer(row: any): CrmCustomer {
     depositDueDate: row.deposit_due_date,
     finalPaymentDueDate: row.final_payment_due_date,
     documents: normalizeJson<CustomerDocument[]>(row.documents, []),
+    inspirationLinks: normalizeJson<InspirationLink[]>(row.inspiration_links, []),
     driveFolderId: row.drive_folder_id,
     tasks: normalizeJson<TaskItem[]>(row.tasks, DEFAULT_TASKS),
     portalVisibility: { ...DEFAULT_PORTAL_VISIBILITY, ...normalizeJson<Partial<PortalVisibility>>(row.portal_visibility, {}) },
@@ -568,7 +578,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       bride_name, groom_name, customer_address, location_address, locations,
       registry_office_date, event_time, event_end_time, coverage_duration, guest_count, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${id}, ${portalToken}, ${input.sourceInquiryId || ""}, ${input.status || "anfrage"},
       ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.secondaryPhone || ""}, ${input.category || ""},
@@ -581,7 +591,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       ${input.contractStatus || "nicht_gesendet"}, ${JSON.stringify(input.bookedServices || [])}::jsonb,
       ${JSON.stringify(input.customServices || [])}::jsonb, ${JSON.stringify(input.payments || [])}::jsonb,
       ${input.depositDueDate || ""}, ${input.finalPaymentDueDate || ""},
-      ${JSON.stringify(input.documents || [])}::jsonb, ${input.driveFolderId || ""},
+      ${JSON.stringify(input.documents || [])}::jsonb, ${JSON.stringify(input.inspirationLinks || [])}::jsonb, ${input.driveFolderId || ""},
       ${JSON.stringify(input.tasks || DEFAULT_TASKS)}::jsonb,
       ${JSON.stringify(input.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(input.portalMessages || [])}::jsonb,
@@ -599,7 +609,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, registry_office_date, event_time, event_end_time, coverage_duration, guest_count, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
       now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.secondaryPhone || ""}, ${customer.category},
@@ -610,7 +620,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       ${customer.portalEnabled || false}, ${customer.portalPassword || ""}, ${customer.portalPublishedAt || ""}, ${customer.contractStatus},
       ${JSON.stringify(customer.bookedServices || [])}::jsonb, ${JSON.stringify(customer.customServices || [])}::jsonb,
       ${JSON.stringify(customer.payments || [])}::jsonb, ${customer.depositDueDate || ""}, ${customer.finalPaymentDueDate || ""},
-      ${JSON.stringify(customer.documents || [])}::jsonb, ${customer.driveFolderId || ""},
+      ${JSON.stringify(customer.documents || [])}::jsonb, ${JSON.stringify(customer.inspirationLinks || [])}::jsonb, ${customer.driveFolderId || ""},
       ${JSON.stringify(customer.tasks || [])}::jsonb, ${JSON.stringify(customer.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(customer.portalMessages || [])}::jsonb, ${customer.notes}, ${customer.portalIntro}
     )
@@ -652,6 +662,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       deposit_due_date = EXCLUDED.deposit_due_date,
       final_payment_due_date = EXCLUDED.final_payment_due_date,
       documents = EXCLUDED.documents,
+      inspiration_links = EXCLUDED.inspiration_links,
       drive_folder_id = EXCLUDED.drive_folder_id,
       tasks = EXCLUDED.tasks,
       portal_visibility = EXCLUDED.portal_visibility,

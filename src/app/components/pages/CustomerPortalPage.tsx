@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Upload } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
-type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status?: boolean;
   tasks?: boolean;
@@ -43,6 +44,7 @@ type Customer = {
   depositDueDate?: string;
   finalPaymentDueDate?: string;
   documents?: CustomerDocument[];
+  inspirationLinks?: InspirationLink[];
   tasks: TaskItem[];
   portalIntro: string;
   portalVisibility?: PortalVisibility;
@@ -102,6 +104,15 @@ function formatDateDe(value?: string) {
   return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
 }
 
+function readBlobAsBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function portalDocuments(customer: Customer, visibility: Required<PortalVisibility>) {
   const existing = new Map((customer.documents || []).map((document) => [document.id, document]));
   const standard: CustomerDocument[] = [
@@ -127,6 +138,8 @@ export function CustomerPortalPage() {
   const [error, setError] = useState("");
   const [portalPassword, setPortalPassword] = useState(() => sessionStorage.getItem(`portal_pw_${token}`) || "");
   const [needsPassword, setNeedsPassword] = useState(false);
+  const [uploadingContract, setUploadingContract] = useState(false);
+  const [portalNotice, setPortalNotice] = useState("");
 
   useEffect(() => {
     async function loadPortal() {
@@ -203,6 +216,78 @@ export function CustomerPortalPage() {
   const messages = (customer.portalMessages || []).filter((item) => item.visible);
   const locations = customer.locations || [];
   const documents = portalDocuments(customer, visibility);
+  const inspirationLinks = customer.inspirationLinks || [];
+
+  const portalApi = async (action: string, body: Record<string, unknown>) => {
+    const res = await fetch(`/api/mario-crm?action=${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password: portalPassword, ...body }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Aktion konnte nicht ausgeführt werden");
+    return data;
+  };
+
+  const saveInspirationLinks = async (links: InspirationLink[]) => {
+    setCustomer({ ...customer, inspirationLinks: links });
+    setPortalNotice("");
+    try {
+      const data = await portalApi("portal-inspiration-links", { inspirationLinks: links });
+      setCustomer(data.customer);
+      setPortalNotice("Inspirationen gespeichert.");
+    } catch (err: any) {
+      setPortalNotice(err.message || "Inspirationen konnten nicht gespeichert werden.");
+    }
+  };
+
+  const uploadSignedContract = async (file: File) => {
+    if (file.size > 100 * 1024 * 1024) {
+      setPortalNotice("Die Datei ist zu groß. Bitte nutzt für sehr große Dateien einen Drive-Link.");
+      return;
+    }
+    setUploadingContract(true);
+    setPortalNotice("Vertrag wird hochgeladen...");
+    try {
+      const session = await portalApi("portal-upload-document", {
+        documentId: "doc-signed-contract",
+        kind: "signed_contract",
+        title: "Unterzeichneter Vertrag",
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+      });
+      const chunkSize = 2 * 1024 * 1024;
+      let fileId = "";
+      for (let start = 0; start < file.size; start += chunkSize) {
+        const end = Math.min(start + chunkSize, file.size);
+        const contentBase64 = await readBlobAsBase64(file.slice(start, end));
+        const chunk = await portalApi("portal-upload-document-chunk", {
+          uploadUrl: session.uploadUrl,
+          mimeType: file.type || "application/octet-stream",
+          contentBase64,
+          start,
+          end,
+          total: file.size,
+        });
+        if (chunk.done) fileId = chunk.fileId;
+      }
+      if (!fileId) throw new Error("Google Drive hat keine Datei-ID zurückgegeben");
+      const data = await portalApi("portal-finish-document-upload", {
+        documentId: "doc-signed-contract",
+        kind: "signed_contract",
+        title: "Unterzeichneter Vertrag",
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        fileId,
+      });
+      setCustomer(data.customer);
+      setPortalNotice("Unterzeichneter Vertrag hochgeladen. Mario wurde informiert.");
+    } catch (err: any) {
+      setPortalNotice(err.message || "Der Vertrag konnte nicht hochgeladen werden.");
+    } finally {
+      setUploadingContract(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17]">
@@ -272,6 +357,11 @@ export function CustomerPortalPage() {
           )}
           <InfoCard icon={<Calendar className="w-5 h-5" />} title="Vorgespräch">
             <p>{customer.consultationDate || "Noch nicht festgelegt"}</p>
+            {!customer.consultationDate && (
+              <a href="https://wa.me/4915155338029?text=Servus%20Mario%2C%20wir%20w%C3%BCrden%20gerne%20die%20Vorbesprechung%20vereinbaren." target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm hover:bg-black">
+                <MessageCircle className="w-4 h-4" /> Hier Vorbesprechung vereinbaren
+              </a>
+            )}
           </InfoCard>
         </div>
 
@@ -290,6 +380,52 @@ export function CustomerPortalPage() {
             </div>
           </section>
         )}
+
+        <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+            <Upload className="w-5 h-5" /> Unterzeichneten Vertrag hochladen
+          </h2>
+          <p className="text-sm text-black/55 mb-4">Wenn der Vertrag unterschrieben ist, könnt ihr ihn hier direkt an Mario übermitteln.</p>
+          <label className={`inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm ${uploadingContract ? "opacity-55 cursor-wait" : "cursor-pointer hover:bg-black"}`}>
+            <Upload className="w-4 h-4" /> {uploadingContract ? "Upload läuft..." : "Vertrag auswählen"}
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              disabled={uploadingContract}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.currentTarget.value = "";
+                if (file) uploadSignedContract(file);
+              }}
+            />
+          </label>
+          {(customer.documents || []).find((document) => document.id === "doc-signed-contract")?.fileName && (
+            <p className="mt-3 text-sm text-black/55">Zuletzt hochgeladen: {(customer.documents || []).find((document) => document.id === "doc-signed-contract")?.fileName}</p>
+          )}
+        </section>
+
+        <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-medium">Inspirationen</h2>
+              <p className="text-sm text-black/55 mt-1">Links zu Pinterest, Webseiten, Galerien oder anderen Ideen, die Mario kennen sollte.</p>
+            </div>
+            <button onClick={() => setCustomer({ ...customer, inspirationLinks: [...inspirationLinks, { id: `insp-${Date.now()}`, title: "Neue Inspiration", url: "" }] })} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm hover:border-black/25">
+              <Plus className="w-4 h-4" /> Link
+            </button>
+          </div>
+          <div className="space-y-2">
+            {inspirationLinks.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm text-black/45">Noch keine Inspirationslinks hinterlegt.</p>}
+            {inspirationLinks.map((link) => (
+              <div key={link.id} className="grid md:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)_auto] gap-2">
+                <input value={link.title} onChange={(event) => setCustomer({ ...customer, inspirationLinks: inspirationLinks.map((item) => (item.id === link.id ? { ...item, title: event.target.value } : item)) })} onBlur={() => link.url && saveInspirationLinks(customer.inspirationLinks || [])} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Titel" />
+                <input value={link.url} onChange={(event) => setCustomer({ ...customer, inspirationLinks: inspirationLinks.map((item) => (item.id === link.id ? { ...item, url: event.target.value } : item)) })} onBlur={() => saveInspirationLinks(customer.inspirationLinks || [])} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="https://..." />
+                <button onClick={() => saveInspirationLinks(inspirationLinks.filter((item) => item.id !== link.id))} className="rounded-md border border-black/10 px-3 py-2 text-sm text-black/55 hover:text-black">Entfernen</button>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {visibility.locations && (customer.locationAddress || locations.length > 0) && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
@@ -397,6 +533,7 @@ export function CustomerPortalPage() {
         <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
           <h2 className="text-lg font-medium mb-2">Direkt zu Mario</h2>
           <p className="text-sm text-black/55 mb-4">Wenn etwas offen ist oder ihr kurz etwas abstimmen wollt, erreicht ihr Mario direkt hier.</p>
+          <p className="text-sm text-black/55 mb-4">Mario Schubert, Bäckerbühelgasse 14, 6020 Innsbruck</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <a href="https://wa.me/4915155338029" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm hover:bg-black">
               <MessageCircle className="w-4 h-4" /> WhatsApp
@@ -406,6 +543,7 @@ export function CustomerPortalPage() {
             </a>
           </div>
         </section>
+        {portalNotice && <p className="text-center text-sm text-black/55">{portalNotice}</p>}
       </main>
     </div>
   );

@@ -46,7 +46,8 @@ type ServiceItem = { id: string; name: string; price: string; type: "package" | 
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
-type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status: boolean;
   tasks: boolean;
@@ -121,6 +122,7 @@ type Customer = {
   depositDueDate: string;
   finalPaymentDueDate: string;
   documents: CustomerDocument[];
+  inspirationLinks: InspirationLink[];
   driveFolderId: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
@@ -236,6 +238,7 @@ const emptyCustomer = (): Customer => ({
   depositDueDate: "",
   finalPaymentDueDate: "",
   documents: [],
+  inspirationLinks: [],
   driveFolderId: "",
   tasks: workflowTasks(),
   portalVisibility: { ...defaultPortalVisibility },
@@ -307,6 +310,7 @@ function normalizeCustomer(customer: Customer): Customer {
     depositDueDate: customer.depositDueDate || "",
     finalPaymentDueDate: customer.finalPaymentDueDate || "",
     documents: customer.documents || [],
+    inspirationLinks: customer.inspirationLinks || [],
     driveFolderId: customer.driveFolderId || "",
     locations: customer.locations || [],
     tasks,
@@ -1664,6 +1668,20 @@ function CustomerDetail(props: {
           readOnly
         />
 
+        {draft.inspirationLinks.length > 0 && (
+          <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+            <h3 className="font-semibold mb-3">Inspirationen der Kunden</h3>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {draft.inspirationLinks.map((link) => (
+                <a key={link.id} href={normalizeHref(link.url)} target="_blank" rel="noreferrer" className="rounded-md bg-[#faf8f5] border border-black/8 px-3 py-3 text-sm hover:border-black/20 min-w-0">
+                  <span className="block font-medium truncate">{link.title || "Inspiration"}</span>
+                  <span className="mt-2 inline-flex items-center gap-1 text-xs text-[#6c5746]">Link öffnen <ExternalLink className="w-3 h-3" /></span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
         {draft.locations.length > 0 && (
           <section className="rounded-lg border border-black/8 p-3 sm:p-4">
             <h3 className="font-semibold flex items-center gap-2 mb-3"><MapPin className="w-4 h-4" /> Weitere Locations</h3>
@@ -1999,7 +2017,7 @@ function customerDocuments(draft: Customer) {
     { id: "doc-contract", kind: "contract", title: "Vertrag", url: draft.contractUrl },
     { id: "doc-invoice", kind: "invoice", title: "Rechnung", url: draft.invoiceUrl },
   ].map((document) => ({ ...document, ...(existing.get(document.id) || {}), url: existing.get(document.id)?.url || document.url }));
-  const custom = draft.documents.filter((document) => document.kind === "custom");
+  const custom = draft.documents.filter((document) => !["offer", "contract", "invoice"].includes(document.kind));
   return [...standard, ...custom];
 }
 

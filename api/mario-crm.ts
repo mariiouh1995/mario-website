@@ -7,6 +7,7 @@ type CrmCustomer = any;
 type CustomerStatus = string;
 type InquiryStatus = string;
 type CustomerDocument = any;
+type InspirationLink = any;
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -206,6 +207,78 @@ function customerMailRecipients(customer: CrmCustomer) {
   return [customer.email, customer.secondaryEmail].map(normalizeString).filter(Boolean);
 }
 
+async function getPortalCustomer(req: VercelRequest) {
+  const token = normalizeString(req.body?.token) || normalizeString(req.query.token);
+  const password = normalizeString(req.body?.password) || normalizeString(req.query.password);
+  if (!token || !password) throw new Error("Portal token and password are required");
+  const customer = await crm.getCustomerByToken(token);
+  if (!customer || !customer.portalEnabled || password !== customer.portalPassword) throw new Error("Falsches Passwort");
+  return customer;
+}
+
+async function createDriveUploadSession(customer: CrmCustomer, input: { title: string; kind: string; documentId: string; fileName: string; mimeType: string }) {
+  const folderId = await ensureCustomerDriveFolder(customer);
+  const accessToken = await driveAccessToken();
+  const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,webViewLink", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": input.mimeType,
+    },
+    body: JSON.stringify({ name: input.fileName, parents: [folderId] }),
+  });
+  if (!uploadResponse.ok) {
+    const detail = await uploadResponse.text();
+    throw new Error(`Google Drive upload session failed: ${detail || uploadResponse.statusText}`);
+  }
+  const uploadUrl = uploadResponse.headers.get("location");
+  if (!uploadUrl) throw new Error("Google Drive upload session did not return an upload URL");
+  return { uploadUrl, folderId, document: input };
+}
+
+async function uploadDriveChunk(input: { uploadUrl: string; mimeType: string; contentBase64: string; start: number; end: number; total: number }) {
+  if (!input.uploadUrl.startsWith("https://www.googleapis.com/upload/drive/v3/files")) throw new Error("Invalid Google Drive upload URL");
+  if (!input.contentBase64 || !Number.isFinite(input.start) || !Number.isFinite(input.end) || !Number.isFinite(input.total)) {
+    throw new Error("chunk upload payload is incomplete");
+  }
+
+  const buffer = Buffer.from(input.contentBase64, "base64");
+  const uploadResponse = await fetch(input.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": input.mimeType,
+      "Content-Length": String(buffer.length),
+      "Content-Range": `bytes ${input.start}-${input.end - 1}/${input.total}`,
+    },
+    body: buffer,
+  });
+  if (uploadResponse.status === 308) return { done: false };
+  const data = await uploadResponse.json().catch(async () => ({ error: { message: await uploadResponse.text().catch(() => "") } }));
+  if (!uploadResponse.ok) throw new Error(data?.error?.message || "Google Drive chunk upload failed");
+  return { done: true, fileId: data.id };
+}
+
+async function finishDriveDocumentUpload(customer: CrmCustomer, input: { title: string; kind: string; documentId: string; fileName: string; mimeType: string; fileId: string }) {
+  const existingDoc = (customer.documents || []).find((item: CustomerDocument) => item.id === input.documentId);
+  if (existingDoc?.driveFileId && existingDoc.driveFileId !== input.fileId) await deleteDriveFile(existingDoc.driveFileId);
+  const folderId = customer.driveFolderId || (await ensureCustomerDriveFolder(customer));
+  const drive = driveClient();
+  await drive.permissions.create({ fileId: input.fileId, supportsAllDrives: true, requestBody: { type: "anyone", role: "reader" } });
+  const file = await drive.files.get({ fileId: input.fileId, supportsAllDrives: true, fields: "webViewLink" });
+  const url = file.data.webViewLink || "";
+  const document = { id: input.documentId, kind: input.kind, title: input.title, url, driveFileId: input.fileId, fileName: input.fileName, mimeType: input.mimeType, uploadedAt: new Date().toISOString() };
+  const saved = await crm.upsertCustomer({
+    ...customer,
+    driveFolderId: folderId,
+    documents: upsertDocument(customer, document),
+    offerUrl: input.kind === "offer" ? url : customer.offerUrl,
+    contractUrl: input.kind === "contract" ? url : customer.contractUrl,
+    invoiceUrl: input.kind === "invoice" ? url : customer.invoiceUrl,
+  });
+  return { customer: saved, document };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -223,6 +296,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!password) return res.status(200).json({ requiresPassword: true, workflow: crm.WORKFLOW });
       if (password !== customer.portalPassword) return res.status(401).json({ requiresPassword: true, error: "Falsches Passwort" });
       return res.status(200).json({ customer, workflow: crm.WORKFLOW });
+    }
+
+    if (req.method === "POST" && action === "portal-inspiration-links") {
+      const customer = await getPortalCustomer(req);
+      const links = Array.isArray(req.body?.inspirationLinks) ? req.body.inspirationLinks : [];
+      const inspirationLinks = links
+        .map((item: InspirationLink) => ({
+          id: normalizeString(item.id) || crm.createId("insp"),
+          title: normalizeString(item.title) || "Inspiration",
+          url: normalizeString(item.url),
+        }))
+        .filter((item: InspirationLink) => item.url);
+      const saved = await crm.upsertCustomer({ ...customer, inspirationLinks });
+      return res.status(200).json({ customer: saved });
+    }
+
+    if (req.method === "POST" && action === "portal-upload-document") {
+      const customer = await getPortalCustomer(req);
+      const title = normalizeString(req.body?.title) || "Unterzeichneter Vertrag";
+      const kind = normalizeString(req.body?.kind) || "signed_contract";
+      const documentId = normalizeString(req.body?.documentId) || "doc-signed-contract";
+      const fileName = normalizeString(req.body?.fileName) || `${title}.pdf`;
+      const mimeType = normalizeString(req.body?.mimeType) || "application/octet-stream";
+      const session = await createDriveUploadSession(customer, { title, kind, documentId, fileName, mimeType });
+      return res.status(200).json(session);
+    }
+
+    if (req.method === "POST" && action === "portal-upload-document-chunk") {
+      await getPortalCustomer(req);
+      const result = await uploadDriveChunk({
+        uploadUrl: normalizeString(req.body?.uploadUrl),
+        mimeType: normalizeString(req.body?.mimeType) || "application/octet-stream",
+        contentBase64: normalizeString(req.body?.contentBase64),
+        start: Number(req.body?.start),
+        end: Number(req.body?.end),
+        total: Number(req.body?.total),
+      });
+      return res.status(200).json(result);
+    }
+
+    if (req.method === "POST" && action === "portal-finish-document-upload") {
+      const customer = await getPortalCustomer(req);
+      const fileId = normalizeString(req.body?.fileId);
+      if (!fileId) return res.status(400).json({ error: "fileId is required" });
+      const result = await finishDriveDocumentUpload(customer, {
+        title: normalizeString(req.body?.title) || "Unterzeichneter Vertrag",
+        kind: normalizeString(req.body?.kind) || "signed_contract",
+        documentId: normalizeString(req.body?.documentId) || "doc-signed-contract",
+        fileName: normalizeString(req.body?.fileName) || "Unterzeichneter Vertrag.pdf",
+        mimeType: normalizeString(req.body?.mimeType) || "application/octet-stream",
+        fileId,
+      });
+      if (process.env.SMTP_USER) {
+        const body = [
+          "Servus Mario,",
+          "",
+          `${customer.name || "Ein Kunde"} hat im Kundenportal einen unterzeichneten Vertrag hochgeladen.`,
+          "",
+          `Datei: ${result.document.fileName || result.document.title}`,
+          `Link: ${result.document.url}`,
+        ].join("\n");
+        await createTransport().sendMail({
+          from: `"Mario Website" <${process.env.SMTP_USER}>`,
+          to: process.env.MARIO_NOTIFICATION_EMAIL || process.env.SMTP_USER,
+          subject: `Unterzeichneter Vertrag hochgeladen: ${customer.name || "Kunde"}`,
+          html: mailHtml(body),
+          text: body,
+        });
+      }
+      return res.status(200).json(result);
     }
 
     if (!ensureAdmin(req, res)) return;
