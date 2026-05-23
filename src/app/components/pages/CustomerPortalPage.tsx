@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Upload } from "lucide-react";
+import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
@@ -71,6 +71,8 @@ const taskStatusLabels: Record<TaskItem["status"], string> = {
   erledigt: "Erledigt",
   obsolet: "Nicht mehr relevant",
 };
+
+const googleReviewUrl = "https://www.google.com/search?sa=X&sca_esv=b95ffecbfaf145e4&rlz=1C1VDKB_deDE1086DE1086&sxsrf=ANbL-n4RUp9IZMCcVQIBjgqxGIbCoeaZCg:1779517228765&q=Mario+Schubert+-+Fotografie+%26+Videografie+Rezensionen&rflfq=1&num=20&stick=H4sIAAAAAAAAAONgkxI2MjUyNLQwsDCxNDAzNDM1NTMz2MDI-IrR1DexKDNfITg5ozQptahEQVfBLb8kP70oMS0zVUFNISwzJRXGC0qtSs0rzszPS81bxEqePgCy7HgQigAAAA&rldimm=2521180849061655660&tbm=lcl&hl=de-DE&ved=2ahUKEwi_-qqi4s6UAxViXfEDHS97JuIQ9fQKegQIShAG&biw=1920&bih=911&dpr=1#";
 
 function normalizeHref(value?: string) {
   const trimmed = (value || "").trim();
@@ -529,6 +531,21 @@ export function CustomerPortalPage() {
             )}
           </section>
         )}
+
+        <section className="bg-white/70 border border-black/8 rounded-lg p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Star className="w-5 h-5 text-[#8a6a45] mt-0.5" />
+              <div>
+                <h2 className="text-base font-medium">Eure Erfahrung mit Mario</h2>
+                <p className="text-sm text-black/55 mt-1">Wenn ihr mögt, freut sich Mario sehr über ein paar ehrliche Worte auf Google.</p>
+              </div>
+            </div>
+            <a href={googleReviewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2.5 text-sm hover:border-black/25">
+              Bewertung schreiben <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        </section>
 
         <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
           <h2 className="text-lg font-medium mb-2">Direkt zu Mario</h2>
