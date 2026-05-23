@@ -160,6 +160,29 @@ const taskStatusStyles: Record<TaskStatus, string> = {
   obsolet: "bg-black/5 border-black/10 text-black/45",
 };
 
+const marioServicePresets: { name: string; price: string; group: string }[] = [
+  { group: "Fotografie", name: "Essential Fotografie - 6 Std Reportage, 400 Bilder", price: "2090" },
+  { group: "Fotografie", name: "Signature Fotografie - 8 Std Reportage, 600 Bilder", price: "2590" },
+  { group: "Fotografie", name: "Classic Fotografie - 10 Std Reportage, 700 Bilder", price: "3090" },
+  { group: "Fotografie", name: "Complete Fotografie - 12 Std Reportage, 900 Bilder", price: "3490" },
+  { group: "Foto + Video", name: "Signature Plus+ - Foto, Minivideo & Fotospiegel", price: "3290" },
+  { group: "Video", name: "Essential Video - 6 Std, 2-3 Min. Film", price: "1500" },
+  { group: "Video", name: "Signature Video - 8 Std, 5-7 Min. Film", price: "2350" },
+  { group: "Video", name: "Complete Video - 10-12 Std, 8-10 Min. Film", price: "2900" },
+  { group: "Extras", name: "Fotospiegel - 400 Ausdrucke, Layout, Requisiten, digitale Bilder", price: "450" },
+  { group: "Extras", name: "Minivideo - 90-120 Sek. Zusammenschnitt mit Musik", price: "400" },
+  { group: "Extras", name: "Expresslieferung - alle Bilder innerhalb 14 Werktagen", price: "500" },
+  { group: "Extras", name: "Drohnenbilder - 15 bearbeitete Luftaufnahmen", price: "150" },
+  { group: "Zusatzstunden", name: "Zusatzstunde Fotografie Essential", price: "320" },
+  { group: "Zusatzstunden", name: "Zusatzstunde Fotografie Signature / Signature Plus+", price: "300" },
+  { group: "Zusatzstunden", name: "Zusatzstunde Fotografie Classic", price: "290" },
+  { group: "Zusatzstunden", name: "Zusatzstunde Fotografie Complete", price: "250" },
+  { group: "Zusatzstunden", name: "Zusatzstunde Video", price: "200" },
+  { group: "Destination", name: "Blocking-Fee Destination Wedding - 1 Nacht", price: "300" },
+  { group: "Destination", name: "Blocking-Fee Destination Wedding - 2 Nächte", price: "500" },
+  { group: "Destination", name: "Blocking-Fee Destination Wedding - 3+ Nächte", price: "800" },
+];
+
 const statusSteps: WorkflowItem[] = [
   { key: "anfrage", label: "Anfrage" },
   { key: "vorgespraech", label: "Vorgespräch" },
@@ -907,6 +930,18 @@ export function AdminPage() {
     }
   };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
+  const addPresetService = (presetName: string) => {
+    if (!draft || !presetName) return;
+    const preset = marioServicePresets.find((item) => item.name === presetName);
+    if (!preset) return;
+    setDraft({
+      ...draft,
+      customServices: [
+        ...draft.customServices,
+        { id: `preset-${Date.now()}`, name: preset.name, price: preset.price, type: "custom" },
+      ],
+    });
+  };
   const addPayment = () => draft && setDraft({ ...draft, payments: [...draft.payments, { id: `pay-${Date.now()}`, title: "Anzahlung", amount: "", paidAt: new Date().toISOString().slice(0, 10), note: "" }] });
   const removeService = (service: ServiceItem) => {
     if (!draft) return;
@@ -1273,6 +1308,7 @@ export function AdminPage() {
               removeTask={removeTask}
               addLocation={addLocation}
               addCustomService={addCustomService}
+              addPresetService={addPresetService}
               removeService={removeService}
               addPayment={addPayment}
               removePayment={removePayment}
@@ -1549,6 +1585,7 @@ function CustomerDetail(props: {
   removeTask: (task: TaskItem) => void;
   addLocation: () => void;
   addCustomService: () => void;
+  addPresetService: (presetName: string) => void;
   removeService: (service: ServiceItem) => void;
   addPayment: () => void;
   removePayment: (payment: PaymentItem) => void;
@@ -1775,7 +1812,32 @@ function CustomerDetail(props: {
       </section>
 
       <section className="rounded-lg border border-black/8 p-4">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Leistungen</h3><div className="flex items-center gap-3"><PortalToggle draft={draft} setDraft={setDraft} field="services" /><button onClick={props.addCustomService} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Leistung</button></div></div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+          <h3 className="font-semibold">Leistungen</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                props.addPresetService(event.target.value);
+                event.currentTarget.value = "";
+              }}
+              className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm min-w-0 sm:min-w-[320px]"
+            >
+              <option value="">Aus Preisliste auswählen...</option>
+              {Array.from(new Set(marioServicePresets.map((item) => item.group))).map((group) => (
+                <optgroup key={group} label={group}>
+                  {marioServicePresets.filter((item) => item.group === group).map((preset) => (
+                    <option key={preset.name} value={preset.name}>{preset.name} - {formatMoney(preset.price)}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <div className="flex items-center gap-3">
+              <PortalToggle draft={draft} setDraft={setDraft} field="services" />
+              <button onClick={props.addCustomService} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Manuell</button>
+            </div>
+          </div>
+        </div>
         <div className="space-y-2">
           {[...draft.bookedServices, ...draft.customServices].map((service, index) => (
             <div key={`${service.id}-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_auto]">
