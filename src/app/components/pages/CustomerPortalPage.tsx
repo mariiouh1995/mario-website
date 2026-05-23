@@ -3,6 +3,8 @@ import { useParams } from "react-router";
 import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
+type ServiceCatalogItem = { id: string; name: string; price: string; group: string; description?: string; active?: boolean };
+type AddOnRequest = { id: string; createdAt: string; status: "neu" | "akzeptiert" | "abgelehnt"; items: ServiceItem[]; message?: string };
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
@@ -45,6 +47,7 @@ type Customer = {
   finalPaymentDueDate?: string;
   documents?: CustomerDocument[];
   inspirationLinks?: InspirationLink[];
+  addOnRequests?: AddOnRequest[];
   tasks: TaskItem[];
   portalIntro: string;
   portalVisibility?: PortalVisibility;
@@ -142,6 +145,10 @@ export function CustomerPortalPage() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [portalNotice, setPortalNotice] = useState("");
+  const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>([]);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [addOnMessage, setAddOnMessage] = useState("");
+  const [sendingAddOns, setSendingAddOns] = useState(false);
 
   useEffect(() => {
     async function loadPortal() {
@@ -158,6 +165,7 @@ export function CustomerPortalPage() {
         }
         if (!res.ok) throw new Error(data.error || "Portal nicht gefunden");
         setCustomer(data.customer);
+        setServiceCatalog(data.serviceCatalog || []);
         setNeedsPassword(false);
       } catch (err: any) {
         setCustomer(null);
@@ -288,6 +296,30 @@ export function CustomerPortalPage() {
       setPortalNotice(err.message || "Der Vertrag konnte nicht hochgeladen werden.");
     } finally {
       setUploadingContract(false);
+    }
+  };
+
+  const submitAddOnRequest = async () => {
+    const items = selectedAddOns
+      .map((id) => serviceCatalog.find((item) => item.id === id))
+      .filter(Boolean)
+      .map((item) => ({ id: `addon-${Date.now()}-${item!.id}`, name: item!.name, price: item!.price, type: "custom" }));
+    if (items.length === 0) {
+      setPortalNotice("Bitte wählt mindestens eine Leistung aus.");
+      return;
+    }
+    setSendingAddOns(true);
+    setPortalNotice("");
+    try {
+      const data = await portalApi("portal-add-on-request", { items, message: addOnMessage });
+      setCustomer(data.customer);
+      setSelectedAddOns([]);
+      setAddOnMessage("");
+      setPortalNotice("Danke euch. Mario wurde informiert und meldet sich zur Bestätigung.");
+    } catch (err: any) {
+      setPortalNotice(err.message || "Die Anfrage konnte nicht gesendet werden.");
+    } finally {
+      setSendingAddOns(false);
     }
   };
 
@@ -480,6 +512,41 @@ export function CustomerPortalPage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {serviceCatalog.length > 0 && (
+          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+            <h2 className="text-lg font-medium mb-2">Weitere Leistungen und Add-ons buchen</h2>
+            <p className="text-sm text-black/55 mb-4">Wenn ihr noch etwas ergänzen möchtet, könnt ihr es hier unverbindlich anfragen. Mario prüft es und meldet sich mit der finalen Bestätigung.</p>
+            <div className="space-y-2">
+              {Array.from(new Set(serviceCatalog.filter((item) => item.active !== false).map((item) => item.group))).map((group) => (
+                <details key={group} className="rounded-md border border-black/8 bg-[#faf8f5]">
+                  <summary className="cursor-pointer px-4 py-3 font-medium">{group}</summary>
+                  <div className="px-4 pb-4 space-y-2">
+                    {serviceCatalog.filter((item) => item.active !== false && item.group === group).map((item) => (
+                      <label key={item.id} className="flex items-start gap-3 rounded-md bg-white border border-black/8 px-3 py-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedAddOns.includes(item.id)}
+                          onChange={(event) => setSelectedAddOns((prev) => event.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id))}
+                          className="mt-1"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">{item.name}</span>
+                          {item.description && <span className="block text-black/50 mt-1">{item.description}</span>}
+                        </span>
+                        {item.price && <span className="text-black/55 whitespace-nowrap">{formatMoney(item.price)}</span>}
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+            <textarea value={addOnMessage} onChange={(event) => setAddOnMessage(event.target.value)} className="mt-4 w-full min-h-20 rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Optional: kurze Nachricht dazu" />
+            <button onClick={submitAddOnRequest} disabled={sendingAddOns || selectedAddOns.length === 0} className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm disabled:opacity-45">
+              Anfrage senden
+            </button>
           </section>
         )}
 

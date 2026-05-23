@@ -8,6 +8,8 @@ type CustomerStatus = string;
 type InquiryStatus = string;
 type CustomerDocument = any;
 type InspirationLink = any;
+type ServiceItem = any;
+type AddOnRequest = any;
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -279,6 +281,40 @@ async function finishDriveDocumentUpload(customer: CrmCustomer, input: { title: 
   return { customer: saved, document };
 }
 
+function normalizeRequestedServices(items: unknown): ServiceItem[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item: any) => ({
+      id: normalizeString(item?.id) || crm.createId("addon_item"),
+      name: normalizeString(item?.name),
+      price: normalizeString(item?.price),
+      type: "custom",
+    }))
+    .filter((item) => item.name);
+}
+
+async function sendAddOnRequestNotification(customer: CrmCustomer, request: AddOnRequest) {
+  if (!process.env.SMTP_USER) return;
+  const items = (request.items || []).map((item: ServiceItem) => `- ${item.name}${item.price ? ` (${item.price} EUR)` : ""}`).join("\n");
+  const body = [
+    "Servus Mario,",
+    "",
+    `${customer.name || "Ein Kunde"} möchte zusätzliche Leistungen buchen:`,
+    "",
+    items || "- Keine Details",
+    request.message ? `\nNachricht:\n${request.message}` : "",
+    "",
+    "Du findest die Anfrage direkt im Kundenprofil im Admin.",
+  ].filter(Boolean).join("\n");
+  await createTransport().sendMail({
+    from: `"Mario Website" <${process.env.SMTP_USER}>`,
+    to: process.env.MARIO_NOTIFICATION_EMAIL || process.env.SMTP_USER,
+    subject: `Neue Leistungsanfrage: ${customer.name || "Kunde"}`,
+    html: mailHtml(body),
+    text: body,
+  });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -295,7 +331,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!customer.portalEnabled) return res.status(404).json({ error: "Portal not published" });
       if (!password) return res.status(200).json({ requiresPassword: true, workflow: crm.WORKFLOW });
       if (password !== customer.portalPassword) return res.status(401).json({ requiresPassword: true, error: "Falsches Passwort" });
-      return res.status(200).json({ customer, workflow: crm.WORKFLOW });
+      const serviceCatalog = await crm.getServiceCatalog();
+      return res.status(200).json({ customer, workflow: crm.WORKFLOW, serviceCatalog: serviceCatalog.filter((item) => item.active !== false) });
     }
 
     if (req.method === "POST" && action === "portal-inspiration-links") {
@@ -310,6 +347,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter((item: InspirationLink) => item.url);
       const saved = await crm.upsertCustomer({ ...customer, inspirationLinks });
       return res.status(200).json({ customer: saved });
+    }
+
+    if (req.method === "POST" && action === "portal-add-on-request") {
+      const customer = await getPortalCustomer(req);
+      const items = normalizeRequestedServices(req.body?.items);
+      const message = normalizeString(req.body?.message);
+      if (items.length === 0) return res.status(400).json({ error: "Bitte mindestens eine Leistung auswählen" });
+      const request = {
+        id: crm.createId("addon_req"),
+        createdAt: new Date().toISOString(),
+        status: "neu",
+        items,
+        message,
+      };
+      const saved = await crm.upsertCustomer({ ...customer, addOnRequests: [...(customer.addOnRequests || []), request] });
+      await sendAddOnRequestNotification(saved, request);
+      return res.status(200).json({ customer: saved, request });
     }
 
     if (req.method === "POST" && action === "portal-upload-document") {
@@ -371,8 +425,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!ensureAdmin(req, res)) return;
 
     if (req.method === "GET" && action === "bootstrap") {
-      const [inquiries, customers] = await Promise.all([crm.listInquiries(), crm.listCustomers()]);
-      return res.status(200).json({ inquiries, customers, workflow: crm.WORKFLOW, mailTemplates: crm.MAIL_TEMPLATES });
+      const [inquiries, customers, serviceCatalog] = await Promise.all([crm.listInquiries(), crm.listCustomers(), crm.getServiceCatalog()]);
+      return res.status(200).json({ inquiries, customers, workflow: crm.WORKFLOW, mailTemplates: crm.MAIL_TEMPLATES, serviceCatalog });
+    }
+
+    if (req.method === "PUT" && action === "service-catalog") {
+      const serviceCatalog = await crm.saveServiceCatalog(req.body?.serviceCatalog || []);
+      return res.status(200).json({ serviceCatalog });
+    }
+
+    if (req.method === "POST" && action === "resolve-add-on-request") {
+      const customerId = normalizeString(req.body?.customerId);
+      const requestId = normalizeString(req.body?.requestId);
+      const status = normalizeString(req.body?.status) || "akzeptiert";
+      const customer = await crm.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+      const requests = customer.addOnRequests || [];
+      const request = requests.find((item: AddOnRequest) => item.id === requestId);
+      if (!request) return res.status(404).json({ error: "Add-on request not found" });
+      const items = normalizeRequestedServices(req.body?.items).map((item: ServiceItem) => ({ ...item, id: item.id.startsWith("addon_item") ? item.id : crm.createId("service") }));
+      const updatedRequests = requests.map((item: AddOnRequest) => (item.id === requestId ? { ...item, status, items: items.length ? items : item.items } : item));
+      const saved = await crm.upsertCustomer({
+        ...customer,
+        addOnRequests: updatedRequests,
+        customServices: status === "akzeptiert" ? [...(customer.customServices || []), ...(items.length ? items : request.items)] : customer.customServices || [],
+      });
+      return res.status(200).json({ customer: saved });
     }
 
     if (req.method === "POST" && action === "customer") {

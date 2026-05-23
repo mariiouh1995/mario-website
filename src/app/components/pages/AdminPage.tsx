@@ -43,6 +43,8 @@ type CustomerStatus =
   | "abgeschlossen";
 type TaskStatus = "offen" | "in_arbeit" | "erledigt" | "obsolet";
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
+type ServiceCatalogItem = { id: string; name: string; price: string; group: string; description?: string; active?: boolean };
+type AddOnRequest = { id: string; createdAt: string; status: "neu" | "akzeptiert" | "abgelehnt"; items: ServiceItem[]; message?: string };
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
@@ -123,6 +125,7 @@ type Customer = {
   finalPaymentDueDate: string;
   documents: CustomerDocument[];
   inspirationLinks: InspirationLink[];
+  addOnRequests: AddOnRequest[];
   driveFolderId: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
@@ -133,7 +136,9 @@ type Customer = {
 type WorkflowItem = { key: CustomerStatus; label: string };
 type MailTemplate = { label: string; subject: string; body: string };
 type ReminderSettings = { days: number[] };
-type NotificationItem = { id: string; customerId: string; customerName: string; taskId: string; taskTitle: string; dueDate: string; daysLeft: number };
+type NotificationItem =
+  | { kind: "deadline"; id: string; customerId: string; customerName: string; taskId: string; taskTitle: string; dueDate: string; daysLeft: number }
+  | { kind: "addon"; id: string; customerId: string; customerName: string; requestId: string; requestItems: ServiceItem[]; createdAt: string };
 type CalendarEvent = { id: string; customerId: string; customerName: string; type: "shooting" | "consultation" | "registry"; date: string; time: string; title: string; location: string };
 type ConfirmAction = {
   title: string;
@@ -262,6 +267,7 @@ const emptyCustomer = (): Customer => ({
   finalPaymentDueDate: "",
   documents: [],
   inspirationLinks: [],
+  addOnRequests: [],
   driveFolderId: "",
   tasks: workflowTasks(),
   portalVisibility: { ...defaultPortalVisibility },
@@ -334,6 +340,7 @@ function normalizeCustomer(customer: Customer): Customer {
     finalPaymentDueDate: customer.finalPaymentDueDate || "",
     documents: customer.documents || [],
     inspirationLinks: customer.inspirationLinks || [],
+    addOnRequests: customer.addOnRequests || [],
     driveFolderId: customer.driveFolderId || "",
     locations: customer.locations || [],
     tasks,
@@ -478,6 +485,7 @@ export function AdminPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [workflow, setWorkflow] = useState<WorkflowItem[]>(statusSteps);
   const [mailTemplates, setMailTemplates] = useState<Record<string, MailTemplate>>({});
+  const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [selectedInquiryId, setSelectedInquiryId] = useState("");
   const [draft, setDraft] = useState<Customer | null>(null);
@@ -491,7 +499,7 @@ export function AdminPage() {
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
-  const [view, setView] = useState<"customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar">("customersList");
+  const [view, setView] = useState<"customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar" | "services">("customersList");
   const [editMode, setEditMode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
@@ -506,6 +514,7 @@ export function AdminPage() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [syncingImages, setSyncingImages] = useState(false);
+  const [activeAddOnRequest, setActiveAddOnRequest] = useState<{ customerId: string; requestId: string } | null>(null);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
     const saved = localStorage.getItem("mario_read_notifications");
     return saved ? JSON.parse(saved) : [];
@@ -521,12 +530,13 @@ export function AdminPage() {
   const selectedInquiry = useMemo(() => inquiries.find((inquiry) => inquiry.id === selectedInquiryId) || null, [inquiries, selectedInquiryId]);
 
   const allNotifications = useMemo<NotificationItem[]>(() => {
-    return customers.flatMap((customer) =>
+    const deadlineNotifications = customers.flatMap((customer) =>
       customer.tasks
         .filter((task) => task.dueDate && task.status !== "erledigt" && task.status !== "obsolet")
         .map((task) => ({ task, daysLeft: dateDiffDays(task.dueDate || "") }))
         .filter(({ daysLeft }) => daysLeft >= 0 && reminderSettings.days.includes(daysLeft))
         .map(({ task, daysLeft }) => ({
+          kind: "deadline" as const,
           id: `${customer.id}-${task.id}-${task.dueDate}`,
           customerId: customer.id,
           customerName: customer.name || "Unbenannter Kunde",
@@ -536,6 +546,20 @@ export function AdminPage() {
           daysLeft,
         })),
     );
+    const addOnNotifications = customers.flatMap((customer) =>
+      (customer.addOnRequests || [])
+        .filter((request) => request.status === "neu")
+        .map((request) => ({
+          kind: "addon" as const,
+          id: `${customer.id}-${request.id}`,
+          customerId: customer.id,
+          customerName: customer.name || "Unbenannter Kunde",
+          requestId: request.id,
+          requestItems: request.items || [],
+          createdAt: request.createdAt,
+        })),
+    );
+    return [...addOnNotifications, ...deadlineNotifications];
   }, [customers, reminderSettings.days]);
 
   const notifications = useMemo<NotificationItem[]>(() => {
@@ -615,12 +639,14 @@ export function AdminPage() {
       setCustomers((data.customers || []).map(normalizeCustomer));
       setWorkflow(data.workflow || statusSteps);
       setMailTemplates(data.mailTemplates || {});
+      setServiceCatalog(data.serviceCatalog || []);
       if (!selectedId && data.customers?.[0]) setSelectedId(data.customers[0].id);
     } catch (error: any) {
       setInquiries([]);
       setCustomers([]);
       setWorkflow(statusSteps);
       setMailTemplates({});
+      setServiceCatalog([]);
       setSelectedId("");
       setSelectedInquiryId("");
       setDraft(null);
@@ -930,9 +956,9 @@ export function AdminPage() {
     }
   };
   const addCustomService = () => draft && setDraft({ ...draft, customServices: [...draft.customServices, { id: `custom-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }] });
-  const addPresetService = (presetName: string) => {
-    if (!draft || !presetName) return;
-    const preset = marioServicePresets.find((item) => item.name === presetName);
+  const addPresetService = (presetId: string) => {
+    if (!draft || !presetId) return;
+    const preset = serviceCatalog.find((item) => item.id === presetId);
     if (!preset) return;
     setDraft({
       ...draft,
@@ -941,6 +967,20 @@ export function AdminPage() {
         { id: `preset-${Date.now()}`, name: preset.name, price: preset.price, type: "custom" },
       ],
     });
+  };
+  const saveServiceCatalog = async (items: ServiceCatalogItem[]) => {
+    const data = await api("service-catalog", { method: "PUT", body: JSON.stringify({ serviceCatalog: items }) });
+    setServiceCatalog(data.serviceCatalog || []);
+    toast.success("Leistungen gespeichert");
+  };
+  const updateServiceCatalogItem = (id: string, patch: Partial<ServiceCatalogItem>) => {
+    setServiceCatalog((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+  const addServiceCatalogItem = () => {
+    setServiceCatalog((prev) => [...prev, { id: `svc-${Date.now()}`, group: "Add-ons & Extras", name: "Neue Leistung", price: "", description: "", active: true }]);
+  };
+  const removeServiceCatalogItem = (id: string) => {
+    setServiceCatalog((prev) => prev.filter((item) => item.id !== id));
   };
   const addPayment = () => draft && setDraft({ ...draft, payments: [...draft.payments, { id: `pay-${Date.now()}`, title: "Anzahlung", amount: "", paidAt: new Date().toISOString().slice(0, 10), note: "" }] });
   const removeService = (service: ServiceItem) => {
@@ -1093,6 +1133,22 @@ export function AdminPage() {
     }
   };
 
+  const resolveAddOnRequest = async (customerId: string, requestId: string, status: "akzeptiert" | "abgelehnt", items: ServiceItem[]) => {
+    setSaving(true);
+    try {
+      const data = await api("resolve-add-on-request", { method: "POST", body: JSON.stringify({ customerId, requestId, status, items }) });
+      const saved = normalizeCustomer(data.customer);
+      setCustomers((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+      if (draft?.id === saved.id) setDraft(saved);
+      setActiveAddOnRequest(null);
+      toast.success(status === "akzeptiert" ? "Leistungen übernommen" : "Anfrage abgelehnt");
+    } catch (error: any) {
+      toast.error(error.message || "Leistungsanfrage konnte nicht bearbeitet werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveReminderSettings = (value: string) => {
     const days = value.split(",").map((item) => Number(item.trim())).filter((item) => Number.isFinite(item) && item >= 0).sort((a, b) => b - a);
     const next = { days: days.length ? days : defaultReminderSettings.days };
@@ -1135,6 +1191,9 @@ export function AdminPage() {
     });
     toast.success("Alle Notifications als gelesen markiert");
   };
+
+  const addOnRequestCustomer = activeAddOnRequest ? customers.find((customer) => customer.id === activeAddOnRequest.customerId) || null : null;
+  const addOnRequest = addOnRequestCustomer && activeAddOnRequest ? (addOnRequestCustomer.addOnRequests || []).find((request) => request.id === activeAddOnRequest.requestId) || null : null;
 
   if (!isAuthenticated) {
     return (
@@ -1182,9 +1241,13 @@ export function AdminPage() {
                   <div className="space-y-2 max-h-80 overflow-auto">
                     {notifications.map((item) => (
                       <div key={item.id} className="rounded-md bg-[#faf8f5] border border-black/8 p-3">
-                        <button onClick={() => { selectCustomer(item.customerId); setNotificationsOpen(false); }} className="w-full text-left">
+                        <button onClick={() => { selectCustomer(item.customerId); if (item.kind === "addon") setActiveAddOnRequest({ customerId: item.customerId, requestId: item.requestId }); setNotificationsOpen(false); }} className="w-full text-left">
                         <p className="text-sm font-medium">{item.customerName}</p>
-                        <p className="text-xs text-black/55 mt-1">{item.taskTitle} · in {item.daysLeft} Tag(en) fällig</p>
+                        <p className="text-xs text-black/55 mt-1">
+                          {item.kind === "addon"
+                            ? `Neue Leistungsanfrage (${item.requestItems.length} Position${item.requestItems.length === 1 ? "" : "en"})`
+                            : `${item.taskTitle} · in ${item.daysLeft} Tag(en) fällig`}
+                        </p>
                         </button>
                         <button onClick={() => markNotificationRead(item.id)} className="mt-3 inline-flex items-center gap-1 rounded-md border border-black/10 bg-white px-2 py-1 text-xs text-black/55 hover:text-black">
                           <Check className="w-3 h-3" /> Gelesen
@@ -1197,6 +1260,7 @@ export function AdminPage() {
                 </>
               )}
             </div>
+            <button onClick={() => setView("services")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><ListChecks className="w-4 h-4" /> Leistungen</button>
             <button onClick={() => setSettingsOpen(true)} className="inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10 text-white/80" title="Globale Settings"><Settings className="w-4 h-4" /></button>
             <button onClick={createCustomer} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
             <button onClick={logout} className="inline-flex items-center justify-center gap-2 text-white/55 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
@@ -1270,6 +1334,16 @@ export function AdminPage() {
           {message && <p className="rounded-md bg-[#f4f0eb] px-3 py-2 text-sm text-black/65 mb-5">{message}</p>}
           {loading && <p className="text-black/45">Lade CRM...</p>}
           {!loading && view === "calendar" && <CalendarView month={calendarMonth} setMonth={setCalendarMonth} events={calendarEvents} onEvent={setCalendarEvent} />}
+          {!loading && view === "services" && (
+            <ServiceCatalogView
+              serviceCatalog={serviceCatalog}
+              updateItem={updateServiceCatalogItem}
+              addItem={addServiceCatalogItem}
+              removeItem={removeServiceCatalogItem}
+              save={() => saveServiceCatalog(serviceCatalog)}
+              saving={saving}
+            />
+          )}
           {!loading && view === "customersList" && <CustomersListView customers={customers} notificationsByCustomer={notificationsByCustomer} onSelect={selectCustomer} />}
           {!loading && view === "inquiriesList" && <InquiriesListView inquiries={inquiries} onSelect={selectInquiry} />}
           {!loading && view === "inquiryDetail" && selectedInquiry && (
@@ -1290,6 +1364,7 @@ export function AdminPage() {
               saving={saving}
               autosaveStatus={autosaveStatus}
               mailTemplates={mailTemplates}
+              serviceCatalog={serviceCatalog}
               activeMail={activeMail}
               mailSubject={mailSubject}
               mailBody={mailBody}
@@ -1368,6 +1443,17 @@ export function AdminPage() {
           {calendarEvent.location && <p className="text-sm text-black/55 mt-1">{calendarEvent.location}</p>}
           <button onClick={() => { selectCustomer(calendarEvent.customerId); setCalendarEvent(null); }} className="mt-5 inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2 text-sm">Kunden ansehen <ArrowRight className="w-4 h-4" /></button>
         </Modal>
+      )}
+
+      {addOnRequestCustomer && addOnRequest && (
+        <AddOnRequestReview
+          customer={addOnRequestCustomer}
+          request={addOnRequest}
+          serviceCatalog={serviceCatalog}
+          saving={saving}
+          onClose={() => setActiveAddOnRequest(null)}
+          onResolve={(status, items) => resolveAddOnRequest(addOnRequestCustomer.id, addOnRequest.id, status, items)}
+        />
       )}
 
       {confirmAction && (
@@ -1455,6 +1541,110 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
         </table>
       </div>
     </div>
+  );
+}
+
+function ServiceCatalogView({
+  serviceCatalog,
+  updateItem,
+  addItem,
+  removeItem,
+  save,
+  saving,
+}: {
+  serviceCatalog: ServiceCatalogItem[];
+  updateItem: (id: string, patch: Partial<ServiceCatalogItem>) => void;
+  addItem: () => void;
+  removeItem: (id: string) => void;
+  save: () => void;
+  saving: boolean;
+}) {
+  const groups = Array.from(new Set(serviceCatalog.map((item) => item.group || "Leistungen")));
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-black/40">Globale Leistungen</p>
+          <h2 className="mt-1 text-2xl">Leistungen & Add-ons</h2>
+          <p className="text-sm text-black/55 mt-2">Diese Liste nutzt Mario im Admin und die Kunden sehen sie im Portal zum Dazubuchen.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={addItem} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Leistung</button>
+          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm disabled:opacity-50"><Save className="w-4 h-4" /> Speichern</button>
+        </div>
+      </div>
+      {groups.map((group) => (
+        <section key={group} className="rounded-lg border border-black/8 p-4">
+          <h3 className="font-semibold mb-3">{group}</h3>
+          <div className="space-y-2">
+            {serviceCatalog.filter((item) => (item.group || "Leistungen") === group).map((item) => (
+              <div key={item.id} className="grid gap-2 lg:grid-cols-[170px_minmax(0,1fr)_100px_minmax(0,1fr)_90px_auto]">
+                <input value={item.group} onChange={(event) => updateItem(item.id, { group: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Gruppe" />
+                <input value={item.name} onChange={(event) => updateItem(item.id, { name: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Name" />
+                <input value={item.price} onChange={(event) => updateItem(item.id, { price: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Preis" />
+                <input value={item.description || ""} onChange={(event) => updateItem(item.id, { description: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Beschreibung" />
+                <label className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><input type="checkbox" checked={item.active !== false} onChange={(event) => updateItem(item.id, { active: event.target.checked })} /> aktiv</label>
+                <button onClick={() => removeItem(item.id)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+      {serviceCatalog.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-4 text-sm text-black/45">Noch keine Leistungen geladen.</p>}
+    </div>
+  );
+}
+
+function AddOnRequestReview({
+  customer,
+  request,
+  serviceCatalog,
+  onClose,
+  onResolve,
+  saving,
+}: {
+  customer: Customer;
+  request: AddOnRequest;
+  serviceCatalog: ServiceCatalogItem[];
+  onClose: () => void;
+  onResolve: (status: "akzeptiert" | "abgelehnt", items: ServiceItem[]) => void;
+  saving: boolean;
+}) {
+  const [items, setItems] = useState<ServiceItem[]>(() => request.items || []);
+  const addCatalogItem = (id: string) => {
+    const item = serviceCatalog.find((service) => service.id === id);
+    if (!item) return;
+    setItems((prev) => [...prev, { id: `addon-${Date.now()}`, name: item.name, price: item.price, type: "custom" }]);
+  };
+  return (
+    <Modal title="Leistungsanfrage bearbeiten" onClose={onClose} wide>
+      <div className="space-y-4">
+        <div className="rounded-md bg-[#faf8f5] border border-black/8 p-3">
+          <p className="font-medium">{customer.name || "Unbenannter Kunde"}</p>
+          {request.message && <p className="text-sm text-black/55 mt-2 whitespace-pre-wrap">{request.message}</p>}
+        </div>
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.id} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_auto]">
+              <input value={item.name} onChange={(event) => setItems((prev) => prev.map((service) => (service.id === item.id ? { ...service, name: event.target.value } : service)))} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
+              <input value={item.price} onChange={(event) => setItems((prev) => prev.map((service) => (service.id === item.id ? { ...service, price: event.target.value } : service)))} className="rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Preis" />
+              <button onClick={() => setItems((prev) => prev.filter((service) => service.id !== item.id))} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <select defaultValue="" onChange={(event) => { addCatalogItem(event.target.value); event.currentTarget.value = ""; }} className="rounded-md border border-black/10 px-3 py-2 text-sm flex-1">
+            <option value="">Weitere Leistung hinzufügen...</option>
+            {serviceCatalog.filter((item) => item.active !== false).map((item) => <option key={item.id} value={item.id}>{item.name} - {formatMoney(item.price)}</option>)}
+          </select>
+          <button onClick={() => setItems((prev) => [...prev, { id: `addon-${Date.now()}`, name: "Neue Leistung", price: "", type: "custom" }])} className="rounded-md border border-black/10 px-3 py-2 text-sm">Manuell</button>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={() => onResolve("abgelehnt", items)} disabled={saving} className="rounded-md border border-black/10 px-4 py-2 text-sm disabled:opacity-50">Ablehnen</button>
+          <button onClick={() => onResolve("akzeptiert", items)} disabled={saving || items.length === 0} className="rounded-md bg-[#11100f] text-white px-4 py-2 text-sm disabled:opacity-50">Akzeptieren & übernehmen</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1567,6 +1757,7 @@ function CustomerDetail(props: {
   saving: boolean;
   autosaveStatus: "idle" | "saving" | "saved" | "error";
   mailTemplates: Record<string, MailTemplate>;
+  serviceCatalog: ServiceCatalogItem[];
   activeMail: string;
   mailSubject: string;
   mailBody: string;
@@ -1684,6 +1875,20 @@ function CustomerDetail(props: {
                 <div key={service.id} className="flex items-center justify-between gap-3 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm">
                   <span>{service.name}</span>
                   <span className="text-black/55">{formatMoney(service.price) || "kein Preis"}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(draft.addOnRequests || []).filter((request) => request.status === "neu").length > 0 && (
+          <section className="rounded-lg border border-[#d6ad73] bg-[#fff8ed] p-3 sm:p-4">
+            <h3 className="font-semibold mb-3">Offene Leistungsanfragen</h3>
+            <div className="space-y-2">
+              {draft.addOnRequests.filter((request) => request.status === "neu").map((request) => (
+                <div key={request.id} className="rounded-md bg-white border border-black/8 px-3 py-3 text-sm">
+                  <p className="font-medium">{request.items.map((item) => item.name).join(", ")}</p>
+                  {request.message && <p className="text-black/55 mt-1">{request.message}</p>}
                 </div>
               ))}
             </div>
@@ -1824,10 +2029,10 @@ function CustomerDetail(props: {
               className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm min-w-0 sm:min-w-[320px]"
             >
               <option value="">Aus Preisliste auswählen...</option>
-              {Array.from(new Set(marioServicePresets.map((item) => item.group))).map((group) => (
+              {Array.from(new Set(props.serviceCatalog.filter((item) => item.active !== false).map((item) => item.group))).map((group) => (
                 <optgroup key={group} label={group}>
-                  {marioServicePresets.filter((item) => item.group === group).map((preset) => (
-                    <option key={preset.name} value={preset.name}>{preset.name} - {formatMoney(preset.price)}</option>
+                  {props.serviceCatalog.filter((item) => item.active !== false && item.group === group).map((preset) => (
+                    <option key={preset.id} value={preset.id}>{preset.name} - {formatMoney(preset.price)}</option>
                   ))}
                 </optgroup>
               ))}

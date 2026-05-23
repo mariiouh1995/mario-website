@@ -34,6 +34,23 @@ export type ServiceItem = {
   type: "package" | "custom";
 };
 
+export type ServiceCatalogItem = {
+  id: string;
+  name: string;
+  price: string;
+  group: string;
+  description?: string;
+  active?: boolean;
+};
+
+export type AddOnRequest = {
+  id: string;
+  createdAt: string;
+  status: "neu" | "akzeptiert" | "abgelehnt";
+  items: ServiceItem[];
+  message?: string;
+};
+
 export type LocationItem = {
   id: string;
   title: string;
@@ -159,6 +176,7 @@ export type CrmCustomer = {
   finalPaymentDueDate: string;
   documents: CustomerDocument[];
   inspirationLinks: InspirationLink[];
+  addOnRequests: AddOnRequest[];
   driveFolderId: string;
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
@@ -241,6 +259,33 @@ export const MAIL_TEMPLATES: Record<string, { label: string; subject: string; bo
     body: "Servus ihr Lieben,\n\neure Galerie ist fertig. Ihr findet sie hier:\n{galleryUrl}\n\nIch wünsche euch ganz viel Freude beim Anschauen, Wiedererleben und Weitergeben. Danke, dass ich eure Geschichte festhalten durfte.",
   },
 };
+
+export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
+  { id: "photo-essential", group: "Fotografie", name: "Essential Fotografie - 6 Std Reportage, 400 Bilder", price: "2090", description: "20 km Anfahrt inklusive." },
+  { id: "photo-signature", group: "Fotografie", name: "Signature Fotografie - 8 Std Reportage, 600 Bilder", price: "2590", description: "20 km Anfahrt inklusive." },
+  { id: "photo-classic", group: "Fotografie", name: "Classic Fotografie - 10 Std Reportage, 700 Bilder", price: "3090", description: "30 km Anfahrt inklusive." },
+  { id: "photo-complete", group: "Fotografie", name: "Complete Fotografie - 12 Std Reportage, 900 Bilder", price: "3490", description: "50 km Anfahrt inklusive." },
+  { id: "photo-video-signature-plus", group: "Foto + Video", name: "Signature Plus+ - Foto, Mini-Video & Fotospiegel", price: "3290", description: "8 Std Fotografie, ca. 700 Bilder, Highlight-Video und dasSpieglein." },
+  { id: "video-essential", group: "Video", name: "Essential Video - 6 Std, 2-3 Min. Film", price: "1500" },
+  { id: "video-signature", group: "Video", name: "Signature Video - 8 Std, 5-7 Min. Film", price: "2350" },
+  { id: "video-complete", group: "Video", name: "Complete Video - 10-12 Std, 8-10 Min. Film", price: "2900" },
+  { id: "addon-fotospiegel", group: "Add-ons & Extras", name: "Fotospiegel - 400 Ausdrucke, Layout, Requisiten, digitale Bilder", price: "450" },
+  { id: "addon-after-wedding", group: "Add-ons & Extras", name: "After-Wedding-Shooting - ca. 3 Std, 80 Bilder", price: "520" },
+  { id: "addon-mini-video", group: "Add-ons & Extras", name: "Mini-Video", price: "400" },
+  { id: "addon-probe-shooting", group: "Add-ons & Extras", name: "Probe-Shooting", price: "200" },
+  { id: "addon-drone-10", group: "Add-ons & Extras", name: "Drohnenaufnahmen - 10 Bilder", price: "200" },
+  { id: "addon-drone-15", group: "Add-ons & Extras", name: "Drohnenbilder - 15 bearbeitete Luftaufnahmen", price: "150" },
+  { id: "addon-plotter", group: "Add-ons & Extras", name: "Plotter", price: "50" },
+  { id: "addon-express", group: "Add-ons & Extras", name: "Expresslieferung - alle Bilder innerhalb 14 Werktagen", price: "500" },
+  { id: "hour-photo-essential", group: "Zusatzstunden", name: "Zusatzstunde Fotografie Essential", price: "320" },
+  { id: "hour-photo-signature", group: "Zusatzstunden", name: "Zusatzstunde Fotografie Signature / Signature Plus+", price: "300" },
+  { id: "hour-photo-classic", group: "Zusatzstunden", name: "Zusatzstunde Fotografie Classic", price: "290" },
+  { id: "hour-photo-complete", group: "Zusatzstunden", name: "Zusatzstunde Fotografie Complete", price: "250" },
+  { id: "hour-video", group: "Zusatzstunden", name: "Zusatzstunde Video", price: "200" },
+  { id: "destination-blocking-1", group: "Destination Wedding", name: "Blocking-Fee Destination Wedding - 1 Nacht", price: "300" },
+  { id: "destination-blocking-2", group: "Destination Wedding", name: "Blocking-Fee Destination Wedding - 2 Nächte", price: "500" },
+  { id: "destination-blocking-3", group: "Destination Wedding", name: "Blocking-Fee Destination Wedding - 3+ Nächte", price: "800" },
+];
 
 let client: postgres.Sql | null = null;
 let schemaReady = false;
@@ -367,6 +412,7 @@ export async function ensureMarioCrmSchema() {
         final_payment_due_date text NOT NULL DEFAULT '',
         documents jsonb NOT NULL DEFAULT '[]',
         inspiration_links jsonb NOT NULL DEFAULT '[]',
+        add_on_requests jsonb NOT NULL DEFAULT '[]',
         drive_folder_id text NOT NULL DEFAULT '',
         tasks jsonb NOT NULL DEFAULT '[]',
         portal_visibility jsonb NOT NULL DEFAULT '{}',
@@ -405,7 +451,16 @@ export async function ensureMarioCrmSchema() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS final_payment_due_date text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS documents jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS inspiration_links jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS add_on_requests jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS drive_folder_id text NOT NULL DEFAULT ''`;
+
+    await db`
+      CREATE TABLE IF NOT EXISTS mario_crm_settings (
+        key text PRIMARY KEY,
+        value jsonb NOT NULL DEFAULT '{}'::jsonb,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `;
 
     await db`
       CREATE TABLE IF NOT EXISTS mario_mail_logs (
@@ -496,6 +551,7 @@ function mapCustomer(row: any): CrmCustomer {
     finalPaymentDueDate: row.final_payment_due_date,
     documents: normalizeJson<CustomerDocument[]>(row.documents, []),
     inspirationLinks: normalizeJson<InspirationLink[]>(row.inspiration_links, []),
+    addOnRequests: normalizeJson<AddOnRequest[]>(row.add_on_requests, []),
     driveFolderId: row.drive_folder_id,
     tasks: normalizeJson<TaskItem[]>(row.tasks, DEFAULT_TASKS),
     portalVisibility: { ...DEFAULT_PORTAL_VISIBILITY, ...normalizeJson<Partial<PortalVisibility>>(row.portal_visibility, {}) },
@@ -578,7 +634,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       bride_name, groom_name, customer_address, location_address, locations,
       registry_office_date, event_time, event_end_time, coverage_duration, guest_count, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${id}, ${portalToken}, ${input.sourceInquiryId || ""}, ${input.status || "anfrage"},
       ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.secondaryPhone || ""}, ${input.category || ""},
@@ -591,7 +647,8 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       ${input.contractStatus || "nicht_gesendet"}, ${JSON.stringify(input.bookedServices || [])}::jsonb,
       ${JSON.stringify(input.customServices || [])}::jsonb, ${JSON.stringify(input.payments || [])}::jsonb,
       ${input.depositDueDate || ""}, ${input.finalPaymentDueDate || ""},
-      ${JSON.stringify(input.documents || [])}::jsonb, ${JSON.stringify(input.inspirationLinks || [])}::jsonb, ${input.driveFolderId || ""},
+      ${JSON.stringify(input.documents || [])}::jsonb, ${JSON.stringify(input.inspirationLinks || [])}::jsonb,
+      ${JSON.stringify(input.addOnRequests || [])}::jsonb, ${input.driveFolderId || ""},
       ${JSON.stringify(input.tasks || DEFAULT_TASKS)}::jsonb,
       ${JSON.stringify(input.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(input.portalMessages || [])}::jsonb,
@@ -609,7 +666,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, registry_office_date, event_time, event_end_time, coverage_duration, guest_count, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
       now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.secondaryPhone || ""}, ${customer.category},
@@ -620,7 +677,8 @@ export async function upsertCustomer(customer: CrmCustomer) {
       ${customer.portalEnabled || false}, ${customer.portalPassword || ""}, ${customer.portalPublishedAt || ""}, ${customer.contractStatus},
       ${JSON.stringify(customer.bookedServices || [])}::jsonb, ${JSON.stringify(customer.customServices || [])}::jsonb,
       ${JSON.stringify(customer.payments || [])}::jsonb, ${customer.depositDueDate || ""}, ${customer.finalPaymentDueDate || ""},
-      ${JSON.stringify(customer.documents || [])}::jsonb, ${JSON.stringify(customer.inspirationLinks || [])}::jsonb, ${customer.driveFolderId || ""},
+      ${JSON.stringify(customer.documents || [])}::jsonb, ${JSON.stringify(customer.inspirationLinks || [])}::jsonb,
+      ${JSON.stringify(customer.addOnRequests || [])}::jsonb, ${customer.driveFolderId || ""},
       ${JSON.stringify(customer.tasks || [])}::jsonb, ${JSON.stringify(customer.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(customer.portalMessages || [])}::jsonb, ${customer.notes}, ${customer.portalIntro}
     )
@@ -663,6 +721,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       final_payment_due_date = EXCLUDED.final_payment_due_date,
       documents = EXCLUDED.documents,
       inspiration_links = EXCLUDED.inspiration_links,
+      add_on_requests = EXCLUDED.add_on_requests,
       drive_folder_id = EXCLUDED.drive_folder_id,
       tasks = EXCLUDED.tasks,
       portal_visibility = EXCLUDED.portal_visibility,
@@ -680,6 +739,37 @@ export async function appendMailLog(log: MailLog) {
     INSERT INTO mario_mail_logs (id, customer_id, template_key, recipient, subject, body, sent_at)
     VALUES (${log.id}, ${log.customerId}, ${log.templateKey}, ${log.to}, ${log.subject}, ${log.body}, ${log.sentAt})
   `;
+}
+
+function normalizeServiceCatalog(items: ServiceCatalogItem[]) {
+  return items
+    .map((item) => ({
+      id: item.id || createId("svc"),
+      group: item.group || "Leistungen",
+      name: item.name || "Neue Leistung",
+      price: item.price || "",
+      description: item.description || "",
+      active: item.active !== false,
+    }))
+    .filter((item) => item.name.trim());
+}
+
+export async function getServiceCatalog() {
+  await ensureMarioCrmSchema();
+  const rows = await sql()`SELECT value FROM mario_crm_settings WHERE key = 'service_catalog' LIMIT 1`;
+  if (!rows[0]) return saveServiceCatalog(DEFAULT_SERVICE_CATALOG);
+  return normalizeServiceCatalog(normalizeJson<ServiceCatalogItem[]>(rows[0].value, []));
+}
+
+export async function saveServiceCatalog(items: ServiceCatalogItem[]) {
+  await ensureMarioCrmSchema();
+  const normalized = normalizeServiceCatalog(items);
+  await sql()`
+    INSERT INTO mario_crm_settings (key, value, updated_at)
+    VALUES ('service_catalog', ${JSON.stringify(normalized)}::jsonb, now())
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+  `;
+  return normalized;
 }
 
 export function applyTemplate(template: string, customer: CrmCustomer) {
