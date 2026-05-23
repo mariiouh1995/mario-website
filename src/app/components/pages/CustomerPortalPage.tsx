@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
+import { Calendar, Camera, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type ServiceCatalogItem = { id: string; name: string; price: string; group: string; description?: string; active?: boolean };
