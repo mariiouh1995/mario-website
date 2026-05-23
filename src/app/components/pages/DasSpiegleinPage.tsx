@@ -12,7 +12,7 @@ const FRAME_IMAGE = "https://cdn.prod.website-files.com/67d45717a7cd9b02a896c0bb
 const packages = [
   { name: "Basic", price: "490 EUR", text: "Fotospiegel bis 23:00 Uhr, Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen." },
   { name: "Hochzeit", price: "690 EUR", text: "Open-end, ca. 400 Sofortdrucke, individuelles Design, Onlinegalerie und Abbau am Folgetag." },
-  { name: "Kombi", price: "450 EUR", text: "Nur in Kombination mit Marios Fotografie buchbar. Die Buchungsdauer entspricht der Dauer der Fotobegleitung." },
+  { name: "Kombi", price: "450 EUR", text: "Nur in Kombination mit meiner Fotografie buchbar. Die Buchungsdauer entspricht der Dauer der Fotobegleitung." },
   { name: "Business", price: "640 EUR", text: "Für Firmenfeiern, Branding, Firmenlogo/CI, Animation und Onlinegalerie." },
 ];
 
@@ -33,7 +33,7 @@ export function DasSpiegleinPage() {
     <>
       <SEO
         title="das Spieglein | Fotospiegel für Hochzeiten & Events"
-        description="das Spieglein ist Marios Fotospiegel für Hochzeiten, Partys und Business-Events: Sofortdruck, Onlinegalerie, Requisiten, individuelle Designs und Rundum-Service."
+        description="das Spieglein ist mein Fotospiegel für Hochzeiten, Partys und Business-Events: Sofortdruck, Onlinegalerie, Requisiten, individuelle Designs und Rundum-Service."
         canonical="/das-spieglein"
         keywords="das Spieglein, Fotospiegel Hochzeit, Fotobox Innsbruck, Magic Mirror Hochzeit, Fotobox Tirol"
         lang={lang}
@@ -62,7 +62,7 @@ export function DasSpiegleinPage() {
               Ohne Stress. Mit richtig viel Gaudi.
             </h2>
             <p className="mt-6 text-black/65 leading-relaxed">
-              Mario bringt Fotospiegel, Zubehör und Requisiten mit. Das Design wird auf euren Anlass angepasst, der Aufbau läuft unkompliziert und eure Gäste können ihre Lieblingsmomente direkt mitnehmen.
+              Ich bringe Fotospiegel, Zubehör und Requisiten mit. Das Design wird auf euren Anlass angepasst, der Aufbau läuft unkompliziert und eure Gäste können ihre Lieblingsmomente direkt mitnehmen.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -121,7 +121,7 @@ export function DasSpiegleinPage() {
           <div>
             <p className="text-white/45 text-[0.75rem] tracking-[0.3em] uppercase mb-4">Kombi mit Hochzeitsreportage</p>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(2.5rem, 6vw, 5rem)", fontWeight: 300, lineHeight: 1 }}>
-              Mario bringt die Kamera. Das Spieglein bringt die Party.
+              Ich bringe die Kamera. Das Spieglein bringt die Party.
             </h2>
             <p className="mt-6 text-white/65 leading-relaxed">
               Besonders entspannt wird es, wenn Fotografie und Fotospiegel gemeinsam geplant werden. Dann passt der Ablauf zusammen und ihr habt Reportage, spontane Gästebilder und gedruckte Erinnerungen aus einer Hand.

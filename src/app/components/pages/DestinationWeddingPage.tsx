@@ -21,7 +21,7 @@ export function DestinationWeddingPage() {
     <>
       <SEO
         title="Destination Wedding Fotograf | Mario Schubert Photography"
-        description="Destination Wedding Fotografie und Video mit Mario Schubert. Hochzeiten in Europa und weltweit, transparent kalkuliert mit Paket, Reise, Unterkunft und Blocking-Fee."
+        description="Destination Wedding Fotografie und Video in Europa und weltweit, transparent kalkuliert mit Paket, Reise, Unterkunft und Blocking-Fee."
         canonical="/destination-wedding"
         keywords="Destination Wedding Fotograf, Hochzeit Mallorca Fotograf, Hochzeit Toskana Fotograf, Wedding Photographer Europe"
         lang={lang}
@@ -29,7 +29,7 @@ export function DestinationWeddingPage() {
       />
 
       <section className="relative min-h-[68vh] overflow-hidden bg-black text-white">
-        <ImageWithFallback src={HERO_IMAGE} alt="Destination Wedding mit Mario Schubert" className="absolute inset-0 w-full h-full object-cover opacity-65" />
+        <ImageWithFallback src={HERO_IMAGE} alt="Destination Wedding Fotografie" className="absolute inset-0 w-full h-full object-cover opacity-65" />
         <div className="absolute inset-0 bg-black/35" />
         <div className="relative max-w-7xl mx-auto px-4 py-28 md:py-40">
           <p className="text-white/70 text-[0.75rem] tracking-[0.3em] uppercase mb-5">Destination Wedding</p>
@@ -37,7 +37,7 @@ export function DestinationWeddingPage() {
             Überall dort,<br />wo eure Geschichte spielt.
           </h1>
           <p className="mt-7 max-w-2xl text-white/75 leading-relaxed">
-            Ob in den Bergen, am Meer oder in einer kleinen Finca irgendwo im Süden: Mario begleitet euch auch außerhalb von Tirol und Bayern mit Foto, Video und einem klaren, transparenten Reisekosten-Modell.
+            Ob in den Bergen, am Meer oder in einer kleinen Finca irgendwo im Süden: Ich begleite euch auch außerhalb von Tirol und Bayern mit Foto, Video und einem klaren, transparenten Reisekosten-Modell.
           </p>
         </div>
       </section>
@@ -50,7 +50,7 @@ export function DestinationWeddingPage() {
               Euer Paket bleibt die Basis.
             </h2>
             <p className="mt-6 text-black/65 leading-relaxed">
-              Für Destination Weddings wählt ihr zuerst ein Foto- oder Videopaket aus Marios Preisliste. Dazu kommen die tatsächlichen Reisekosten, eine Unterkunft bis maximal 100 EUR pro Nacht und eine Blocking-Fee für geblockte Reisetage.
+              Für Destination Weddings wählt ihr zuerst ein Foto- oder Videopaket aus meiner Preisliste. Dazu kommen die tatsächlichen Reisekosten, eine Unterkunft bis maximal 100 EUR pro Nacht und eine Blocking-Fee für geblockte Reisetage.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -92,7 +92,7 @@ export function DestinationWeddingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-white/45 text-[0.75rem] tracking-[0.3em] uppercase mb-4">Gut zu wissen</p>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(2.5rem, 6vw, 5rem)", fontWeight: 300, lineHeight: 1 }}>
-            Mario reist in der Regel am Tag davor an und am Tag danach zurück.
+            Ich reise in der Regel am Tag davor an und am Tag danach zurück.
           </h2>
           <p className="mt-6 text-white/65 leading-relaxed">
             So bleibt genug Puffer, damit euer Tag entspannt begleitet werden kann. Wenn ihr ein Day-After- oder After-Wedding-Shooting möchtet, lässt sich das direkt in die Reiseplanung integrieren.

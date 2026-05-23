@@ -195,7 +195,7 @@ export function CustomerPortalPage() {
         >
           <Lock className="w-10 h-10 mx-auto mb-5 text-white/35" />
           <h1 className="text-xl text-center mb-2">Kundenbereich</h1>
-          <p className="text-white/45 text-sm text-center mb-6">Bitte gib das Passwort aus Marios Mail ein.</p>
+          <p className="text-white/45 text-sm text-center mb-6">Bitte gib das Passwort aus meiner Mail ein.</p>
           <input name="password" type="password" className="w-full px-4 py-3 bg-white/6 border border-white/10 rounded-lg text-white placeholder-white/35 focus:outline-none focus:border-white/35" placeholder="Passwort" />
           {error && <p className="text-red-300 text-sm text-center mt-3">{error}</p>}
           <button className="w-full mt-4 py-3 bg-white text-black rounded-lg hover:bg-white/90">Öffnen</button>
@@ -293,7 +293,7 @@ export function CustomerPortalPage() {
         fileId,
       });
       setCustomer(data.customer);
-      setPortalNotice("Unterzeichneter Vertrag hochgeladen. Mario wurde informiert.");
+      setPortalNotice("Unterzeichneter Vertrag hochgeladen. Ich wurde informiert.");
     } catch (err: any) {
       setPortalNotice(err.message || "Der Vertrag konnte nicht hochgeladen werden.");
     } finally {
@@ -317,7 +317,7 @@ export function CustomerPortalPage() {
       setCustomer(data.customer);
       setSelectedAddOns([]);
       setAddOnMessage("");
-      setPortalNotice("Danke euch. Mario wurde informiert und meldet sich zur Bestätigung.");
+      setPortalNotice("Danke euch. Ich wurde informiert und melde mich zur Bestätigung.");
     } catch (err: any) {
       setPortalNotice(err.message || "Die Anfrage konnte nicht gesendet werden.");
     } finally {
@@ -368,7 +368,7 @@ export function CustomerPortalPage() {
         {visibility.messages && messages.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
             <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <MessageSquareText className="w-5 h-5" /> Nachricht von Mario
+              <MessageSquareText className="w-5 h-5" /> Meine Nachricht
             </h2>
             <div className="space-y-3">
               {messages.map((item) => (
@@ -421,7 +421,7 @@ export function CustomerPortalPage() {
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             <Upload className="w-5 h-5" /> Unterzeichneten Vertrag hochladen
           </h2>
-          <p className="text-sm text-black/55 mb-4">Wenn der Vertrag unterschrieben ist, könnt ihr ihn hier direkt an Mario übermitteln.</p>
+          <p className="text-sm text-black/55 mb-4">Wenn der Vertrag unterschrieben ist, könnt ihr ihn hier direkt an mich übermitteln.</p>
           <label className={`inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm ${uploadingContract ? "opacity-55 cursor-wait" : "cursor-pointer hover:bg-black"}`}>
             <Upload className="w-4 h-4" /> {uploadingContract ? "Upload läuft..." : "Vertrag auswählen"}
             <input
@@ -445,7 +445,7 @@ export function CustomerPortalPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h2 className="text-lg font-medium">Inspirationen</h2>
-              <p className="text-sm text-black/55 mt-1">Links zu Pinterest, Webseiten, Galerien oder anderen Ideen, die Mario kennen sollte.</p>
+              <p className="text-sm text-black/55 mt-1">Links zu Pinterest, Webseiten, Galerien oder anderen Ideen, die ich kennen sollte.</p>
             </div>
             <button onClick={() => setCustomer({ ...customer, inspirationLinks: [...inspirationLinks, { id: `insp-${Date.now()}`, title: "Neue Inspiration", url: "" }] })} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm hover:border-black/25">
               <Plus className="w-4 h-4" /> Link
@@ -537,7 +537,7 @@ export function CustomerPortalPage() {
         {serviceCatalog.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
             <h2 className="text-lg font-medium mb-2">Weitere Leistungen und Add-ons buchen</h2>
-            <p className="text-sm text-black/55 mb-4">Wenn ihr noch etwas ergänzen möchtet, könnt ihr es hier unverbindlich anfragen. Mario prüft es und meldet sich mit der finalen Bestätigung.</p>
+            <p className="text-sm text-black/55 mb-4">Wenn ihr noch etwas ergänzen möchtet, könnt ihr es hier unverbindlich anfragen. Ich prüfe es und melde mich mit der finalen Bestätigung.</p>
             <div className="space-y-2">
               {Array.from(new Set(serviceCatalog.filter((item) => item.active !== false && (!hasSpiegleinService || !item.name.toLowerCase().includes("spieglein"))).map((item) => item.group))).map((group) => (
                 <details key={group} className="rounded-md border border-black/8 bg-[#faf8f5]">
@@ -623,8 +623,8 @@ export function CustomerPortalPage() {
             <div className="flex items-start gap-3">
               <Star className="w-5 h-5 text-[#8a6a45] mt-0.5" />
               <div>
-                <h2 className="text-base font-medium">Eure Erfahrung mit Mario</h2>
-                <p className="text-sm text-black/55 mt-1">Wenn ihr mögt, freut sich Mario sehr über ein paar ehrliche Worte auf Google.</p>
+                <h2 className="text-base font-medium">Eure Erfahrung mit mir</h2>
+                <p className="text-sm text-black/55 mt-1">Wenn ihr mögt, freue ich mich sehr über ein paar ehrliche Worte auf Google.</p>
               </div>
             </div>
             <a href={googleReviewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2.5 text-sm hover:border-black/25">
@@ -634,8 +634,8 @@ export function CustomerPortalPage() {
         </section>
 
         <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
-          <h2 className="text-lg font-medium mb-2">Direkt zu Mario</h2>
-          <p className="text-sm text-black/55 mb-4">Wenn etwas offen ist oder ihr kurz etwas abstimmen wollt, erreicht ihr Mario direkt hier.</p>
+          <h2 className="text-lg font-medium mb-2">Direkt zu mir</h2>
+          <p className="text-sm text-black/55 mb-4">Wenn etwas offen ist oder ihr kurz etwas abstimmen wollt, erreicht ihr mich direkt hier.</p>
           <p className="text-sm text-black/55 mb-4">Mario Schubert, Bäckerbühelgasse 14, 6020 Innsbruck</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <a href="https://wa.me/4915155338029" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm hover:bg-black">
