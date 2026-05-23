@@ -394,7 +394,7 @@ export function CustomerPortalPage() {
           <InfoCard icon={<Calendar className="w-5 h-5" />} title="Vorgespräch">
             <p>{customer.consultationDate || "Noch nicht festgelegt"}</p>
             {!customer.consultationDate && (
-              <a href="https://wa.me/4915155338029?text=Servus%20Mario%2C%20wir%20w%C3%BCrden%20gerne%20die%20Vorbesprechung%20vereinbaren." target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm hover:bg-black">
+              <a href="https://wa.me/4915155338029?text=Servus%2C%20wir%20w%C3%BCrden%20gerne%20die%20Vorbesprechung%20vereinbaren." target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm hover:bg-black">
                 <MessageCircle className="w-4 h-4" /> Hier Vorbesprechung vereinbaren
               </a>
             )}
