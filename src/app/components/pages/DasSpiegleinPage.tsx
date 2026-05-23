@@ -5,9 +5,9 @@ import { useLanguage } from "../LanguageContext";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 
-const HERO_IMAGE = "https://cdn.prod.website-files.com/67d45717a7cd9b02a896c0bb/67d70ecbbdc39846b09a8825_0W9A1828.jpg";
-const DETAIL_IMAGE = "https://cdn.prod.website-files.com/67d45717a7cd9b02a896c0bb/67d70ecb452edbfb7573540f_0W9A1835.jpg";
-const FRAME_IMAGE = "https://cdn.prod.website-files.com/67d45717a7cd9b02a896c0bb/67d70ecb9a541f31a772b946_0W9A1851.jpg";
+const HERO_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/20251025_8D2A5136_(WebRes)-2.jpg?updatedAt=1773007047706";
+const DETAIL_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_153606_0453(LowRes).jpg?updatedAt=1773007049638";
+const FRAME_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_152738_0428(LowRes).jpg?updatedAt=1773007053353";
 
 const packages = [
   { name: "Basic", price: "490 EUR", text: "Fotospiegel bis 23:00 Uhr, Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen." },

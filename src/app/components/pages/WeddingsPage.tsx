@@ -172,23 +172,6 @@ export function WeddingsPage() {
         </motion.div>
       </section>
 
-      <section className="px-4 py-10 bg-[#f8f7f5]">
-        <div className="max-w-7xl mx-auto">
-          <a href="/das-spieglein" className="group block border border-black/10 bg-white px-5 py-5 md:px-8 md:py-6 no-underline text-black hover:border-black/25 transition-colors">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-[0.72rem] tracking-[0.24em] uppercase text-black/45 mb-2">das Spieglein</p>
-                <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.25rem, 2vw, 1.8rem)", fontWeight: 700 }}>Fotobox mit Wow-Faktor</h2>
-                <p className="mt-2 text-sm text-black/60 max-w-2xl">Sofortdrucke, Requisiten, Onlinegalerie und ein Fotospiegel, der eure Gäste unkompliziert zum Lachen bringt.</p>
-              </div>
-              <span className="inline-flex items-center gap-2 text-[0.75rem] tracking-[0.15em] uppercase group-hover:gap-3 transition-all">
-                Entdecken <ArrowRight className="w-4 h-4" />
-              </span>
-            </div>
-          </a>
-        </div>
-      </section>
-
       {/* Wedding Photography */}
       <section className="py-24 md:py-32 px-4">
         <div className="max-w-7xl mx-auto">
@@ -872,6 +855,23 @@ export function WeddingsPage() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="px-4 py-10 bg-[#f8f7f5]">
+        <div className="max-w-7xl mx-auto">
+          <a href="/das-spieglein" className="group block border border-black/10 bg-white px-5 py-5 md:px-8 md:py-6 no-underline text-black hover:border-black/25 transition-colors">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-[0.72rem] tracking-[0.24em] uppercase text-black/45 mb-2">das Spieglein</p>
+                <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.25rem, 2vw, 1.8rem)", fontWeight: 700 }}>Fotobox mit Wow-Faktor</h2>
+                <p className="mt-2 text-sm text-black/60 max-w-2xl">Sofortdrucke, Requisiten, Onlinegalerie und ein Fotospiegel, der eure Gäste unkompliziert zum Lachen bringt.</p>
+              </div>
+              <span className="inline-flex items-center gap-2 text-[0.75rem] tracking-[0.15em] uppercase group-hover:gap-3 transition-all">
+                Entdecken <ArrowRight className="w-4 h-4" />
+              </span>
+            </div>
+          </a>
         </div>
       </section>
 
