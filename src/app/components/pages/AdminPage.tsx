@@ -374,9 +374,42 @@ function mailBodyForEditor(body = "") {
   return body.replace(/\n{0,2}\{signature\}\s*$/i, "").trim();
 }
 
+function parseMoney(value?: string) {
+  const raw = (value || "").trim();
+  if (!raw) return 0;
+
+  const negative = raw.includes("-");
+  const stripped = raw.replace(/[^\d,.]/g, "");
+  if (!stripped) return 0;
+
+  const lastComma = stripped.lastIndexOf(",");
+  const lastDot = stripped.lastIndexOf(".");
+  let normalized = stripped;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = stripped
+      .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+      .replace(decimalSeparator, ".");
+  } else if (lastComma >= 0 || lastDot >= 0) {
+    const separator = lastComma >= 0 ? "," : ".";
+    const parts = stripped.split(separator);
+    const fraction = parts[parts.length - 1] || "";
+    normalized = fraction.length > 0 && fraction.length <= 2
+      ? `${parts.slice(0, -1).join("")}.${fraction}`
+      : parts.join("");
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return 0;
+  return negative ? -parsed : parsed;
+}
+
 function formatMoney(value?: string) {
   const clean = (value || "").trim();
   if (!clean) return "";
+  if (/\d/.test(clean)) return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(parseMoney(clean));
   if (/[€a-z]/i.test(clean)) return clean;
   const normalized = Number(clean.replace(/\./g, "").replace(",", "."));
   if (!Number.isFinite(normalized)) return clean;
@@ -391,9 +424,7 @@ function formatDateDe(value?: string) {
 }
 
 function moneyNumber(value?: string) {
-  const clean = (value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
-  const parsed = Number(clean);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseMoney(value);
 }
 
 function mapsUrl(value?: string) {
@@ -2250,22 +2281,23 @@ function updateService(draft: Customer, setDraft: (customer: Customer) => void, 
 
 function PaymentSummary({ customer }: { customer: Customer }) {
   const total = [...customer.bookedServices, ...customer.customServices].reduce((sum, service) => sum + moneyNumber(service.price), 0);
-  const paid = customer.payments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
-  const open = Math.max(total - paid, 0);
+  const bookedPayments = customer.payments.filter((payment) => moneyNumber(payment.amount) > 0);
+  const paid = bookedPayments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
+  const open = total > 0 ? Math.max(total - paid, 0) : 0;
   return (
     <div className="space-y-3">
       <div className="grid sm:grid-cols-3 gap-2">
-        <ViewField label="Gesamt" value={formatMoney(String(total)) || "Noch kein Betrag"} />
-        <ViewField label="Bezahlt" value={formatMoney(String(paid)) || "0,00 €"} />
-        <ViewField label="Offen" value={formatMoney(String(open)) || "0,00 €"} />
+        <ViewField label="Gesamt" value={total > 0 ? formatMoney(String(total)) : "Noch kein Betrag"} />
+        <ViewField label="Bezahlt" value={bookedPayments.length > 0 ? formatMoney(String(paid)) : "Noch keine Zahlung"} />
+        <ViewField label="Offen" value={total > 0 ? formatMoney(String(open)) : "Noch kein Betrag"} />
       </div>
       <div className="grid sm:grid-cols-2 gap-2">
         <ViewField label="Anzahlung fällig bis" value={customer.depositDueDate} />
         <ViewField label="Gesamtbetrag fällig bis" value={customer.finalPaymentDueDate} />
       </div>
-      {customer.payments.length > 0 && (
+      {bookedPayments.length > 0 && (
         <div className="space-y-2">
-          {customer.payments.map((payment) => (
+          {bookedPayments.map((payment) => (
             <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm">
               <span>{payment.title} {payment.paidAt ? <span className="text-black/40">· {payment.paidAt}</span> : null}</span>
               <span className="text-black/60">{formatMoney(payment.amount)}</span>

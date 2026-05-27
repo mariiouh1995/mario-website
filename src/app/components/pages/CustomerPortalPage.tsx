@@ -88,9 +88,42 @@ function mapsUrl(value?: string) {
   return value ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}` : "";
 }
 
+function parseMoney(value?: string) {
+  const raw = (value || "").trim();
+  if (!raw) return 0;
+
+  const negative = raw.includes("-");
+  const stripped = raw.replace(/[^\d,.]/g, "");
+  if (!stripped) return 0;
+
+  const lastComma = stripped.lastIndexOf(",");
+  const lastDot = stripped.lastIndexOf(".");
+  let normalized = stripped;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = stripped
+      .replace(new RegExp(`\\${thousandsSeparator}`, "g"), "")
+      .replace(decimalSeparator, ".");
+  } else if (lastComma >= 0 || lastDot >= 0) {
+    const separator = lastComma >= 0 ? "," : ".";
+    const parts = stripped.split(separator);
+    const fraction = parts[parts.length - 1] || "";
+    normalized = fraction.length > 0 && fraction.length <= 2
+      ? `${parts.slice(0, -1).join("")}.${fraction}`
+      : parts.join("");
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return 0;
+  return negative ? -parsed : parsed;
+}
+
 function formatMoney(value?: string) {
   const clean = (value || "").trim();
   if (!clean) return "";
+  if (/\d/.test(clean)) return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(parseMoney(clean));
   if (/[€a-z]/i.test(clean)) return clean;
   const parsed = Number(clean.replace(/\./g, "").replace(",", "."));
   if (!Number.isFinite(parsed)) return clean;
@@ -98,8 +131,7 @@ function formatMoney(value?: string) {
 }
 
 function moneyNumber(value?: string) {
-  const parsed = Number((value || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseMoney(value);
 }
 
 function formatDateDe(value?: string) {
@@ -220,9 +252,10 @@ export function CustomerPortalPage() {
   const services = [...(customer.bookedServices || []), ...(customer.customServices || [])];
   const visibleTasks = (customer.tasks || []).filter((task) => (task.id.startsWith("step-") ? visibility.status : visibility.tasks));
   const payments = customer.payments || [];
+  const bookedPayments = payments.filter((payment) => moneyNumber(payment.amount) > 0);
   const total = services.reduce((sum, service) => sum + moneyNumber(service.price), 0);
-  const paid = payments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
-  const openAmount = Math.max(total - paid, 0);
+  const paid = bookedPayments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
+  const openAmount = total > 0 ? Math.max(total - paid, 0) : 0;
   const messages = (customer.portalMessages || []).filter((item) => item.visible);
   const locations = customer.locations || [];
   const documents = portalDocuments(customer, visibility);
@@ -575,24 +608,24 @@ export function CustomerPortalPage() {
             <div className="grid sm:grid-cols-3 gap-3 mb-4">
               <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-black/40">Gesamt</p>
-                <p className="mt-2 font-medium">{formatMoney(String(total)) || "Noch offen"}</p>
+                <p className="mt-2 font-medium">{total > 0 ? formatMoney(String(total)) : "Noch kein Betrag"}</p>
               </div>
               <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-black/40">Bezahlt</p>
-                <p className="mt-2 font-medium">{formatMoney(String(paid))}</p>
+                <p className="mt-2 font-medium">{bookedPayments.length > 0 ? formatMoney(String(paid)) : "Noch keine Zahlung"}</p>
               </div>
               <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-black/40">Offen</p>
-                <p className="mt-2 font-medium">{formatMoney(String(openAmount))}</p>
+                <p className="mt-2 font-medium">{total > 0 ? formatMoney(String(openAmount)) : "Noch kein Betrag"}</p>
               </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mb-4">
               <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">Anzahlung fällig: <span className="text-black/55">{customer.depositDueDate || "noch offen"}</span></div>
               <div className="rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">Restbetrag fällig: <span className="text-black/55">{customer.finalPaymentDueDate || "noch offen"}</span></div>
             </div>
-            {payments.length > 0 && (
+            {bookedPayments.length > 0 && (
               <div className="space-y-2">
-                {payments.map((payment) => (
+                {bookedPayments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between rounded-md bg-[#faf8f5] border border-black/8 px-4 py-3 text-sm">
                     <span>{payment.title} {payment.paidAt ? <span className="text-black/40">· {payment.paidAt}</span> : null}</span>
                     <span className="text-black/55">{formatMoney(payment.amount)}</span>
