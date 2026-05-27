@@ -117,10 +117,10 @@ export function DasSpiegleinPage() {
           <div className="max-w-3xl mb-10">
             <p className="text-[0.75rem] tracking-[0.3em] uppercase text-black/45 mb-4">Pakete</p>
             <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 700, lineHeight: 1.05 }}>
-              Zwei Pakete. Gleiche Leistung. Fair nach Buchung.
+              Das Spieglein, passend zu eurer Buchung.
             </h2>
             <p className="mt-5 text-black/60 leading-relaxed">
-              Beide Pakete enthalten Sofortdrucke, Onlinegalerie, Requisiten, individuelles Screen- und Drucklayout, Aufbau und Abbau. Günstiger wird es, wenn ich sowieso schon mit Foto oder Video bei euch vor Ort bin.
+              Wenn ich eure Hochzeit ohnehin mit Foto oder Video begleite, bringe ich das Spieglein zum Kombipreis mit. Wenn ihr nur den Fotospiegel buchen möchtet, ist das genauso möglich. In beiden Fällen ist alles dabei: Aufbau, Requisiten, Sofortdrucke, individuelles Design und die digitale Galerie.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
