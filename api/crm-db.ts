@@ -269,12 +269,9 @@ export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
   { id: "video-essential", group: "Video", name: "Essential Video - 6 Std, 2-3 Min. Film", price: "1500" },
   { id: "video-signature", group: "Video", name: "Signature Video - 8 Std, 5-7 Min. Film", price: "2350" },
   { id: "video-complete", group: "Video", name: "Complete Video - 10-12 Std, 8-10 Min. Film", price: "2900" },
-  { id: "addon-fotospiegel", group: "Add-ons & Extras", name: "Fotospiegel - 400 Ausdrucke, Layout, Requisiten, digitale Bilder", price: "450" },
-  { id: "spieglein-basic", group: "das Spieglein", name: "das Spieglein Basic - Fotospiegel bis 23:00 Uhr", price: "490", description: "Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen, Auf- und Abbau am selben Tag." },
-  { id: "spieglein-hochzeit", group: "das Spieglein", name: "das Spieglein Hochzeit - Open-end", price: "690", description: "Ca. 400 Sofortdrucke, Onlinegalerie, individuelles Design, LED- oder Goldrahmen, Abbau am Folgetag." },
-  { id: "spieglein-kombi", group: "das Spieglein", name: "das Spieglein Kombi - zur Fotobegleitung", price: "450", description: "Nur in Kombination mit Marios Fotografie buchbar. Die Buchungsdauer entspricht der Dauer der Fotobegleitung." },
-  { id: "spieglein-business", group: "das Spieglein", name: "das Spieglein Business - Branding & Firmenlogo", price: "640", description: "Für Firmenfeiern und Events mit Animation, Branding und Onlinegalerie." },
-  { id: "spieglein-individuell", group: "das Spieglein", name: "das Spieglein Individuell", price: "", description: "Flexible Einsatzzeit, freies Fotolayout, Corporate Branding und Betreuung nach Bedarf." },
+  { id: "addon-fotospiegel", group: "Add-ons & Extras", name: "das Spieglein Kombi Buchung - mit Foto- oder Videobuchung", price: "450", description: "Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen, Requisiten, Aufbau und Abbau." },
+  { id: "spieglein-kombi", group: "das Spieglein", name: "das Spieglein Kombi Buchung - mit Foto- oder Videobuchung", price: "450", description: "Der Vorteilspreis, wenn bei Mario auch eine Foto- oder Videobegleitung gebucht ist. Enthält Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen, Requisiten, Aufbau und Abbau." },
+  { id: "spieglein-solo", group: "das Spieglein", name: "das Spieglein Solobuchung", price: "890", description: "Das Spieglein als alleinige Buchung. Enthält Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen, Requisiten, Aufbau und Abbau." },
   { id: "addon-after-wedding", group: "Add-ons & Extras", name: "After-Wedding-Shooting - ca. 3 Std, 80 Bilder", price: "520" },
   { id: "addon-mini-video", group: "Add-ons & Extras", name: "Mini-Video", price: "400" },
   { id: "addon-probe-shooting", group: "Add-ons & Extras", name: "Probe-Shooting", price: "200" },
@@ -291,6 +288,9 @@ export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
   { id: "destination-blocking-2", group: "Destination Wedding", name: "Blocking-Fee Destination Wedding - 2 Nächte", price: "500" },
   { id: "destination-blocking-3", group: "Destination Wedding", name: "Blocking-Fee Destination Wedding - 3+ Nächte", price: "800" },
 ];
+
+const DEPRECATED_SERVICE_CATALOG_IDS = new Set(["spieglein-basic", "spieglein-hochzeit", "spieglein-business", "spieglein-individuell"]);
+const FORCE_DEFAULT_SERVICE_CATALOG_IDS = new Set(["addon-fotospiegel", "spieglein-kombi", "spieglein-solo"]);
 
 let client: postgres.Sql | null = null;
 let schemaReady = false;
@@ -763,13 +763,18 @@ export async function getServiceCatalog() {
   await ensureMarioCrmSchema();
   const rows = await sql()`SELECT value FROM mario_crm_settings WHERE key = 'service_catalog' LIMIT 1`;
   if (!rows[0]) return saveServiceCatalog(DEFAULT_SERVICE_CATALOG);
-  const existing = normalizeServiceCatalog(normalizeJson<ServiceCatalogItem[]>(rows[0].value, []));
+  const existing = normalizeServiceCatalog(normalizeJson<ServiceCatalogItem[]>(rows[0].value, [])).filter((item) => !DEPRECATED_SERVICE_CATALOG_IDS.has(item.id));
   const byId = new Map(existing.map((item) => [item.id, item]));
   for (const item of DEFAULT_SERVICE_CATALOG) {
-    if (!byId.has(item.id)) byId.set(item.id, item);
+    if (FORCE_DEFAULT_SERVICE_CATALOG_IDS.has(item.id)) {
+      const previous = byId.get(item.id);
+      byId.set(item.id, { ...item, active: previous?.active ?? item.active });
+    } else if (!byId.has(item.id)) {
+      byId.set(item.id, item);
+    }
   }
   const merged = Array.from(byId.values());
-  if (merged.length !== existing.length) await saveServiceCatalog(merged);
+  if (JSON.stringify(merged) !== JSON.stringify(existing)) await saveServiceCatalog(merged);
   return merged;
 }
 

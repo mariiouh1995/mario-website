@@ -2,14 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster, toast } from "sonner";
 import {
   ArrowRight,
+  AlarmClock,
   Bell,
   CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
   Download,
   ExternalLink,
   GripVertical,
+  LayoutDashboard,
   ListChecks,
   Lock,
   LogOut,
@@ -136,6 +139,10 @@ type Customer = {
 type WorkflowItem = { key: CustomerStatus; label: string };
 type MailTemplate = { label: string; subject: string; body: string };
 type ReminderSettings = { days: number[] };
+type DashboardItem =
+  | { kind: "task"; id: string; customerId: string; customerName: string; title: string; dueDate: string; daysLeft: number; status: TaskStatus }
+  | { kind: "deposit"; id: string; customerId: string; customerName: string; title: string; dueDate: string; daysLeft: number; amount?: number }
+  | { kind: "final"; id: string; customerId: string; customerName: string; title: string; dueDate: string; daysLeft: number; amount?: number };
 type NotificationItem =
   | { kind: "deadline"; id: string; customerId: string; customerName: string; taskId: string; taskTitle: string; dueDate: string; daysLeft: number }
   | { kind: "addon"; id: string; customerId: string; customerName: string; requestId: string; requestItems: ServiceItem[]; createdAt: string };
@@ -174,7 +181,8 @@ const marioServicePresets: { name: string; price: string; group: string }[] = [
   { group: "Video", name: "Essential Video - 6 Std, 2-3 Min. Film", price: "1500" },
   { group: "Video", name: "Signature Video - 8 Std, 5-7 Min. Film", price: "2350" },
   { group: "Video", name: "Complete Video - 10-12 Std, 8-10 Min. Film", price: "2900" },
-  { group: "Extras", name: "Fotospiegel - 400 Ausdrucke, Layout, Requisiten, digitale Bilder", price: "450" },
+  { group: "Extras", name: "das Spieglein Kombi Buchung - mit Foto- oder Videobuchung", price: "450" },
+  { group: "Extras", name: "das Spieglein Solobuchung", price: "890" },
   { group: "Extras", name: "Minivideo - 90-120 Sek. Zusammenschnitt mit Musik", price: "400" },
   { group: "Extras", name: "Expresslieferung - alle Bilder innerhalb 14 Werktagen", price: "500" },
   { group: "Extras", name: "Drohnenbilder - 15 bearbeitete Luftaufnahmen", price: "150" },
@@ -427,6 +435,24 @@ function moneyNumber(value?: string) {
   return parseMoney(value);
 }
 
+function customerServicesTotal(customer: Customer) {
+  return [...customer.bookedServices, ...customer.customServices].reduce((sum, service) => sum + moneyNumber(service.price), 0);
+}
+
+function bookedPayments(customer: Customer) {
+  return customer.payments.filter((payment) => moneyNumber(payment.amount) > 0);
+}
+
+function paymentStats(customer: Customer) {
+  const total = customerServicesTotal(customer);
+  const paid = bookedPayments(customer).reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
+  return { total, paid, open: total > 0 ? Math.max(total - paid, 0) : 0 };
+}
+
+function hasBookedPayment(customer: Customer, pattern: RegExp) {
+  return bookedPayments(customer).some((payment) => pattern.test(payment.title || ""));
+}
+
 function mapsUrl(value?: string) {
   return value ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}` : "";
 }
@@ -530,7 +556,7 @@ export function AdminPage() {
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
-  const [view, setView] = useState<"customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar" | "services">("customersList");
+  const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar" | "services">("dashboard");
   const [editMode, setEditMode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
@@ -604,6 +630,54 @@ export function AdminPage() {
       return acc;
     }, {});
   }, [notifications]);
+
+  const dashboardItems = useMemo<DashboardItem[]>(() => {
+    return customers
+      .flatMap((customer) => {
+        const stats = paymentStats(customer);
+        const items: DashboardItem[] = customer.tasks
+          .filter((task) => task.dueDate && task.status !== "erledigt" && task.status !== "obsolet")
+          .map((task) => ({
+            kind: "task" as const,
+            id: `${customer.id}-${task.id}`,
+            customerId: customer.id,
+            customerName: customer.name || "Unbenannter Kunde",
+            title: task.title,
+            dueDate: task.dueDate || "",
+            daysLeft: dateDiffDays(task.dueDate || ""),
+            status: task.status,
+          }));
+
+        if (customer.depositDueDate && !hasBookedPayment(customer, /anzahlung|deposit/i)) {
+          items.push({
+            kind: "deposit",
+            id: `${customer.id}-deposit-${customer.depositDueDate}`,
+            customerId: customer.id,
+            customerName: customer.name || "Unbenannter Kunde",
+            title: "Anzahlung",
+            dueDate: customer.depositDueDate,
+            daysLeft: dateDiffDays(customer.depositDueDate),
+          });
+        }
+
+        if (customer.finalPaymentDueDate && stats.open > 0) {
+          items.push({
+            kind: "final",
+            id: `${customer.id}-final-${customer.finalPaymentDueDate}`,
+            customerId: customer.id,
+            customerName: customer.name || "Unbenannter Kunde",
+            title: "Restbetrag",
+            dueDate: customer.finalPaymentDueDate,
+            daysLeft: dateDiffDays(customer.finalPaymentDueDate),
+            amount: stats.open,
+          });
+        }
+
+        return items;
+      })
+      .filter((item) => item.daysLeft >= -14)
+      .sort((a, b) => a.daysLeft - b.daysLeft || a.customerName.localeCompare(b.customerName));
+  }, [customers]);
 
   const calendarEvents = useMemo<CalendarEvent[]>(() => {
     return customers.flatMap((customer) => {
@@ -1252,6 +1326,7 @@ export function AdminPage() {
             <h1 className="text-xl mt-1">Kundenverwaltung</h1>
           </div>
           <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
+            <button onClick={() => setView("dashboard")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
             <button onClick={() => setView(view === "calendar" ? "customersList" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> {view === "calendar" ? "Liste anzeigen" : "Kalender"}</button>
             <div className="relative">
               <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10">
@@ -1328,6 +1403,7 @@ export function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-5 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[310px_minmax(0,1fr)] gap-5 sm:gap-6">
         <aside className="space-y-5">
           <section className="bg-white border border-black/8 rounded-lg p-4">
+            <button onClick={() => setView("dashboard")} className="mb-3 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] px-3 py-2 text-sm text-white"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
             <div className="flex items-center justify-between gap-3 mb-3">
               <h2 className="text-sm font-semibold flex items-center gap-2"><Mail className="w-4 h-4" /> Neue Anfragen</h2>
               <button onClick={() => setView("inquiriesList")} className="text-xs text-black/45 hover:text-black">Alle ansehen</button>
@@ -1364,6 +1440,7 @@ export function AdminPage() {
         <section className="bg-white border border-black/8 rounded-lg p-4 sm:p-5 md:p-6 min-h-[40rem] min-w-0">
           {message && <p className="rounded-md bg-[#f4f0eb] px-3 py-2 text-sm text-black/65 mb-5">{message}</p>}
           {loading && <p className="text-black/45">Lade CRM...</p>}
+          {!loading && view === "dashboard" && <DashboardView items={dashboardItems} customers={customers} inquiries={inquiries} notifications={notifications} onSelect={selectCustomer} onCalendar={() => setView("calendar")} onCustomers={() => setView("customersList")} />}
           {!loading && view === "calendar" && <CalendarView month={calendarMonth} setMonth={setCalendarMonth} events={calendarEvents} onEvent={setCalendarEvent} />}
           {!loading && view === "services" && (
             <ServiceCatalogView
@@ -1573,6 +1650,137 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
       </div>
     </div>
   );
+}
+
+function DashboardView({
+  items,
+  customers,
+  inquiries,
+  notifications,
+  onSelect,
+  onCalendar,
+  onCustomers,
+}: {
+  items: DashboardItem[];
+  customers: Customer[];
+  inquiries: Inquiry[];
+  notifications: NotificationItem[];
+  onSelect: (id: string) => void;
+  onCalendar: () => void;
+  onCustomers: () => void;
+}) {
+  const openInquiries = inquiries.filter((item) => item.status !== "umgewandelt").length;
+  const overdue = items.filter((item) => item.daysLeft < 0);
+  const nextItems = items.filter((item) => item.daysLeft >= 0).slice(0, 10);
+  const nextEvents = customers
+    .filter((customer) => customer.eventDate)
+    .map((customer) => ({ customer, daysLeft: dateDiffDays(customer.eventDate) }))
+    .filter((item) => item.daysLeft >= 0)
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, 4);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-black/40">Dashboard</p>
+          <h2 className="mt-1 text-2xl">Was als Nächstes ansteht</h2>
+          <p className="text-sm text-black/55 mt-2 max-w-2xl">Deadlines, fällige Zahlungen und offene Themen über alle Kunden. Kritisches steht oben, damit Mario morgens direkt weiß, wo er rein muss.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button onClick={onCalendar} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><CalendarDays className="w-4 h-4" /> Kalender</button>
+          <button onClick={onCustomers} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm"><UserRound className="w-4 h-4" /> Kunden</button>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <DashboardMetric label="Offene Kunden" value={customers.length} hint="im CRM" />
+        <DashboardMetric label="Offene Anfragen" value={openInquiries} hint="noch nicht umgewandelt" />
+        <DashboardMetric label="Überfällig" value={overdue.length} hint="Aufgaben oder Zahlungen" tone={overdue.length ? "danger" : "neutral"} />
+        <DashboardMetric label="Notifications" value={notifications.length} hint="ungelesen" tone={notifications.length ? "warn" : "neutral"} />
+      </div>
+
+      {overdue.length > 0 && (
+        <section className="rounded-lg border border-red-200 bg-red-50/70 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlarmClock className="w-4 h-4 text-red-700" />
+            <h3 className="font-semibold text-red-900">Überfällig</h3>
+          </div>
+          <div className="grid gap-2">
+            {overdue.slice(0, 6).map((item) => <DashboardItemCard key={item.id} item={item} onSelect={onSelect} urgent />)}
+          </div>
+        </section>
+      )}
+
+      <section className="grid xl:grid-cols-[1.2fr_0.8fr] gap-4">
+        <div className="rounded-lg border border-black/8 p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><ListChecks className="w-4 h-4" /> Demnächst fällig</h3>
+          <div className="grid gap-2">
+            {nextItems.map((item) => <DashboardItemCard key={item.id} item={item} onSelect={onSelect} />)}
+            {nextItems.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 p-4 text-sm text-black/45">Keine kommenden Deadlines oder Zahlungen.</p>}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-black/8 p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><CalendarDays className="w-4 h-4" /> Nächste Termine</h3>
+          <div className="grid gap-2">
+            {nextEvents.map(({ customer, daysLeft }) => (
+              <button key={customer.id} onClick={() => onSelect(customer.id)} className="text-left rounded-md bg-[#faf8f5] border border-black/8 p-3 hover:border-black/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-sm">{customer.name || "Unbenannter Kunde"}</p>
+                    <p className="text-xs text-black/45 mt-1">{formatDateDe(customer.eventDate)} {customer.eventTime ? `· ${customer.eventTime}` : ""}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white border border-black/8 px-2 py-1 text-[11px] text-black/55">{relativeDays(daysLeft)}</span>
+                </div>
+              </button>
+            ))}
+            {nextEvents.length === 0 && <p className="rounded-md bg-[#faf8f5] border border-black/8 p-4 text-sm text-black/45">Keine kommenden Termine eingetragen.</p>}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DashboardMetric({ label, value, hint, tone = "neutral" }: { label: string; value: number; hint: string; tone?: "neutral" | "warn" | "danger" }) {
+  const toneClass = tone === "danger" ? "text-red-700" : tone === "warn" ? "text-[#8a5a12]" : "text-black";
+  return (
+    <div className="rounded-lg border border-black/8 bg-[#faf8f5] p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-black/40">{label}</p>
+      <p className={`mt-2 text-3xl font-semibold ${toneClass}`}>{value}</p>
+      <p className="mt-1 text-xs text-black/45">{hint}</p>
+    </div>
+  );
+}
+
+function DashboardItemCard({ item, onSelect, urgent = false }: { item: DashboardItem; onSelect: (id: string) => void; urgent?: boolean }) {
+  const isPayment = item.kind === "deposit" || item.kind === "final";
+  const label = isPayment
+    ? `${item.title} von ${item.customerName}${item.amount ? ` über ${formatMoney(String(item.amount))}` : ""} ${item.daysLeft < 0 ? "war fällig" : "fällig"}`
+    : `Deadline für ${item.title} für ${item.customerName}`;
+  return (
+    <button onClick={() => onSelect(item.customerId)} className={`text-left rounded-md border p-3 transition ${urgent ? "bg-white border-red-200 hover:border-red-300" : "bg-[#faf8f5] border-black/8 hover:border-black/20"}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium text-sm">{label}</p>
+          <p className="mt-1 text-xs text-black/45">{formatDateDe(item.dueDate)} · {relativeDays(item.daysLeft)}</p>
+        </div>
+        <span className={`inline-flex self-start items-center gap-1 rounded-full border px-2 py-1 text-[11px] ${isPayment ? "bg-white border-[#d6ad73] text-[#7b4d12]" : "bg-white border-black/10 text-black/55"}`}>
+          {isPayment ? <CreditCard className="w-3 h-3" /> : <AlarmClock className="w-3 h-3" />}
+          {isPayment ? "Zahlung" : item.status === "in_arbeit" ? "in Arbeit" : "Aufgabe"}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function relativeDays(daysLeft: number) {
+  if (daysLeft === 0) return "heute";
+  if (daysLeft === 1) return "morgen";
+  if (daysLeft > 1) return `in ${daysLeft} Tagen`;
+  if (daysLeft === -1) return "gestern";
+  return `seit ${Math.abs(daysLeft)} Tagen`;
 }
 
 function ServiceCatalogView({
@@ -2280,24 +2488,22 @@ function updateService(draft: Customer, setDraft: (customer: Customer) => void, 
 }
 
 function PaymentSummary({ customer }: { customer: Customer }) {
-  const total = [...customer.bookedServices, ...customer.customServices].reduce((sum, service) => sum + moneyNumber(service.price), 0);
-  const bookedPayments = customer.payments.filter((payment) => moneyNumber(payment.amount) > 0);
-  const paid = bookedPayments.reduce((sum, payment) => sum + moneyNumber(payment.amount), 0);
-  const open = total > 0 ? Math.max(total - paid, 0) : 0;
+  const { total, paid, open } = paymentStats(customer);
+  const payments = bookedPayments(customer);
   return (
     <div className="space-y-3">
       <div className="grid sm:grid-cols-3 gap-2">
         <ViewField label="Gesamt" value={total > 0 ? formatMoney(String(total)) : "Noch kein Betrag"} />
-        <ViewField label="Bezahlt" value={bookedPayments.length > 0 ? formatMoney(String(paid)) : "Noch keine Zahlung"} />
+        <ViewField label="Bezahlt" value={payments.length > 0 ? formatMoney(String(paid)) : "Noch keine Zahlung"} />
         <ViewField label="Offen" value={total > 0 ? formatMoney(String(open)) : "Noch kein Betrag"} />
       </div>
       <div className="grid sm:grid-cols-2 gap-2">
         <ViewField label="Anzahlung fällig bis" value={customer.depositDueDate} />
         <ViewField label="Gesamtbetrag fällig bis" value={customer.finalPaymentDueDate} />
       </div>
-      {bookedPayments.length > 0 && (
+      {payments.length > 0 && (
         <div className="space-y-2">
-          {bookedPayments.map((payment) => (
+          {payments.map((payment) => (
             <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-md bg-[#faf8f5] border border-black/8 px-3 py-2 text-sm">
               <span>{payment.title} {payment.paidAt ? <span className="text-black/40">· {payment.paidAt}</span> : null}</span>
               <span className="text-black/60">{formatMoney(payment.amount)}</span>

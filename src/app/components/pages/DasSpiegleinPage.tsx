@@ -5,15 +5,29 @@ import { useLanguage } from "../LanguageContext";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 
-const HERO_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/20251025_8D2A5136_(WebRes)-2.jpg?updatedAt=1773007047706";
-const DETAIL_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_153606_0453(LowRes).jpg?updatedAt=1773007049638";
-const FRAME_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_152738_0428(LowRes).jpg?updatedAt=1773007053353";
+const HERO_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-02.11.19.jpeg";
+const DETAIL_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-13-at-21.40.22-1.png";
+const FRAME_IMAGE = "https://cdn.prod.website-files.com/67098b5beaec4e7a5a355c74/68ed4eceb551a7a7d9a53d35_dfad6ae5-f61c-4cb8-9e32-724ce88c92c6.jpg";
+
+const PRINT_IMAGES = [
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-02.11.19.jpeg",
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-13-at-21.40.22-1.png",
+  "https://cdn.prod.website-files.com/67098b5beaec4e7a5a355c74/68ed4eceb551a7a7d9a53d35_dfad6ae5-f61c-4cb8-9e32-724ce88c92c6.jpg",
+];
 
 const packages = [
-  { name: "Basic", price: "490 EUR", text: "Fotospiegel bis 23:00 Uhr, Sofortdrucke, Onlinegalerie, individuelles Screen- und Drucklayout, LED- oder Goldrahmen." },
-  { name: "Hochzeit", price: "690 EUR", text: "Open-end, ca. 400 Sofortdrucke, individuelles Design, Onlinegalerie und Abbau am Folgetag." },
-  { name: "Kombi", price: "450 EUR", text: "Nur in Kombination mit meiner Fotografie buchbar. Die Buchungsdauer entspricht der Dauer der Fotobegleitung." },
-  { name: "Business", price: "640 EUR", text: "Für Firmenfeiern, Branding, Firmenlogo/CI, Animation und Onlinegalerie." },
+  {
+    name: "Kombi Buchung",
+    price: "450 EUR",
+    label: "das Spieglein mit Foto- oder Videobuchung",
+    text: "Der Vorteilspreis, wenn ihr bei mir auch eure Hochzeitsbegleitung mit Foto oder Video gebucht habt.",
+  },
+  {
+    name: "Solobuchung",
+    price: "890 EUR",
+    label: "das Spieglein alleine",
+    text: "Perfekt, wenn ihr nur das Spieglein für eure Hochzeit, Party oder euer Event buchen möchtet.",
+  },
 ];
 
 const inclusions = [
@@ -99,20 +113,47 @@ export function DasSpiegleinPage() {
           <div className="max-w-3xl mb-10">
             <p className="text-[0.75rem] tracking-[0.3em] uppercase text-black/45 mb-4">Pakete</p>
             <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 700, lineHeight: 1.05 }}>
-              Für Hochzeit, Party und Business.
+              Zwei Pakete. Gleiche Leistung. Fair nach Buchung.
             </h2>
+            <p className="mt-5 text-black/60 leading-relaxed">
+              Beide Pakete enthalten Sofortdrucke, Onlinegalerie, Requisiten, individuelles Screen- und Drucklayout, Aufbau und Abbau. Günstiger wird es, wenn ich sowieso schon mit Foto oder Video bei euch vor Ort bin.
+            </p>
           </div>
-          <div className="grid md:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             {packages.map((pkg) => (
               <article key={pkg.name} className="bg-white border border-black/10 p-5">
                 <Sparkles className="w-5 h-5 text-black/40 mb-5" />
                 <h3 className="text-xl font-semibold">{pkg.name}</h3>
-                <p className="mt-3 text-lg">{pkg.price}</p>
+                <p className="mt-2 text-sm text-black/45">{pkg.label}</p>
+                <p className="mt-5 text-3xl font-semibold">{pkg.price}</p>
                 <p className="mt-4 text-sm text-black/60 leading-relaxed">{pkg.text}</p>
+                <div className="mt-5 grid gap-2 text-sm text-black/65">
+                  {inclusions.slice(1, 6).map((item) => (
+                    <p key={item} className="flex items-start gap-2"><Check className="w-4 h-4 mt-0.5 text-black/40" /> {item}</p>
+                  ))}
+                </div>
               </article>
             ))}
           </div>
           <p className="mt-5 text-xs text-black/45">Anfahrt in und um Innsbruck inklusive, ab 20 km 0,60 EUR/km. Individuelle Pakete auf Anfrage.</p>
+        </div>
+      </section>
+
+      <section className="px-4 py-20 md:py-28 bg-[#76245f] text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[1fr_0.9fr] gap-10 lg:gap-16 items-center">
+          <div className="grid grid-cols-2 gap-4 h-[520px] md:h-[640px] overflow-hidden order-2 lg:order-1">
+            <MarqueeColumn images={PRINT_IMAGES} />
+            <MarqueeColumn images={[...PRINT_IMAGES].reverse()} reverse />
+          </div>
+          <div className="order-1 lg:order-2">
+            <p className="text-white/55 text-[0.75rem] tracking-[0.3em] uppercase mb-4">Fotoausdrucke</p>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 700, lineHeight: 1.05 }}>
+              So individuell wie eure Party.
+            </h2>
+            <p className="mt-6 text-white/75 leading-relaxed">
+              Die Ausdrucke gestalte ich passend zu euch: clean, verspielt, elegant oder mit Namen, Datum und Farben eurer Hochzeit. Eure Gäste nehmen direkt etwas mit, das nicht nach Standard-Fotobox aussieht.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -133,7 +174,44 @@ export function DasSpiegleinPage() {
           <ImageWithFallback src={FRAME_IMAGE} alt="das Spieglein Rahmen" className="w-full aspect-[4/5] object-cover" />
         </div>
       </section>
+
+      <style>{`
+        @keyframes spiegleinMarqueeUp {
+          from { transform: translateY(0); }
+          to { transform: translateY(-50%); }
+        }
+        @keyframes spiegleinMarqueeDown {
+          from { transform: translateY(-50%); }
+          to { transform: translateY(0); }
+        }
+        .spieglein-marquee-up {
+          animation: spiegleinMarqueeUp 22s linear infinite;
+        }
+        .spieglein-marquee-down {
+          animation: spiegleinMarqueeDown 24s linear infinite;
+        }
+      `}</style>
     </>
+  );
+}
+
+function MarqueeColumn({ images, reverse = false }: { images: string[]; reverse?: boolean }) {
+  const stack = [...images, ...images, ...images];
+  return (
+    <div className="relative overflow-hidden">
+      <div className={`grid gap-4 ${reverse ? "spieglein-marquee-down" : "spieglein-marquee-up"}`}>
+        {stack.map((image, index) => (
+          <ImageWithFallback
+            key={`${image}-${index}`}
+            src={image}
+            alt="Individuelles das Spieglein Foto- und Drucklayout"
+            className="w-full aspect-[3/4] object-cover rounded-xl shadow-2xl shadow-black/20 bg-white/10"
+          />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#76245f] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#76245f] to-transparent" />
+    </div>
   );
 }
 
