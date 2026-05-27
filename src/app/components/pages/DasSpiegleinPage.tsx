@@ -5,14 +5,18 @@ import { useLanguage } from "../LanguageContext";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 
-const HERO_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-02.11.19.jpeg";
-const DETAIL_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-13-at-21.40.22-1.png";
+const HERO_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-02.11.18.jpeg";
+const DETAIL_IMAGE = "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-13-at-21.55.22.jpeg";
 const FRAME_IMAGE = "https://cdn.prod.website-files.com/67098b5beaec4e7a5a355c74/68ed4eceb551a7a7d9a53d35_dfad6ae5-f61c-4cb8-9e32-724ce88c92c6.jpg";
 
 const PRINT_IMAGES = [
-  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-02.11.19.jpeg",
-  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-13-at-21.40.22-1.png",
-  "https://cdn.prod.website-files.com/67098b5beaec4e7a5a355c74/68ed4eceb551a7a7d9a53d35_dfad6ae5-f61c-4cb8-9e32-724ce88c92c6.jpg",
+  "https://www.dasspieglein.com/images/8543e13e-dc66-4ae6-944a-64acd522ad06.jpg",
+  "https://www.dasspieglein.com/images/5415d7b4-aaeb-4c0b-adfb-8acfec8cd4e9.jpg",
+  "https://www.dasspieglein.com/images/05b3d232-4ce6-4a12-bbdf-ad184a833ce0.jpg",
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-00.37.13.jpeg",
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-00.11.00.jpeg",
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-00.42.16.jpeg",
+  "https://www.dasspieglein.com/images/WhatsApp-Image-2025-10-14-at-00.41.09.jpeg",
 ];
 
 const packages = [
@@ -139,18 +143,18 @@ export function DasSpiegleinPage() {
         </div>
       </section>
 
-      <section className="px-4 py-20 md:py-28 bg-[#76245f] text-white overflow-hidden">
+      <section className="px-4 py-20 md:py-28 bg-[#f8f7f5] text-[#1f1b17] overflow-hidden">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[1fr_0.9fr] gap-10 lg:gap-16 items-center">
           <div className="grid grid-cols-2 gap-4 h-[520px] md:h-[640px] overflow-hidden order-2 lg:order-1">
             <MarqueeColumn images={PRINT_IMAGES} />
             <MarqueeColumn images={[...PRINT_IMAGES].reverse()} reverse />
           </div>
           <div className="order-1 lg:order-2">
-            <p className="text-white/55 text-[0.75rem] tracking-[0.3em] uppercase mb-4">Fotoausdrucke</p>
+            <p className="text-black/45 text-[0.75rem] tracking-[0.3em] uppercase mb-4">Fotoausdrucke</p>
             <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 700, lineHeight: 1.05 }}>
               So individuell wie eure Party.
             </h2>
-            <p className="mt-6 text-white/75 leading-relaxed">
+            <p className="mt-6 text-black/65 leading-relaxed">
               Die Ausdrucke gestalte ich passend zu euch: clean, verspielt, elegant oder mit Namen, Datum und Farben eurer Hochzeit. Eure Gäste nehmen direkt etwas mit, das nicht nach Standard-Fotobox aussieht.
             </p>
           </div>
@@ -209,8 +213,8 @@ function MarqueeColumn({ images, reverse = false }: { images: string[]; reverse?
           />
         ))}
       </div>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#76245f] to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#76245f] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#f8f7f5] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#f8f7f5] to-transparent" />
     </div>
   );
 }
