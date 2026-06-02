@@ -11,6 +11,7 @@ import {
   CreditCard,
   Download,
   ExternalLink,
+  FileText,
   GripVertical,
   LayoutDashboard,
   ListChecks,
@@ -46,6 +47,33 @@ type CustomerStatus =
   | "abgeschlossen";
 type TaskStatus = "offen" | "in_arbeit" | "erledigt" | "obsolet";
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
+type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
+type Offer = {
+  id: string;
+  publicToken: string;
+  sourceType: "customer" | "inquiry";
+  sourceId: string;
+  customerId: string;
+  inquiryId: string;
+  status: "entwurf" | "gesendet" | "angenommen" | "abgelehnt" | "aenderungswunsch";
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string;
+  respondedAt: string;
+  customerName: string;
+  email: string;
+  eventDate: string;
+  title: string;
+  introText: string;
+  notes: string;
+  items: OfferItem[];
+  travelKm: string;
+  travelRate: string;
+  total: string;
+  pdfUrl: string;
+  driveFileId: string;
+  responseMessage: string;
+};
 type ServiceCatalogItem = { id: string; name: string; price: string; group: string; description?: string; active?: boolean };
 type AddOnRequest = { id: string; createdAt: string; status: "neu" | "akzeptiert" | "abgelehnt"; items: ServiceItem[]; message?: string };
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
@@ -145,7 +173,8 @@ type DashboardItem =
   | { kind: "final"; id: string; customerId: string; customerName: string; title: string; dueDate: string; daysLeft: number; amount?: number };
 type NotificationItem =
   | { kind: "deadline"; id: string; customerId: string; customerName: string; taskId: string; taskTitle: string; dueDate: string; daysLeft: number }
-  | { kind: "addon"; id: string; customerId: string; customerName: string; requestId: string; requestItems: ServiceItem[]; createdAt: string };
+  | { kind: "addon"; id: string; customerId: string; customerName: string; requestId: string; requestItems: ServiceItem[]; createdAt: string }
+  | { kind: "offer"; id: string; customerId: string; customerName: string; offerId: string; offerStatus: string; responseMessage: string; createdAt: string };
 type CalendarEvent = { id: string; customerId: string; customerName: string; type: "shooting" | "consultation" | "registry"; date: string; time: string; title: string; location: string };
 type ConfirmAction = {
   title: string;
@@ -450,6 +479,12 @@ function paymentStats(customer: Customer) {
   return { total, paid, open: total > 0 ? Math.max(total - paid, 0) : 0 };
 }
 
+function offerTotal(offer: Pick<Offer, "items" | "travelKm" | "travelRate">) {
+  const itemTotal = (offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
+  const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
+  return itemTotal + travel;
+}
+
 function hasBookedPayment(customer: Customer, pattern: RegExp) {
   return bookedPayments(customer).some((payment) => pattern.test(payment.title || ""));
 }
@@ -541,6 +576,7 @@ export function AdminPage() {
   const [message, setMessage] = useState("");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [workflow, setWorkflow] = useState<WorkflowItem[]>(statusSteps);
   const [mailTemplates, setMailTemplates] = useState<Record<string, MailTemplate>>({});
   const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>([]);
@@ -557,7 +593,11 @@ export function AdminPage() {
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
-  const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "calendar" | "services">("dashboard");
+  const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "offerDetail" | "offers" | "calendar" | "services">("dashboard");
+  const [selectedOfferId, setSelectedOfferId] = useState("");
+  const [offerDraft, setOfferDraft] = useState<Offer | null>(null);
+  const [offerMailSubject, setOfferMailSubject] = useState("Euer persönliches Angebot");
+  const [offerMailBody, setOfferMailBody] = useState("Servus ihr Lieben,\n\nich habe euch euer persönliches Angebot vorbereitet. Ihr könnt es euch über den Link in Ruhe ansehen und direkt annehmen, ablehnen oder Änderungswünsche schicken.\n\n{offerUrl}\n\nIch freue mich von euch zu hören.");
   const [editMode, setEditMode] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
@@ -586,6 +626,7 @@ export function AdminPage() {
 
   const selectedCustomer = useMemo(() => customers.find((customer) => customer.id === selectedId) || null, [customers, selectedId]);
   const selectedInquiry = useMemo(() => inquiries.find((inquiry) => inquiry.id === selectedInquiryId) || null, [inquiries, selectedInquiryId]);
+  const selectedOffer = useMemo(() => offers.find((offer) => offer.id === selectedOfferId) || null, [offers, selectedOfferId]);
 
   const allNotifications = useMemo<NotificationItem[]>(() => {
     const deadlineNotifications = customers.flatMap((customer) =>
@@ -617,8 +658,20 @@ export function AdminPage() {
           createdAt: request.createdAt,
         })),
     );
-    return [...addOnNotifications, ...deadlineNotifications];
-  }, [customers, reminderSettings.days]);
+    const offerNotifications = offers
+      .filter((offer) => ["angenommen", "abgelehnt", "aenderungswunsch"].includes(offer.status))
+      .map((offer) => ({
+        kind: "offer" as const,
+        id: `offer-${offer.id}-${offer.status}-${offer.respondedAt || offer.updatedAt}`,
+        customerId: offer.customerId || offer.inquiryId || offer.id,
+        customerName: offer.customerName || "Kunde",
+        offerId: offer.id,
+        offerStatus: offer.status,
+        responseMessage: offer.responseMessage,
+        createdAt: offer.respondedAt || offer.updatedAt,
+      }));
+    return [...offerNotifications, ...addOnNotifications, ...deadlineNotifications];
+  }, [customers, offers, reminderSettings.days]);
 
   const notifications = useMemo<NotificationItem[]>(() => {
     const read = new Set(readNotificationIds);
@@ -743,6 +796,7 @@ export function AdminPage() {
       const data = await api("bootstrap");
       setInquiries(data.inquiries || []);
       setCustomers((data.customers || []).map(normalizeCustomer));
+      setOffers(data.offers || []);
       setWorkflow(data.workflow || statusSteps);
       setMailTemplates(data.mailTemplates || {});
       setServiceCatalog(data.serviceCatalog || []);
@@ -753,6 +807,7 @@ export function AdminPage() {
       setWorkflow(statusSteps);
       setMailTemplates({});
       setServiceCatalog([]);
+      setOffers([]);
       setSelectedId("");
       setSelectedInquiryId("");
       setDraft(null);
@@ -774,6 +829,10 @@ export function AdminPage() {
     autosaveSnapshotRef.current = nextDraft ? JSON.stringify(nextDraft) : "";
     setAutosaveStatus("idle");
   }, [selectedCustomer, editMode, draft?.id]);
+
+  useEffect(() => {
+    setOfferDraft(selectedOffer ? structuredClone(selectedOffer) : null);
+  }, [selectedOffer]);
 
   useEffect(() => {
     const template = mailTemplates[activeMail];
@@ -809,6 +868,75 @@ export function AdminPage() {
     setSelectedInquiryId(id);
     setSelectedId("");
     setView("inquiryDetail");
+  };
+  const selectOffer = (id: string) => {
+    setSelectedOfferId(id);
+    setSelectedId("");
+    setSelectedInquiryId("");
+    setView("offerDetail");
+  };
+
+  const createOffer = async (sourceType: "customer" | "inquiry", sourceId: string) => {
+    setSaving(true);
+    try {
+      const data = await api("create-offer", { method: "POST", body: JSON.stringify({ sourceType, sourceId }) });
+      setOffers((prev) => [data.offer, ...prev.filter((item) => item.id !== data.offer.id)]);
+      setSelectedOfferId(data.offer.id);
+      setView("offerDetail");
+      toast.success("Angebot erstellt");
+    } catch (error: any) {
+      toast.error(error.message || "Angebot konnte nicht erstellt werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveOffer = async () => {
+    if (!offerDraft) return;
+    setSaving(true);
+    try {
+      const data = await api("offer", { method: "PUT", body: JSON.stringify({ offer: offerDraft }) });
+      setOffers((prev) => prev.map((item) => (item.id === data.offer.id ? data.offer : item)));
+      setOfferDraft(data.offer);
+      toast.success("Angebot gespeichert");
+    } catch (error: any) {
+      toast.error(error.message || "Angebot konnte nicht gespeichert werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendOffer = async () => {
+    if (!offerDraft) return;
+    setSaving(true);
+    try {
+      await saveOffer();
+      const data = await api("send-offer", { method: "POST", body: JSON.stringify({ offerId: offerDraft.id, subject: offerMailSubject, body: offerMailBody }) });
+      setOffers((prev) => prev.map((item) => (item.id === data.offer.id ? data.offer : item)));
+      setOfferDraft(data.offer);
+      await loadCrm();
+      toast.success("Angebot gesendet");
+    } catch (error: any) {
+      toast.error(error.message || "Angebot konnte nicht gesendet werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteOffer = async (offerId: string) => {
+    setSaving(true);
+    try {
+      await api("delete-offer", { method: "POST", body: JSON.stringify({ offerId }) });
+      setOffers((prev) => prev.filter((item) => item.id !== offerId));
+      setSelectedOfferId("");
+      setOfferDraft(null);
+      setView("offers");
+      toast.success("Angebot gelöscht");
+    } catch (error: any) {
+      toast.error(error.message || "Angebot konnte nicht gelöscht werden");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const persistCustomerDraft = async (updated: Customer) => {
@@ -1348,12 +1476,14 @@ export function AdminPage() {
                   <div className="space-y-2 max-h-80 overflow-auto">
                     {notifications.map((item) => (
                       <div key={item.id} className="rounded-md bg-[#faf8f5] border border-black/8 p-3">
-                        <button onClick={() => { selectCustomer(item.customerId); if (item.kind === "addon") setActiveAddOnRequest({ customerId: item.customerId, requestId: item.requestId }); setNotificationsOpen(false); }} className="w-full text-left">
+                        <button onClick={() => { if (item.kind === "offer") selectOffer(item.offerId); else selectCustomer(item.customerId); if (item.kind === "addon") setActiveAddOnRequest({ customerId: item.customerId, requestId: item.requestId }); setNotificationsOpen(false); }} className="w-full text-left">
                         <p className="text-sm font-medium">{item.customerName}</p>
                         <p className="text-xs text-black/55 mt-1">
                           {item.kind === "addon"
                             ? `Neue Leistungsanfrage (${item.requestItems.length} Position${item.requestItems.length === 1 ? "" : "en"})`
-                            : `${item.taskTitle} · in ${item.daysLeft} Tag(en) fällig`}
+                            : item.kind === "offer"
+                              ? `Angebot: ${item.offerStatus}${item.responseMessage ? ` · ${item.responseMessage}` : ""}`
+                              : `${item.taskTitle} · in ${item.daysLeft} Tag(en) fällig`}
                         </p>
                         </button>
                         <button onClick={() => markNotificationRead(item.id)} className="mt-3 inline-flex items-center gap-1 rounded-md border border-black/10 bg-white px-2 py-1 text-xs text-black/55 hover:text-black">
@@ -1368,6 +1498,7 @@ export function AdminPage() {
               )}
             </div>
             <button onClick={() => setView("services")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><ListChecks className="w-4 h-4" /> Leistungen</button>
+            <button onClick={() => setView("offers")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><FileText className="w-4 h-4" /> Angebote</button>
             <button onClick={() => setSettingsOpen(true)} className="inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10 text-white/80" title="Globale Settings"><Settings className="w-4 h-4" /></button>
             <button onClick={createCustomer} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
             <button onClick={logout} className="inline-flex items-center justify-center gap-2 text-white/55 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
@@ -1453,12 +1584,28 @@ export function AdminPage() {
               saving={saving}
             />
           )}
+          {!loading && view === "offers" && <OffersListView offers={offers} onSelect={selectOffer} onDelete={deleteOffer} />}
+          {!loading && view === "offerDetail" && offerDraft && (
+            <OfferDetailView
+              offer={offerDraft}
+              setOffer={setOfferDraft}
+              saving={saving}
+              mailSubject={offerMailSubject}
+              mailBody={offerMailBody}
+              setMailSubject={setOfferMailSubject}
+              setMailBody={setOfferMailBody}
+              saveOffer={saveOffer}
+              sendOffer={sendOffer}
+              deleteOffer={() => deleteOffer(offerDraft.id)}
+            />
+          )}
           {!loading && view === "customersList" && <CustomersListView customers={customers} notificationsByCustomer={notificationsByCustomer} onSelect={selectCustomer} />}
           {!loading && view === "inquiriesList" && <InquiriesListView inquiries={inquiries} onSelect={selectInquiry} />}
           {!loading && view === "inquiryDetail" && selectedInquiry && (
             <InquiryDetail
               inquiry={selectedInquiry}
               onReply={() => openConfirm({ title: "Anfrage beantworten?", description: "Die Anfrage wird als beantwortet markiert. Optional wird direkt eine Mail verschickt.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => markInquiryAnswered(selectedInquiry.id) })}
+              onOffer={() => createOffer("inquiry", selectedInquiry.id)}
               onDelete={() => openConfirm({ title: "Anfrage ablehnen oder löschen?", description: "Die Anfrage wird entfernt. Optional kann vorher eine kurze Absage-Mail gesendet werden.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, subject: "Danke für eure Anfrage", body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Leider passt es diesmal nicht oder der Termin ist bereits vergeben.\n\nIch wünsche euch alles Gute.", onConfirm: () => deleteInquiryAction(selectedInquiry.id) })}
               onConvert={() => openConfirm({ title: "In Kunden umwandeln?", description: "Relevante Kontaktdaten, Leistungen, Nachrichten und Locations werden übernommen.", templateKey: "portal", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => convertInquiry(selectedInquiry.id) })}
             />
@@ -1503,6 +1650,7 @@ export function AdminPage() {
               addPortalMessage={addPortalMessage}
               sendMail={sendMail}
               provisionPortal={provisionPortal}
+              createOffer={() => createOffer("customer", draft.id)}
             />
           )}
         </section>
@@ -1648,6 +1796,159 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
             {customers.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-black/45">Noch keine Kunden angelegt.</td></tr>}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function OffersListView({ offers, onSelect, onDelete }: { offers: Offer[]; onSelect: (id: string) => void; onDelete: (id: string) => void }) {
+  const statusLabel: Record<Offer["status"], string> = {
+    entwurf: "Entwurf",
+    gesendet: "Gesendet",
+    angenommen: "Angenommen",
+    abgelehnt: "Abgelehnt",
+    aenderungswunsch: "Änderungswunsch",
+  };
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.22em] text-black/40">Angebote</p>
+        <h2 className="mt-1 text-2xl">Alle Angebote</h2>
+      </div>
+      <div className="grid gap-3">
+        {offers.map((offer) => (
+          <article key={offer.id} className="rounded-lg border border-black/8 bg-[#faf8f5] p-4">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+              <div>
+                <p className="font-medium">{offer.customerName || "Ohne Namen"}</p>
+                <p className="text-sm text-black/50 mt-1">{offer.title || "Angebot"} {offer.eventDate ? `· ${offer.eventDate}` : ""}</p>
+                {offer.responseMessage && <p className="text-sm text-black/60 mt-2">“{offer.responseMessage}”</p>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white border border-black/8 px-3 py-1 text-xs">{statusLabel[offer.status] || offer.status}</span>
+                <span className="rounded-full bg-white border border-black/8 px-3 py-1 text-xs">{formatMoney(String(offerTotal(offer)))}</span>
+                <button onClick={() => onSelect(offer.id)} className="rounded-md bg-[#11100f] text-white px-3 py-2 text-xs">Öffnen</button>
+                <button onClick={() => onDelete(offer.id)} className="rounded-md border border-red-200 text-red-700 px-3 py-2 text-xs">Löschen</button>
+              </div>
+            </div>
+          </article>
+        ))}
+        {offers.length === 0 && <p className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Noch keine Angebote erstellt.</p>}
+      </div>
+    </div>
+  );
+}
+
+function OfferDetailView({
+  offer,
+  setOffer,
+  saving,
+  mailSubject,
+  mailBody,
+  setMailSubject,
+  setMailBody,
+  saveOffer,
+  sendOffer,
+  deleteOffer,
+}: {
+  offer: Offer;
+  setOffer: (offer: Offer) => void;
+  saving: boolean;
+  mailSubject: string;
+  mailBody: string;
+  setMailSubject: (value: string) => void;
+  setMailBody: (value: string) => void;
+  saveOffer: () => void;
+  sendOffer: () => void;
+  deleteOffer: () => void;
+}) {
+  const updateItem = (id: string, patch: Partial<OfferItem>) => {
+    setOffer({ ...offer, items: offer.items.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
+  };
+  const addItem = () => setOffer({ ...offer, items: [...offer.items, { id: `offer_item_${Date.now()}`, name: "Neue Leistung", description: "", quantity: "1", unitPrice: "" }] });
+  const removeItem = (id: string) => setOffer({ ...offer, items: offer.items.filter((item) => item.id !== id) });
+  const publicUrl = `${window.location.origin}/angebot/${offer.publicToken}`;
+  const total = offerTotal(offer);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-black/40">Angebot</p>
+          <input value={offer.title} onChange={(event) => setOffer({ ...offer, title: event.target.value })} className="mt-1 w-full bg-transparent border-b border-transparent focus:border-black/20 outline-none text-2xl" />
+          <p className="text-sm text-black/45 mt-2">{offer.customerName || "Ohne Namen"} · {offer.status}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {offer.status !== "entwurf" && <a href={publicUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">Kundenlink <ExternalLink className="w-4 h-4" /></a>}
+          {offer.pdfUrl && <a href={offer.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">PDF <ExternalLink className="w-4 h-4" /></a>}
+          <button onClick={saveOffer} disabled={saving} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><Save className="w-4 h-4" /> Speichern</button>
+          <button onClick={sendOffer} disabled={saving || !offer.email} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm disabled:opacity-50"><Send className="w-4 h-4" /> Senden</button>
+          <button onClick={deleteOffer} className="inline-flex items-center gap-2 rounded-md border border-red-200 text-red-700 px-3 py-2 text-sm"><Trash2 className="w-4 h-4" /> Löschen</button>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_0.9fr] gap-5">
+        <div className="space-y-4">
+          <section className="rounded-lg border border-black/8 p-4">
+            <h3 className="font-semibold mb-3">Details</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <Field label="Kundenname" value={offer.customerName} onChange={(value) => setOffer({ ...offer, customerName: value })} />
+              <Field label="E-Mail" value={offer.email} onChange={(value) => setOffer({ ...offer, email: value })} />
+              <Field label="Datum" type="date" value={offer.eventDate} onChange={(value) => setOffer({ ...offer, eventDate: value })} />
+              <Field label="Fahrtkosten km" value={offer.travelKm} onChange={(value) => setOffer({ ...offer, travelKm: value })} placeholder="z.B. 80" />
+            </div>
+            <label className="block mt-3">
+              <span className="text-xs uppercase tracking-[0.16em] text-black/45">Fließtext</span>
+              <textarea value={offer.introText} onChange={(event) => setOffer({ ...offer, introText: event.target.value })} className="mt-2 w-full min-h-32 rounded-md border border-black/10 px-3 py-2 text-sm" />
+            </label>
+            <label className="block mt-3">
+              <span className="text-xs uppercase tracking-[0.16em] text-black/45">Notiz / Kleingedrucktes</span>
+              <textarea value={offer.notes} onChange={(event) => setOffer({ ...offer, notes: event.target.value })} className="mt-2 w-full min-h-20 rounded-md border border-black/10 px-3 py-2 text-sm" />
+            </label>
+          </section>
+
+          <section className="rounded-lg border border-black/8 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Leistungen</h3>
+              <button onClick={addItem} className="text-xs inline-flex items-center gap-1 text-black/55 hover:text-black"><Plus className="w-3 h-3" /> Position</button>
+            </div>
+            <div className="space-y-2">
+              {offer.items.map((item) => (
+                <div key={item.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_80px_110px_auto] rounded-md bg-[#faf8f5] border border-black/8 p-2">
+                  <input value={item.name} onChange={(event) => updateItem(item.id, { name: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
+                  <input value={item.quantity} onChange={(event) => updateItem(item.id, { quantity: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
+                  <input value={item.unitPrice} onChange={(event) => updateItem(item.id, { unitPrice: event.target.value })} className="rounded-md border border-black/10 px-3 py-2 text-sm" />
+                  <button onClick={() => removeItem(item.id)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700"><Trash2 className="w-4 h-4" /></button>
+                  <textarea value={item.description || ""} onChange={(event) => updateItem(item.id, { description: event.target.value })} className="md:col-span-4 rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Beschreibung optional" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-black/8 p-4">
+            <h3 className="font-semibold mb-3">Mail vor dem Senden</h3>
+            <input value={mailSubject} onChange={(event) => setMailSubject(event.target.value)} className="w-full rounded-md border border-black/10 px-3 py-2 text-sm" />
+            <textarea value={mailBody} onChange={(event) => setMailBody(event.target.value)} className="mt-3 w-full min-h-40 rounded-md border border-black/10 px-3 py-2 text-sm font-mono" />
+          </section>
+        </div>
+
+        <section className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 lg:sticky lg:top-5 self-start">
+          <p className="text-xs uppercase tracking-[0.2em] text-black/40">PDF Vorschau</p>
+          <h3 className="mt-2 text-2xl font-light">{offer.title}</h3>
+          <p className="mt-2 text-sm text-black/55">{offer.customerName} {offer.eventDate ? `· ${offer.eventDate}` : ""}</p>
+          <p className="mt-5 whitespace-pre-wrap text-sm text-black/65 leading-relaxed">{offer.introText}</p>
+          <div className="mt-5 rounded-md bg-white border border-black/8 overflow-hidden">
+            {offer.items.map((item) => (
+              <div key={item.id} className="flex justify-between gap-3 border-b border-black/8 last:border-b-0 px-3 py-2 text-sm">
+                <span>{item.quantity || "1"} x {item.name}</span>
+                <span>{formatMoney(String(moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice)))}</span>
+              </div>
+            ))}
+            {offer.travelKm && <div className="flex justify-between gap-3 border-b border-black/8 px-3 py-2 text-sm"><span>Fahrtkosten</span><span>{formatMoney(String(moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60")))}</span></div>}
+            <div className="flex justify-between gap-3 px-3 py-3 font-semibold"><span>Gesamt</span><span>{formatMoney(String(total))}</span></div>
+          </div>
+          <p className="mt-4 text-xs text-black/45 whitespace-pre-wrap">{offer.notes}</p>
+        </section>
       </div>
     </div>
   );
@@ -2027,6 +2328,7 @@ function CustomerDetail(props: {
   addPortalMessage: () => void;
   sendMail: () => void;
   provisionPortal: () => void;
+  createOffer: () => void;
 }) {
   const { draft, setDraft } = props;
   const workflowTasksOnly = draft.tasks.filter(isWorkflowTask);
@@ -2048,6 +2350,9 @@ function CustomerDetail(props: {
             </a>
             <button onClick={props.openPaymentModal} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
               <Plus className="w-4 h-4" /> Zahlung loggen
+            </button>
+            <button onClick={props.createOffer} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
+              <FileText className="w-4 h-4" /> Angebot
             </button>
             <button onClick={() => downloadCustomerContact(draft)} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2 text-sm">
               <Download className="w-4 h-4" /> Kontakt
@@ -2616,13 +2921,14 @@ function upsertDocumentLocal(documents: CustomerDocument[], document: CustomerDo
     : [...documents, document];
 }
 
-function InquiryDetail({ inquiry, onReply, onDelete, onConvert }: { inquiry: Inquiry; onReply: () => void; onDelete: () => void; onConvert: () => void }) {
+function InquiryDetail({ inquiry, onReply, onOffer, onDelete, onConvert }: { inquiry: Inquiry; onReply: () => void; onOffer: () => void; onDelete: () => void; onConvert: () => void }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div><p className="text-xs uppercase tracking-[0.22em] text-black/40">Anfragedetail</p><h2 className="mt-1 text-2xl">{inquiry.name}</h2><p className="text-sm text-black/50 mt-1">{inquiry.category || "Anfrage"} {inquiry.eventDate ? `· ${inquiry.eventDate}` : ""}</p></div>
         <div className="flex flex-wrap gap-2">
           <button onClick={onReply} className="inline-flex items-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm"><Mail className="w-4 h-4" /> Antworten</button>
+          <button onClick={onOffer} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><FileText className="w-4 h-4" /> Angebot erstellen</button>
           <button onClick={onConvert} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><ArrowRight className="w-4 h-4" /> In Kunde umwandeln</button>
           <button onClick={onDelete} className="inline-flex items-center gap-2 rounded-md border border-red-200 text-red-700 px-3 py-2 text-sm"><X className="w-4 h-4" /> Ablehnen/Löschen</button>
         </div>

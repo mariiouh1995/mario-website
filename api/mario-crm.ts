@@ -10,6 +10,7 @@ type CustomerDocument = any;
 type InspirationLink = any;
 type ServiceItem = any;
 type AddOnRequest = any;
+type CrmOffer = crm.CrmOffer;
 
 function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -19,6 +20,32 @@ function setCors(res: VercelResponse) {
 
 function normalizeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function moneyNumber(value: unknown) {
+  const raw = normalizeString(value);
+  if (!raw) return 0;
+  const stripped = raw.replace(/[^\d,.]/g, "");
+  if (!stripped) return 0;
+  const lastComma = stripped.lastIndexOf(",");
+  const lastDot = stripped.lastIndexOf(".");
+  let normalized = stripped;
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimal = lastComma > lastDot ? "," : ".";
+    const thousands = decimal === "," ? "." : ",";
+    normalized = stripped.replace(new RegExp(`\\${thousands}`, "g"), "").replace(decimal, ".");
+  } else if (lastComma >= 0 || lastDot >= 0) {
+    const separator = lastComma >= 0 ? "," : ".";
+    const parts = stripped.split(separator);
+    const fraction = parts[parts.length - 1] || "";
+    normalized = fraction.length > 0 && fraction.length <= 2 ? `${parts.slice(0, -1).join("")}.${fraction}` : parts.join("");
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatEuro(value: number) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value);
 }
 
 function ensureAdmin(req: VercelRequest, res: VercelResponse) {
@@ -189,6 +216,21 @@ async function ensureCustomerDriveFolder(customer: CrmCustomer) {
   return folderId;
 }
 
+async function uploadBufferToDrive(input: { folderId: string; fileName: string; mimeType: string; buffer: Buffer }) {
+  const drive = driveClient();
+  const created = await drive.files.create({
+    requestBody: { name: input.fileName, parents: [input.folderId] },
+    media: { mimeType: input.mimeType, body: Buffer.from(input.buffer) as any },
+    supportsAllDrives: true,
+    fields: "id, webViewLink",
+  });
+  const fileId = created.data.id;
+  if (!fileId) throw new Error("Google Drive file could not be created");
+  await drive.permissions.create({ fileId, supportsAllDrives: true, requestBody: { type: "anyone", role: "reader" } });
+  const file = await drive.files.get({ fileId, supportsAllDrives: true, fields: "webViewLink" });
+  return { fileId, url: file.data.webViewLink || created.data.webViewLink || "" };
+}
+
 function upsertDocument(customer: CrmCustomer, document: CustomerDocument) {
   const documents = customer.documents || [];
   const index = documents.findIndex((item: CustomerDocument) => item.id === document.id);
@@ -293,6 +335,151 @@ function normalizeRequestedServices(items: unknown): ServiceItem[] {
     .filter((item) => item.name);
 }
 
+function normalizeOfferItems(items: unknown) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item: any) => ({
+      id: normalizeString(item?.id) || crm.createId("offer_item"),
+      name: normalizeString(item?.name),
+      description: normalizeString(item?.description),
+      quantity: normalizeString(item?.quantity) || "1",
+      unitPrice: normalizeString(item?.unitPrice || item?.price),
+    }))
+    .filter((item) => item.name);
+}
+
+function calculateOfferTotal(offer: Partial<CrmOffer>) {
+  const itemTotal = normalizeOfferItems(offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
+  const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
+  return itemTotal + travel;
+}
+
+function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry") {
+  const services = sourceType === "customer"
+    ? [...((source as CrmCustomer).bookedServices || []), ...((source as CrmCustomer).customServices || [])]
+    : ((source as crm.CrmInquiry).selectedPackages || []);
+  return {
+    sourceType,
+    sourceId: source.id,
+    customerId: sourceType === "customer" ? source.id : "",
+    inquiryId: sourceType === "inquiry" ? source.id : "",
+    customerName: source.name || "",
+    email: source.email || "",
+    eventDate: source.eventDate || "",
+    title: "Persönliches Angebot",
+    introText: "Servus ihr Lieben,\n\nauf Basis eurer Anfrage habe ich euch ein persönliches Angebot zusammengestellt. Schaut in Ruhe drüber. Wenn alles passt, könnt ihr es direkt bestätigen - und wenn ihr noch etwas ändern möchtet, schreibt mir einfach kurz eure Wünsche dazu.",
+    notes: "Alle Preise verstehen sich inklusive der jeweils gültigen Umsatzsteuer. Fahrtkosten können je nach Location separat ausgewiesen werden.",
+    items: services.map((service: ServiceItem) => ({ id: crm.createId("offer_item"), name: service.name, description: "", quantity: "1", unitPrice: service.price || "" })),
+    travelKm: "",
+    travelRate: "0.60",
+  };
+}
+
+function escapePdfText(value: string) {
+  return normalizeString(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+function wrapText(value: string, max = 72) {
+  const lines: string[] = [];
+  for (const paragraph of String(value || "").split("\n")) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    let line = "";
+    for (const word of words) {
+      if ((line + " " + word).trim().length > max) {
+        if (line) lines.push(line);
+        line = word;
+      } else {
+        line = `${line} ${word}`.trim();
+      }
+    }
+    if (line) lines.push(line);
+    if (!words.length) lines.push("");
+  }
+  return lines;
+}
+
+function simplePdf(lines: string[]) {
+  const content = [
+    "BT",
+    "/F1 10 Tf",
+    "50 790 Td",
+    "14 TL",
+    ...lines.flatMap((line, index) => [
+      index === 0 ? "" : "T*",
+      `(${escapePdfText(line)}) Tj`,
+    ]).filter(Boolean),
+    "ET",
+  ].join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${Buffer.byteLength(content, "utf8")} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf, "utf8"));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = Buffer.byteLength(pdf, "utf8");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, "utf8");
+}
+
+function renderOfferPdf(offer: CrmOffer) {
+  const total = calculateOfferTotal(offer);
+  const lines = [
+    "Mario Schubert Photography",
+    "Persoenliches Angebot",
+    "",
+    `Kunde: ${offer.customerName}`,
+    offer.eventDate ? `Termin: ${offer.eventDate}` : "",
+    `Datum: ${new Date().toLocaleDateString("de-DE")}`,
+    "",
+    ...wrapText(offer.introText, 82),
+    "",
+    "Leistungen",
+    "---------------------------------------------",
+    ...normalizeOfferItems(offer.items).flatMap((item) => {
+      const amount = moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice);
+      return [`${item.quantity || "1"} x ${item.name} - ${formatEuro(amount)}`, ...(item.description ? wrapText(item.description, 80) : [])];
+    }),
+    offer.travelKm ? `Fahrtkosten: ${offer.travelKm} km x ${offer.travelRate || "0.60"} EUR - ${formatEuro(moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60"))}` : "",
+    "",
+    `Gesamtsumme: ${formatEuro(total)}`,
+    "",
+    ...wrapText(offer.notes, 82),
+    "",
+    "Mario Schubert | Fotografie, Video und Fotospiegel | servus@marioschub.com | www.marioschub.com",
+  ].filter((line) => line !== undefined);
+  return simplePdf(lines);
+}
+
+async function sendOfferNotification(offer: CrmOffer) {
+  if (!process.env.SMTP_USER) return;
+  const body = [
+    "Servus Mario,",
+    "",
+    `${offer.customerName || "Ein Kunde"} hat auf ein Angebot reagiert.`,
+    "",
+    `Status: ${offer.status}`,
+    offer.responseMessage ? `Nachricht:\n${offer.responseMessage}` : "",
+    "",
+    "Du findest das Angebot im Admin unter Angebote.",
+  ].filter(Boolean).join("\n");
+  await createTransport().sendMail({
+    from: `"Mario Website" <${process.env.SMTP_USER}>`,
+    to: process.env.MARIO_NOTIFICATION_EMAIL || process.env.SMTP_USER,
+    subject: `Angebot ${offer.status}: ${offer.customerName || "Kunde"}`,
+    html: mailHtml(body),
+    text: body,
+  });
+}
+
 async function sendAddOnRequestNotification(customer: CrmCustomer, request: AddOnRequest) {
   if (!process.env.SMTP_USER) return;
   const items = (request.items || []).map((item: ServiceItem) => `- ${item.name}${item.price ? ` (${item.price} EUR)` : ""}`).join("\n");
@@ -332,7 +519,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!password) return res.status(200).json({ requiresPassword: true, workflow: crm.WORKFLOW });
       if (password !== customer.portalPassword) return res.status(401).json({ requiresPassword: true, error: "Falsches Passwort" });
       const serviceCatalog = await crm.getServiceCatalog();
-      return res.status(200).json({ customer, workflow: crm.WORKFLOW, serviceCatalog: serviceCatalog.filter((item) => item.active !== false) });
+      const offers = (await crm.listOffers()).filter((offer) => offer.customerId === customer.id && offer.status !== "entwurf");
+      return res.status(200).json({ customer, offers, workflow: crm.WORKFLOW, serviceCatalog: serviceCatalog.filter((item) => item.active !== false) });
     }
 
     if (req.method === "POST" && action === "portal-inspiration-links") {
@@ -422,11 +610,103 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result);
     }
 
+    if (req.method === "GET" && action === "public-offer") {
+      const token = normalizeString(req.query.token);
+      if (!token) return res.status(400).json({ error: "token is required" });
+      const offer = await crm.getOfferByToken(token);
+      if (!offer || offer.status === "entwurf") return res.status(404).json({ error: "Angebot nicht gefunden" });
+      return res.status(200).json({ offer });
+    }
+
+    if (req.method === "POST" && action === "offer-response") {
+      const token = normalizeString(req.body?.token);
+      const status = normalizeString(req.body?.status) as CrmOffer["status"];
+      const responseMessage = normalizeString(req.body?.responseMessage);
+      if (!["angenommen", "abgelehnt", "aenderungswunsch"].includes(status)) return res.status(400).json({ error: "Ungültiger Status" });
+      const offer = await crm.getOfferByToken(token);
+      if (!offer || offer.status === "entwurf") return res.status(404).json({ error: "Angebot nicht gefunden" });
+      const saved = await crm.upsertOffer({ ...offer, status, responseMessage, respondedAt: new Date().toISOString() });
+      await sendOfferNotification(saved);
+      return res.status(200).json({ offer: saved });
+    }
+
     if (!ensureAdmin(req, res)) return;
 
     if (req.method === "GET" && action === "bootstrap") {
-      const [inquiries, customers, serviceCatalog] = await Promise.all([crm.listInquiries(), crm.listCustomers(), crm.getServiceCatalog()]);
-      return res.status(200).json({ inquiries, customers, workflow: crm.WORKFLOW, mailTemplates: crm.MAIL_TEMPLATES, serviceCatalog });
+      const [inquiries, customers, serviceCatalog, offers] = await Promise.all([crm.listInquiries(), crm.listCustomers(), crm.getServiceCatalog(), crm.listOffers()]);
+      return res.status(200).json({ inquiries, customers, offers, workflow: crm.WORKFLOW, mailTemplates: crm.MAIL_TEMPLATES, serviceCatalog });
+    }
+
+    if (req.method === "POST" && action === "create-offer") {
+      const sourceType = normalizeString(req.body?.sourceType) === "inquiry" ? "inquiry" : "customer";
+      const sourceId = normalizeString(req.body?.sourceId);
+      if (!sourceId) return res.status(400).json({ error: "sourceId is required" });
+      const source = sourceType === "customer" ? await crm.getCustomer(sourceId) : (await crm.listInquiries()).find((item) => item.id === sourceId);
+      if (!source) return res.status(404).json({ error: "Quelle nicht gefunden" });
+      const base = offerFromSource(source as any, sourceType);
+      const offer = await crm.upsertOffer({ ...base, total: String(calculateOfferTotal(base)) });
+      return res.status(201).json({ offer });
+    }
+
+    if (req.method === "PUT" && action === "offer") {
+      const input = req.body?.offer as Partial<CrmOffer>;
+      if (!input?.id) return res.status(400).json({ error: "offer.id is required" });
+      const existing = await crm.getOffer(input.id);
+      if (!existing) return res.status(404).json({ error: "Offer not found" });
+      const saved = await crm.upsertOffer({ ...existing, ...input, items: normalizeOfferItems(input.items), total: String(calculateOfferTotal(input)) });
+      return res.status(200).json({ offer: saved });
+    }
+
+    if (req.method === "POST" && action === "send-offer") {
+      const offerId = normalizeString(req.body?.offerId);
+      const subject = normalizeString(req.body?.subject) || "Euer persönliches Angebot";
+      const body = normalizeString(req.body?.body) || "Servus ihr Lieben,\n\nich habe euch euer persönliches Angebot vorbereitet. Ihr könnt es euch über den Link in Ruhe ansehen und direkt annehmen, ablehnen oder Änderungswünsche schicken.\n\n{offerUrl}\n\nIch freue mich von euch zu hören.";
+      const offer = await crm.getOffer(offerId);
+      if (!offer) return res.status(404).json({ error: "Offer not found" });
+      if (!offer.email) return res.status(400).json({ error: "Angebot hat keine E-Mail-Adresse" });
+
+      const prepared = await crm.upsertOffer({ ...offer, total: String(calculateOfferTotal(offer)) });
+      const pdfBuffer = renderOfferPdf(prepared);
+      const offerCustomer = prepared.customerId ? await crm.getCustomer(prepared.customerId) : null;
+      const folderId = offerCustomer
+        ? await ensureCustomerDriveFolder(offerCustomer)
+        : normalizeString(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
+      if (!folderId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured");
+      if (prepared.driveFileId) await deleteDriveFile(prepared.driveFileId);
+      const uploaded = await uploadBufferToDrive({ folderId, fileName: `${prepared.customerName || "Angebot"} - Angebot.pdf`, mimeType: "application/pdf", buffer: pdfBuffer });
+      const publicUrl = process.env.PUBLIC_URL || "https://www.marioschub.com";
+      const saved = await crm.upsertOffer({ ...prepared, status: "gesendet", sentAt: new Date().toISOString(), pdfUrl: uploaded.url, driveFileId: uploaded.fileId });
+
+      if (saved.customerId) {
+        const customer = await crm.getCustomer(saved.customerId);
+        if (customer) {
+          const document = { id: `doc-offer-${saved.id}`, kind: "offer", title: saved.title || "Angebot", url: uploaded.url, driveFileId: uploaded.fileId, fileName: "Angebot.pdf", mimeType: "application/pdf", uploadedAt: new Date().toISOString() };
+          await crm.upsertCustomer({ ...customer, offerUrl: uploaded.url, documents: upsertDocument(customer, document), status: "angebot" as CustomerStatus });
+        }
+      }
+      if (saved.inquiryId) await crm.updateInquiryStatus(saved.inquiryId, "angebot");
+
+      const offerUrl = `${publicUrl}/angebot/${saved.publicToken}`;
+      const renderedBody = body.replaceAll("{offerUrl}", offerUrl).replaceAll("{customerName}", saved.customerName || "");
+      await createTransport().sendMail({
+        from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
+        to: saved.email,
+        bcc: process.env.SMTP_USER,
+        subject,
+        html: marioMailHtml(renderedBody),
+        text: renderedBody,
+        attachments: uploaded.url ? [{ filename: "Angebot.pdf", path: uploaded.url }] : undefined,
+      });
+      return res.status(200).json({ offer: saved, offerUrl });
+    }
+
+    if (req.method === "POST" && action === "delete-offer") {
+      const offerId = normalizeString(req.body?.offerId);
+      const offer = await crm.getOffer(offerId);
+      if (!offer) return res.status(404).json({ error: "Offer not found" });
+      if (offer.driveFileId) await deleteDriveFile(offer.driveFileId);
+      await crm.deleteOffer(offer.id);
+      return res.status(200).json({ success: true });
     }
 
     if (req.method === "PUT" && action === "service-catalog") {

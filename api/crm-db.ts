@@ -34,6 +34,41 @@ export type ServiceItem = {
   type: "package" | "custom";
 };
 
+export type OfferItem = {
+  id: string;
+  name: string;
+  description?: string;
+  quantity: string;
+  unitPrice: string;
+};
+
+export type CrmOffer = {
+  id: string;
+  publicToken: string;
+  sourceType: "customer" | "inquiry";
+  sourceId: string;
+  customerId: string;
+  inquiryId: string;
+  status: "entwurf" | "gesendet" | "angenommen" | "abgelehnt" | "aenderungswunsch";
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string;
+  respondedAt: string;
+  customerName: string;
+  email: string;
+  eventDate: string;
+  title: string;
+  introText: string;
+  notes: string;
+  items: OfferItem[];
+  travelKm: string;
+  travelRate: string;
+  total: string;
+  pdfUrl: string;
+  driveFileId: string;
+  responseMessage: string;
+};
+
 export type ServiceCatalogItem = {
   id: string;
   name: string;
@@ -479,9 +514,40 @@ export async function ensureMarioCrmSchema() {
       )
     `;
 
+    await db`
+      CREATE TABLE IF NOT EXISTS mario_offers (
+        id text PRIMARY KEY,
+        public_token text UNIQUE NOT NULL,
+        source_type text NOT NULL DEFAULT 'customer',
+        source_id text NOT NULL DEFAULT '',
+        customer_id text NOT NULL DEFAULT '',
+        inquiry_id text NOT NULL DEFAULT '',
+        status text NOT NULL DEFAULT 'entwurf',
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        sent_at text NOT NULL DEFAULT '',
+        responded_at text NOT NULL DEFAULT '',
+        customer_name text NOT NULL DEFAULT '',
+        email text NOT NULL DEFAULT '',
+        event_date text NOT NULL DEFAULT '',
+        title text NOT NULL DEFAULT '',
+        intro_text text NOT NULL DEFAULT '',
+        notes text NOT NULL DEFAULT '',
+        items jsonb NOT NULL DEFAULT '[]',
+        travel_km text NOT NULL DEFAULT '',
+        travel_rate text NOT NULL DEFAULT '0.60',
+        total text NOT NULL DEFAULT '',
+        pdf_url text NOT NULL DEFAULT '',
+        drive_file_id text NOT NULL DEFAULT '',
+        response_message text NOT NULL DEFAULT ''
+      )
+    `;
+
     await db`CREATE INDEX IF NOT EXISTS idx_mario_inquiries_created_at ON mario_inquiries(created_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_updated_at ON mario_customers(updated_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_portal_token ON mario_customers(portal_token)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_mario_offers_updated_at ON mario_offers(updated_at DESC)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_mario_offers_public_token ON mario_offers(public_token)`;
 
     schemaReady = true;
   } finally {
@@ -566,6 +632,48 @@ function mapCustomer(row: any): CrmCustomer {
   };
 }
 
+function normalizeOfferItems(items: unknown): OfferItem[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item: any) => ({
+      id: item?.id || createId("offer_item"),
+      name: item?.name || "",
+      description: item?.description || "",
+      quantity: item?.quantity || "1",
+      unitPrice: item?.unitPrice || item?.price || "",
+    }))
+    .filter((item) => item.name.trim());
+}
+
+function mapOffer(row: any): CrmOffer {
+  return {
+    id: row.id,
+    publicToken: row.public_token,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
+    customerId: row.customer_id,
+    inquiryId: row.inquiry_id,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    sentAt: row.sent_at,
+    respondedAt: row.responded_at,
+    customerName: row.customer_name,
+    email: row.email,
+    eventDate: row.event_date,
+    title: row.title,
+    introText: row.intro_text,
+    notes: row.notes,
+    items: normalizeOfferItems(row.items),
+    travelKm: row.travel_km,
+    travelRate: row.travel_rate || "0.60",
+    total: row.total,
+    pdfUrl: row.pdf_url,
+    driveFileId: row.drive_file_id,
+    responseMessage: row.response_message,
+  };
+}
+
 export async function listInquiries() {
   await ensureMarioCrmSchema();
   const rows = await sql()`SELECT * FROM mario_inquiries ORDER BY created_at DESC`;
@@ -615,6 +723,74 @@ export async function listCustomers() {
   await ensureMarioCrmSchema();
   const rows = await sql()`SELECT * FROM mario_customers ORDER BY updated_at DESC`;
   return rows.map(mapCustomer);
+}
+
+export async function listOffers() {
+  await ensureMarioCrmSchema();
+  const rows = await sql()`SELECT * FROM mario_offers ORDER BY updated_at DESC`;
+  return rows.map(mapOffer);
+}
+
+export async function getOffer(id: string) {
+  await ensureMarioCrmSchema();
+  const rows = await sql()`SELECT * FROM mario_offers WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? mapOffer(rows[0]) : null;
+}
+
+export async function getOfferByToken(token: string) {
+  await ensureMarioCrmSchema();
+  const rows = await sql()`SELECT * FROM mario_offers WHERE public_token = ${token} LIMIT 1`;
+  return rows[0] ? mapOffer(rows[0]) : null;
+}
+
+export async function upsertOffer(input: Partial<CrmOffer>) {
+  await ensureMarioCrmSchema();
+  const id = input.id || createId("offer");
+  const publicToken = input.publicToken || createPortalToken();
+  const rows = await sql()`
+    INSERT INTO mario_offers (
+      id, public_token, source_type, source_id, customer_id, inquiry_id, status, created_at, updated_at,
+      sent_at, responded_at, customer_name, email, event_date, title, intro_text, notes, items,
+      travel_km, travel_rate, total, pdf_url, drive_file_id, response_message
+    ) VALUES (
+      ${id}, ${publicToken}, ${input.sourceType || "customer"}, ${input.sourceId || ""}, ${input.customerId || ""}, ${input.inquiryId || ""},
+      ${input.status || "entwurf"}, ${input.createdAt || nowIso()}, now(), ${input.sentAt || ""}, ${input.respondedAt || ""},
+      ${input.customerName || ""}, ${input.email || ""}, ${input.eventDate || ""}, ${input.title || "Persönliches Angebot"},
+      ${input.introText || ""}, ${input.notes || ""}, ${JSON.stringify(normalizeOfferItems(input.items || []))}::jsonb,
+      ${input.travelKm || ""}, ${input.travelRate || "0.60"}, ${input.total || ""}, ${input.pdfUrl || ""}, ${input.driveFileId || ""},
+      ${input.responseMessage || ""}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      public_token = EXCLUDED.public_token,
+      source_type = EXCLUDED.source_type,
+      source_id = EXCLUDED.source_id,
+      customer_id = EXCLUDED.customer_id,
+      inquiry_id = EXCLUDED.inquiry_id,
+      status = EXCLUDED.status,
+      updated_at = now(),
+      sent_at = EXCLUDED.sent_at,
+      responded_at = EXCLUDED.responded_at,
+      customer_name = EXCLUDED.customer_name,
+      email = EXCLUDED.email,
+      event_date = EXCLUDED.event_date,
+      title = EXCLUDED.title,
+      intro_text = EXCLUDED.intro_text,
+      notes = EXCLUDED.notes,
+      items = EXCLUDED.items,
+      travel_km = EXCLUDED.travel_km,
+      travel_rate = EXCLUDED.travel_rate,
+      total = EXCLUDED.total,
+      pdf_url = EXCLUDED.pdf_url,
+      drive_file_id = EXCLUDED.drive_file_id,
+      response_message = EXCLUDED.response_message
+    RETURNING *
+  `;
+  return mapOffer(rows[0]);
+}
+
+export async function deleteOffer(id: string) {
+  await ensureMarioCrmSchema();
+  await sql()`DELETE FROM mario_offers WHERE id = ${id}`;
 }
 
 export async function getCustomer(id: string) {

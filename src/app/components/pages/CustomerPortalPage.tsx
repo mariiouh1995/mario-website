@@ -9,6 +9,8 @@ type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "er
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
 type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
+type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; total: string; pdfUrl: string; responseMessage: string };
 type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status?: boolean;
@@ -135,6 +137,12 @@ function moneyNumber(value?: string) {
   return parseMoney(value);
 }
 
+function offerTotal(offer: Offer) {
+  const items = (offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
+  const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
+  return items + travel;
+}
+
 function formatDateDe(value?: string) {
   if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
@@ -181,6 +189,8 @@ export function CustomerPortalPage() {
   const [uploadingContract, setUploadingContract] = useState(false);
   const [portalNotice, setPortalNotice] = useState("");
   const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offerMessage, setOfferMessage] = useState("");
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [addOnMessage, setAddOnMessage] = useState("");
   const [sendingAddOns, setSendingAddOns] = useState(false);
@@ -200,6 +210,7 @@ export function CustomerPortalPage() {
         }
         if (!res.ok) throw new Error(data.error || "Portal nicht gefunden");
         setCustomer(data.customer);
+        setOffers(data.offers || []);
         setServiceCatalog(data.serviceCatalog || []);
         setNeedsPassword(false);
       } catch (err: any) {
@@ -262,6 +273,7 @@ export function CustomerPortalPage() {
   const messages = (customer.portalMessages || []).filter((item) => item.visible);
   const locations = customer.locations || [];
   const documents = portalDocuments(customer, visibility);
+  const visibleOffers = offers.filter((offer) => offer.status !== "entwurf");
   const inspirationLinks = customer.inspirationLinks || [];
   const hasSpiegleinService = services.some((service) => service.name.toLowerCase().includes("spieglein"));
   const hasSpiegleinCatalog = serviceCatalog.some((item) => item.active !== false && item.name.toLowerCase().includes("spieglein"));
@@ -275,6 +287,19 @@ export function CustomerPortalPage() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Aktion konnte nicht ausgeführt werden");
     return data;
+  };
+
+  const respondOffer = async (offer: Offer, status: "angenommen" | "abgelehnt" | "aenderungswunsch") => {
+    const res = await fetch("/api/mario-crm?action=offer-response", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: offer.publicToken, status, responseMessage: offerMessage }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Antwort konnte nicht gesendet werden");
+    setOffers((prev) => prev.map((item) => (item.id === data.offer.id ? data.offer : item)));
+    setOfferMessage("");
+    setPortalNotice("Danke, eure Rückmeldung zum Angebot ist angekommen.");
   };
 
   const saveInspirationLinks = async (links: InspirationLink[]) => {
@@ -436,6 +461,42 @@ export function CustomerPortalPage() {
             )}
           </InfoCard>
         </div>
+
+        {visibleOffers.length > 0 && (
+          <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5" /> Angebote
+            </h2>
+            <div className="space-y-3">
+              {visibleOffers.map((offer) => {
+                const final = ["angenommen", "abgelehnt", "aenderungswunsch"].includes(offer.status);
+                return (
+                  <article key={offer.id} className="rounded-md bg-[#faf8f5] border border-black/8 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{offer.title || "Persönliches Angebot"}</p>
+                        <p className="text-sm text-black/55 mt-1">{formatMoney(String(offerTotal(offer)))} · Status: {offer.status}</p>
+                      </div>
+                      {offer.pdfUrl && <a href={normalizeHref(offer.pdfUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-[#6c5746] hover:text-black">PDF öffnen <ExternalLink className="w-4 h-4" /></a>}
+                    </div>
+                    {!final ? (
+                      <div className="mt-4">
+                        <textarea value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} className="w-full min-h-20 rounded-md border border-black/10 px-3 py-2 text-sm" placeholder="Optional: Änderungswunsch oder kurze Nachricht" />
+                        <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                          <button onClick={() => respondOffer(offer, "angenommen")} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-2.5 text-sm"><CheckCircle2 className="w-4 h-4" /> Annehmen</button>
+                          <button onClick={() => respondOffer(offer, "aenderungswunsch")} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-4 py-2.5 text-sm">Änderungswunsch senden</button>
+                          <button onClick={() => respondOffer(offer, "abgelehnt")} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 text-red-700 px-4 py-2.5 text-sm">Ablehnen</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-black/55">Danke, eure Rückmeldung ist angekommen.</p>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {documents.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
