@@ -75,7 +75,7 @@ export type PaymentItem = {
 
 export type CustomerDocument = {
   id: string;
-  kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom";
+  kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom";
   title: string;
   url: string;
   driveFileId?: string;

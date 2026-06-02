@@ -51,7 +51,7 @@ type AddOnRequest = { id: string; createdAt: string; status: "neu" | "akzeptiert
 type TaskItem = { id: string; title: string; status: TaskStatus; dueDate?: string; note?: string };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
-type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status: boolean;
@@ -227,6 +227,7 @@ const defaultPortalVisibility: PortalVisibility = {
   messages: true,
 };
 
+const TERMS_DOCUMENT_URL = "https://drive.google.com/file/d/1k7SBmcbuckWARJhUc4DkXIG4f_kgLyEl/view?usp=drive_link";
 const defaultReminderSettings: ReminderSettings = { days: [14, 7, 3, 1] };
 const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
@@ -2521,8 +2522,9 @@ function customerDocuments(draft: Customer) {
     { id: "doc-offer", kind: "offer", title: "Angebot", url: draft.offerUrl },
     { id: "doc-contract", kind: "contract", title: "Vertrag", url: draft.contractUrl },
     { id: "doc-invoice", kind: "invoice", title: "Rechnung", url: draft.invoiceUrl },
+    { id: "doc-terms", kind: "terms", title: "AGB & Datenschutz", url: TERMS_DOCUMENT_URL },
   ].map((document) => ({ ...document, ...(existing.get(document.id) || {}), url: existing.get(document.id)?.url || document.url }));
-  const custom = draft.documents.filter((document) => !["offer", "contract", "invoice"].includes(document.kind));
+  const custom = draft.documents.filter((document) => !["offer", "contract", "invoice", "terms"].includes(document.kind));
   return [...standard, ...custom];
 }
 
@@ -2555,6 +2557,7 @@ function DocumentSection({
     if (document.kind === "offer") setDraft({ ...draft, offerUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
     if (document.kind === "contract") setDraft({ ...draft, contractUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
     if (document.kind === "invoice") setDraft({ ...draft, invoiceUrl: url, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
+    if (document.kind === "terms") setDraft({ ...draft, documents: upsertDocumentLocal(draft.documents, { ...document, url }) });
   };
 
   return (

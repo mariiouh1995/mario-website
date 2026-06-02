@@ -8,7 +8,7 @@ type AddOnRequest = { id: string; createdAt: string; status: "neu" | "akzeptiert
 type TaskItem = { id: string; title: string; status: "offen" | "in_arbeit" | "erledigt" | "obsolet" };
 type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
-type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
+type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status?: boolean;
@@ -76,6 +76,7 @@ const taskStatusLabels: Record<TaskItem["status"], string> = {
 };
 
 const googleReviewUrl = "https://www.google.com/search?sa=X&sca_esv=b95ffecbfaf145e4&rlz=1C1VDKB_deDE1086DE1086&sxsrf=ANbL-n4RUp9IZMCcVQIBjgqxGIbCoeaZCg:1779517228765&q=Mario+Schubert+-+Fotografie+%26+Videografie+Rezensionen&rflfq=1&num=20&stick=H4sIAAAAAAAAAONgkxI2MjUyNLQwsDCxNDAzNDM1NTMz2MDI-IrR1DexKDNfITg5ozQptahEQVfBLb8kP70oMS0zVUFNISwzJRXGC0qtSs0rzszPS81bxEqePgCy7HgQigAAAA&rldimm=2521180849061655660&tbm=lcl&hl=de-DE&ved=2ahUKEwi_-qqi4s6UAxViXfEDHS97JuIQ9fQKegQIShAG&biw=1920&bih=911&dpr=1#";
+const TERMS_DOCUMENT_URL = "https://drive.google.com/file/d/1k7SBmcbuckWARJhUc4DkXIG4f_kgLyEl/view?usp=drive_link";
 
 function normalizeHref(value?: string) {
   const trimmed = (value || "").trim();
@@ -156,12 +157,14 @@ function portalDocuments(customer: Customer, visibility: Required<PortalVisibili
     { id: "doc-offer", kind: "offer", title: "Angebot", url: customer.offerUrl || "" },
     { id: "doc-contract", kind: "contract", title: "Vertrag", url: customer.contractUrl || "" },
     { id: "doc-invoice", kind: "invoice", title: "Rechnung", url: customer.invoiceUrl || "" },
+    { id: "doc-terms", kind: "terms", title: "AGB & Datenschutz", url: TERMS_DOCUMENT_URL },
   ].map((document) => ({ ...document, ...(existing.get(document.id) || {}), url: existing.get(document.id)?.url || document.url }));
   return [
     ...standard.filter((document) => {
       if (document.kind === "offer") return visibility.offer && document.url;
       if (document.kind === "contract") return visibility.contract && document.url;
       if (document.kind === "invoice") return visibility.invoice && document.url;
+      if (document.kind === "terms") return visibility.documents && document.url;
       return false;
     }),
     ...(customer.documents || []).filter((document) => document.kind === "custom" && visibility.documents && document.url),
