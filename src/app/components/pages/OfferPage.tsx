@@ -14,6 +14,8 @@ type Offer = {
   items: OfferItem[];
   travelKm: string;
   travelRate: string;
+  discountLabel: string;
+  discountAmount: string;
   total: string;
   pdfUrl: string;
   responseMessage: string;
@@ -32,7 +34,8 @@ function formatMoney(value: number) {
 function offerTotal(offer: Offer) {
   const items = (offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
   const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
-  return items + travel;
+  const discount = moneyNumber(offer.discountAmount || "");
+  return Math.max(items + travel - discount, 0);
 }
 
 export function OfferPage() {
@@ -110,6 +113,12 @@ export function OfferPage() {
               <div className="flex justify-between gap-3 border-b border-black/8 px-4 py-3 text-sm">
                 <span>Fahrtkosten ({offer.travelKm} km x {offer.travelRate || "0.60"} EUR)</span>
                 <span>{formatMoney(moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60"))}</span>
+              </div>
+            )}
+            {moneyNumber(offer.discountAmount || "") > 0 && (
+              <div className="flex justify-between gap-3 border-b border-black/8 px-4 py-3 text-sm">
+                <span>{offer.discountLabel || "Rabatt"}</span>
+                <span>-{formatMoney(moneyNumber(offer.discountAmount))}</span>
               </div>
             )}
             <div className="flex justify-between gap-3 bg-[#faf8f5] px-4 py-4 font-semibold">

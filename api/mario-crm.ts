@@ -351,7 +351,8 @@ function normalizeOfferItems(items: unknown) {
 function calculateOfferTotal(offer: Partial<CrmOffer>) {
   const itemTotal = normalizeOfferItems(offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
   const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
-  return itemTotal + travel;
+  const discount = moneyNumber(offer.discountAmount || "");
+  return Math.max(itemTotal + travel - discount, 0);
 }
 
 function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry") {
@@ -372,6 +373,8 @@ function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "cust
     items: services.map((service: ServiceItem) => ({ id: crm.createId("offer_item"), name: service.name, description: "", quantity: "1", unitPrice: service.price || "" })),
     travelKm: "",
     travelRate: "0.60",
+    discountLabel: "",
+    discountAmount: "",
   };
 }
 
@@ -398,23 +401,45 @@ function wrapText(value: string, max = 72) {
   return lines;
 }
 
-function simplePdf(lines: string[]) {
-  const content = [
-    "BT",
-    "/F1 10 Tf",
-    "50 790 Td",
-    "14 TL",
-    ...lines.flatMap((line, index) => [
-      index === 0 ? "" : "T*",
-      `(${escapePdfText(line)}) Tj`,
-    ]).filter(Boolean),
-    "ET",
-  ].join("\n");
+function pdfText(value: unknown) {
+  return escapePdfText(String(value || "")
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+    .replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue")
+    .replace(/ß/g, "ss").replace(/€/g, "EUR")
+    .replace(/[“”]/g, "\"").replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-"));
+}
+
+function pdfMoney(value: number, currency = false) {
+  const formatted = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  return currency ? `${formatted} EUR` : formatted;
+}
+
+type PdfCommand = string;
+
+function drawText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
+  return `BT /${font} ${size} Tf ${x} ${y} Td (${pdfText(value)}) Tj ET`;
+}
+
+function drawRightText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
+  const length = pdfText(value).length;
+  const width = length * size * 0.48;
+  return drawText(Math.max(30, x - width), y, value, size, font);
+}
+
+function drawLine(x1: number, y1: number, x2: number, y2: number, width = 0.45): PdfCommand {
+  return `q ${width} w ${x1} ${y1} m ${x2} ${y2} l S Q`;
+}
+
+function makePdf(commands: PdfCommand[]) {
+  const content = commands.join("\n");
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>",
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>",
     `<< /Length ${Buffer.byteLength(content, "utf8")} >>\nstream\n${content}\nendstream`,
   ];
   let pdf = "%PDF-1.4\n";
@@ -431,32 +456,100 @@ function simplePdf(lines: string[]) {
 }
 
 function renderOfferPdf(offer: CrmOffer) {
-  const total = calculateOfferTotal(offer);
-  const lines = [
-    "Mario Schubert Photography",
-    "Persoenliches Angebot",
-    "",
-    `Kunde: ${offer.customerName}`,
-    offer.eventDate ? `Termin: ${offer.eventDate}` : "",
-    `Datum: ${new Date().toLocaleDateString("de-DE")}`,
-    "",
-    ...wrapText(offer.introText, 82),
-    "",
-    "Leistungen",
-    "---------------------------------------------",
-    ...normalizeOfferItems(offer.items).flatMap((item) => {
-      const amount = moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice);
-      return [`${item.quantity || "1"} x ${item.name} - ${formatEuro(amount)}`, ...(item.description ? wrapText(item.description, 80) : [])];
-    }),
-    offer.travelKm ? `Fahrtkosten: ${offer.travelKm} km x ${offer.travelRate || "0.60"} EUR - ${formatEuro(moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60"))}` : "",
-    "",
-    `Gesamtsumme: ${formatEuro(total)}`,
-    "",
-    ...wrapText(offer.notes, 82),
-    "",
-    "Mario Schubert | Fotografie, Video und Fotospiegel | servus@marioschub.com | www.marioschub.com",
-  ].filter((line) => line !== undefined);
-  return simplePdf(lines);
+  const commands: PdfCommand[] = [];
+  const left = 36;
+  const right = 560;
+  let y = 806;
+
+  commands.push(drawText(360, y, "mario", 26, "F3"));
+  commands.push(drawText(423, y + 1, "schubert", 22, "F2"));
+  commands.push(drawText(420, y - 14, "p h o t o g r a p h y", 8, "F1"));
+  y = 746;
+  commands.push(drawRightText(right, y, `Innsbruck, den ${new Date().toLocaleDateString("de-DE")}`, 10, "F2"));
+
+  y = 718;
+  const greeting = (offer.introText || "").trim()
+    ? wrapText(offer.introText, 86)
+    : [`Servus ${offer.customerName || "ihr Lieben"},`, "herzlichen Glueckwunsch zu eurer bevorstehenden Hochzeit!", "Hiermit uebersende ich euch euer individuelles Angebot."];
+  greeting.slice(0, 5).forEach((line) => {
+    commands.push(drawText(left, y, line, 10, line.toLowerCase().startsWith("servus") ? "F2" : "F1"));
+    y -= 15;
+  });
+
+  y -= 2;
+  commands.push(drawLine(left, y, right, y, 0.55));
+  y -= 17;
+  commands.push(drawText(left, y, "L E I S T U N G", 11, "F2"));
+  commands.push(drawRightText(right, y, "S U M M E", 11, "F2"));
+  y -= 10;
+  commands.push(drawLine(left, y, right, y, 0.55));
+  y -= 22;
+
+  const itemTotal = normalizeOfferItems(offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
+  for (const item of normalizeOfferItems(offer.items || [])) {
+    const amount = moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice);
+    commands.push(drawText(left, y, item.name.endsWith(":") ? item.name : `${item.name}:`, 10, "F2"));
+    commands.push(drawRightText(right, y, pdfMoney(amount), 10, "F1"));
+    y -= 13;
+    const description = item.description || `${item.quantity || "1"} x ${pdfMoney(moneyNumber(item.unitPrice), true)}`;
+    for (const line of wrapText(description, 74).slice(0, 3)) {
+      commands.push(drawText(left, y, line, 9.5, "F1"));
+      y -= 12;
+    }
+    y -= 4;
+    commands.push(drawLine(left, y, right, y, 0.35));
+    y -= 18;
+  }
+
+  const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
+  commands.push(drawText(left, y, "Anfahrt ab Innsbruck", 10, "F2"));
+  commands.push(drawRightText(right, y, offer.travelKm ? pdfMoney(travel) : "inklusive", 10, "F1"));
+  y -= 14;
+  commands.push(drawLine(left, y, right, y, 0.55));
+  y -= 22;
+
+  const sum = itemTotal + travel;
+  const discount = moneyNumber(offer.discountAmount || "");
+  commands.push(drawText(388, y, "S U M M E", 11, "F2"));
+  commands.push(drawRightText(right, y, pdfMoney(sum, true), 11, "F1"));
+  y -= 24;
+  if (discount > 0) {
+    commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
+    commands.push(drawText(292, y, offer.discountLabel || "R A B A T T", 10, "F2"));
+    commands.push(drawRightText(right, y, `-${pdfMoney(discount, true)}`, 10, "F1"));
+    y -= 24;
+  }
+  commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
+  commands.push(drawText(380, y, "G E S A M T", 11, "F2"));
+  commands.push(drawRightText(right, y, pdfMoney(Math.max(sum - discount, 0), true), 11, "F2"));
+  y -= 28;
+  commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
+
+  const noteY = Math.min(y - 26, 214);
+  y = noteY;
+  const notes = (offer.notes || "Angebotsgueltigkeit: Dieses Angebot ist bis zum angegebenen Datum gueltig.\nDatumssicherung: Eine verbindliche Reservierung erfolgt erst nach Unterzeichnung eines separaten Vertrages.\nHinweis zur Mehrwertsteuer: Gemaess Paragraph 6 Abs. 1 Z 27 UStG erfolgt keine Ausweisung der Umsatzsteuer.").split("\n");
+  notes.flatMap((note) => wrapText(note, 92)).slice(0, 7).forEach((line) => {
+    const [label, ...rest] = line.split(":");
+    if (rest.length && label.length < 32) {
+      commands.push(drawText(left, y, `${label}:`, 9, "F2"));
+      commands.push(drawText(left + Math.min(150, label.length * 5.2 + 8), y, rest.join(":").trim(), 9, "F1"));
+    } else {
+      commands.push(drawText(left, y, line, 9, "F1"));
+    }
+    y -= 12;
+  });
+
+  y = 102;
+  commands.push(drawText(left, y, "Kreative Gruesse", 9.5, "F1"));
+  commands.push(drawText(left, y - 34, "Mario Schubert", 26, "F3"));
+  commands.push(drawText(left, y - 58, "Mario Schubert", 9, "F1"));
+  commands.push(drawRightText(right, y - 8, "Mario Schubert Foto- und Videografie", 9, "F1"));
+  commands.push(drawRightText(right, y - 21, "Baeckerbuehelgasse 14, 6020 Innsbruck", 9, "F1"));
+  commands.push(drawRightText(right, y - 34, "Tel. +43 67763681543", 9, "F1"));
+  commands.push(drawRightText(right, y - 47, "servus@marioschub.com", 9, "F1"));
+  commands.push(drawRightText(right, y - 60, "www.marioschub.com", 9, "F1"));
+
+  return makePdf(commands);
 }
 
 async function sendOfferNotification(offer: CrmOffer) {

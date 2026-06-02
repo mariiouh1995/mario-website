@@ -10,7 +10,7 @@ type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
 type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
-type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; total: string; pdfUrl: string; responseMessage: string };
+type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; discountLabel: string; discountAmount: string; total: string; pdfUrl: string; responseMessage: string };
 type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status?: boolean;
@@ -140,7 +140,8 @@ function moneyNumber(value?: string) {
 function offerTotal(offer: Offer) {
   const items = (offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
   const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
-  return items + travel;
+  const discount = moneyNumber(offer.discountAmount || "");
+  return Math.max(items + travel - discount, 0);
 }
 
 function formatDateDe(value?: string) {

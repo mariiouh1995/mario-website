@@ -63,6 +63,8 @@ export type CrmOffer = {
   items: OfferItem[];
   travelKm: string;
   travelRate: string;
+  discountLabel: string;
+  discountAmount: string;
   total: string;
   pdfUrl: string;
   driveFileId: string;
@@ -536,12 +538,17 @@ export async function ensureMarioCrmSchema() {
         items jsonb NOT NULL DEFAULT '[]',
         travel_km text NOT NULL DEFAULT '',
         travel_rate text NOT NULL DEFAULT '0.60',
+        discount_label text NOT NULL DEFAULT '',
+        discount_amount text NOT NULL DEFAULT '',
         total text NOT NULL DEFAULT '',
         pdf_url text NOT NULL DEFAULT '',
         drive_file_id text NOT NULL DEFAULT '',
         response_message text NOT NULL DEFAULT ''
       )
     `;
+
+    await db`ALTER TABLE mario_offers ADD COLUMN IF NOT EXISTS discount_label text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_offers ADD COLUMN IF NOT EXISTS discount_amount text NOT NULL DEFAULT ''`;
 
     await db`CREATE INDEX IF NOT EXISTS idx_mario_inquiries_created_at ON mario_inquiries(created_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_updated_at ON mario_customers(updated_at DESC)`;
@@ -667,6 +674,8 @@ function mapOffer(row: any): CrmOffer {
     items: normalizeOfferItems(row.items),
     travelKm: row.travel_km,
     travelRate: row.travel_rate || "0.60",
+    discountLabel: row.discount_label || "",
+    discountAmount: row.discount_amount || "",
     total: row.total,
     pdfUrl: row.pdf_url,
     driveFileId: row.drive_file_id,
@@ -751,13 +760,14 @@ export async function upsertOffer(input: Partial<CrmOffer>) {
     INSERT INTO mario_offers (
       id, public_token, source_type, source_id, customer_id, inquiry_id, status, created_at, updated_at,
       sent_at, responded_at, customer_name, email, event_date, title, intro_text, notes, items,
-      travel_km, travel_rate, total, pdf_url, drive_file_id, response_message
+      travel_km, travel_rate, discount_label, discount_amount, total, pdf_url, drive_file_id, response_message
     ) VALUES (
       ${id}, ${publicToken}, ${input.sourceType || "customer"}, ${input.sourceId || ""}, ${input.customerId || ""}, ${input.inquiryId || ""},
       ${input.status || "entwurf"}, ${input.createdAt || nowIso()}, now(), ${input.sentAt || ""}, ${input.respondedAt || ""},
       ${input.customerName || ""}, ${input.email || ""}, ${input.eventDate || ""}, ${input.title || "Persönliches Angebot"},
       ${input.introText || ""}, ${input.notes || ""}, ${JSON.stringify(normalizeOfferItems(input.items || []))}::jsonb,
-      ${input.travelKm || ""}, ${input.travelRate || "0.60"}, ${input.total || ""}, ${input.pdfUrl || ""}, ${input.driveFileId || ""},
+      ${input.travelKm || ""}, ${input.travelRate || "0.60"}, ${input.discountLabel || ""}, ${input.discountAmount || ""},
+      ${input.total || ""}, ${input.pdfUrl || ""}, ${input.driveFileId || ""},
       ${input.responseMessage || ""}
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -779,6 +789,8 @@ export async function upsertOffer(input: Partial<CrmOffer>) {
       items = EXCLUDED.items,
       travel_km = EXCLUDED.travel_km,
       travel_rate = EXCLUDED.travel_rate,
+      discount_label = EXCLUDED.discount_label,
+      discount_amount = EXCLUDED.discount_amount,
       total = EXCLUDED.total,
       pdf_url = EXCLUDED.pdf_url,
       drive_file_id = EXCLUDED.drive_file_id,

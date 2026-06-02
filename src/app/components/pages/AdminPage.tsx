@@ -69,6 +69,8 @@ type Offer = {
   items: OfferItem[];
   travelKm: string;
   travelRate: string;
+  discountLabel: string;
+  discountAmount: string;
   total: string;
   pdfUrl: string;
   driveFileId: string;
@@ -479,10 +481,11 @@ function paymentStats(customer: Customer) {
   return { total, paid, open: total > 0 ? Math.max(total - paid, 0) : 0 };
 }
 
-function offerTotal(offer: Pick<Offer, "items" | "travelKm" | "travelRate">) {
+function offerTotal(offer: Pick<Offer, "items" | "travelKm" | "travelRate" | "discountAmount">) {
   const itemTotal = (offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
   const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
-  return itemTotal + travel;
+  const discount = moneyNumber(offer.discountAmount || "");
+  return Math.max(itemTotal + travel - discount, 0);
 }
 
 function hasBookedPayment(customer: Customer, pattern: RegExp) {
@@ -1896,6 +1899,8 @@ function OfferDetailView({
               <Field label="E-Mail" value={offer.email} onChange={(value) => setOffer({ ...offer, email: value })} />
               <Field label="Datum" type="date" value={offer.eventDate} onChange={(value) => setOffer({ ...offer, eventDate: value })} />
               <Field label="Fahrtkosten km" value={offer.travelKm} onChange={(value) => setOffer({ ...offer, travelKm: value })} placeholder="z.B. 80" />
+              <Field label="Rabatt Bezeichnung" value={offer.discountLabel || ""} onChange={(value) => setOffer({ ...offer, discountLabel: value })} placeholder="z.B. Kombi-Rabatt (-15%)" />
+              <Field label="Rabatt Betrag" value={offer.discountAmount || ""} onChange={(value) => setOffer({ ...offer, discountAmount: value })} placeholder="z.B. 770" />
             </div>
             <label className="block mt-3">
               <span className="text-xs uppercase tracking-[0.16em] text-black/45">Fließtext</span>
@@ -1945,6 +1950,7 @@ function OfferDetailView({
               </div>
             ))}
             {offer.travelKm && <div className="flex justify-between gap-3 border-b border-black/8 px-3 py-2 text-sm"><span>Fahrtkosten</span><span>{formatMoney(String(moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60")))}</span></div>}
+            {moneyNumber(offer.discountAmount || "") > 0 && <div className="flex justify-between gap-3 border-b border-black/8 px-3 py-2 text-sm"><span>{offer.discountLabel || "Rabatt"}</span><span>-{formatMoney(String(moneyNumber(offer.discountAmount)))}</span></div>}
             <div className="flex justify-between gap-3 px-3 py-3 font-semibold"><span>Gesamt</span><span>{formatMoney(String(total))}</span></div>
           </div>
           <p className="mt-4 text-xs text-black/45 whitespace-pre-wrap">{offer.notes}</p>
