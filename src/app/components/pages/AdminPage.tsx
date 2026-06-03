@@ -489,6 +489,36 @@ function offerTotal(offer: Pick<Offer, "items" | "travelKm" | "travelRate" | "di
   return Math.max(itemTotal + travel - discount, 0);
 }
 
+function serviceCatalogMatch(service: Partial<ServiceItem>, catalog: ServiceCatalogItem[]) {
+  const name = (service.name || "").trim().toLowerCase();
+  return catalog.find((item) => item.id === service.id || item.name.trim().toLowerCase() === name);
+}
+
+function servicesToOfferItems(source: Customer | Inquiry | undefined, sourceType: "customer" | "inquiry", catalog: ServiceCatalogItem[]): OfferItem[] {
+  if (!source) return [];
+  const services = sourceType === "customer"
+    ? [...((source as Customer).bookedServices || []), ...((source as Customer).customServices || [])]
+    : ((source as Inquiry).selectedPackages || []);
+  const items = services
+    .map((service, index) => {
+      const match = serviceCatalogMatch(service, catalog);
+      const name = service.name || match?.name || "";
+      const unitPrice = service.price || match?.price || "";
+      return {
+        id: `offer_item_${Date.now()}_${index}`,
+        name,
+        description: match?.description || "",
+        quantity: "1",
+        unitPrice,
+      };
+    })
+    .filter((item) => item.name.trim());
+  if (!items.length && sourceType === "inquiry" && moneyNumber((source as Inquiry).estimatedTotal) > 0) {
+    items.push({ id: `offer_item_${Date.now()}_fallback`, name: "Individuelles Angebot", description: "Leistungen laut Anfrage", quantity: "1", unitPrice: (source as Inquiry).estimatedTotal });
+  }
+  return items;
+}
+
 function hasBookedPayment(customer: Customer, pattern: RegExp) {
   return bookedPayments(customer).some((payment) => pattern.test(payment.title || ""));
 }
@@ -845,6 +875,15 @@ export function AdminPage() {
     setOfferPdfLoading(false);
   }, [selectedOffer]);
 
+  useEffect(() => {
+    if (!offerDraft || (offerDraft.items || []).length > 0) return;
+    const source = offerDraft.sourceType === "customer"
+      ? (offerDraft.customerId === draft?.id ? draft : customers.find((customer) => customer.id === offerDraft.customerId || customer.id === offerDraft.sourceId))
+      : inquiries.find((inquiry) => inquiry.id === offerDraft.inquiryId || inquiry.id === offerDraft.sourceId);
+    const items = servicesToOfferItems(source as Customer | Inquiry | undefined, offerDraft.sourceType, serviceCatalog);
+    if (items.length > 0) setOfferDraft({ ...offerDraft, items });
+  }, [offerDraft?.id, offerDraft?.items?.length, customers, inquiries, draft, serviceCatalog]);
+
   useEffect(() => () => {
     if (offerPdfPreviewRef.current) URL.revokeObjectURL(offerPdfPreviewRef.current);
   }, []);
@@ -895,8 +934,14 @@ export function AdminPage() {
     setSaving(true);
     try {
       const data = await api("create-offer", { method: "POST", body: JSON.stringify({ sourceType, sourceId, sourceOverride }) });
-      setOffers((prev) => [data.offer, ...prev.filter((item) => item.id !== data.offer.id)]);
-      setSelectedOfferId(data.offer.id);
+      let offer = data.offer as Offer;
+      const fallbackItems = servicesToOfferItems(sourceOverride || (sourceType === "customer" ? draft || selectedCustomer || undefined : selectedInquiry || undefined), sourceType, serviceCatalog);
+      if ((!offer.items || offer.items.length === 0) && fallbackItems.length > 0) {
+        const saved = await api("offer", { method: "PUT", body: JSON.stringify({ offer: { ...offer, items: fallbackItems } }) });
+        offer = saved.offer;
+      }
+      setOffers((prev) => [offer, ...prev.filter((item) => item.id !== offer.id)]);
+      setSelectedOfferId(offer.id);
       setView("offerDetail");
       toast.success("Angebot erstellt");
     } catch (error: any) {

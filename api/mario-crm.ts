@@ -382,10 +382,15 @@ function defaultOfferValidUntil() {
   return date.toISOString().slice(0, 10);
 }
 
+function sourceServices(source: any, sourceType: "customer" | "inquiry") {
+  const groups = sourceType === "customer"
+    ? [source?.bookedServices, source?.customServices, source?.services, source?.selectedPackages]
+    : [source?.selectedPackages, source?.bookedServices, source?.customServices, source?.services];
+  return groups.flatMap((group) => Array.isArray(group) ? group : []);
+}
+
 function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry", catalog: crm.ServiceCatalogItem[] = []) {
-  const services = sourceType === "customer"
-    ? [...((source as CrmCustomer).bookedServices || []), ...((source as CrmCustomer).customServices || [])]
-    : ((source as crm.CrmInquiry).selectedPackages || []);
+  const services = sourceServices(source, sourceType);
   const items = services
     .map((service: ServiceItem) => ({
       id: crm.createId("offer_item"),
