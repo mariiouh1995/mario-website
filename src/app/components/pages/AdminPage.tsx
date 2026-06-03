@@ -966,14 +966,15 @@ export function AdminPage() {
     }
   };
 
-  const previewOfferPdf = async () => {
-    if (!offerDraft) return;
+  const previewOfferPdf = async (offerForPreview?: Offer) => {
+    const draftForPreview = offerForPreview || offerDraft;
+    if (!draftForPreview) return;
     setOfferPdfLoading(true);
     try {
       const res = await fetch("/api/mario-crm?action=preview-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-password": adminPassword },
-        body: JSON.stringify({ offer: offerDraft }),
+        body: JSON.stringify({ offer: draftForPreview }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -984,6 +985,8 @@ export function AdminPage() {
       const url = URL.createObjectURL(blob);
       offerPdfPreviewRef.current = url;
       setOfferPdfPreviewUrl(url);
+      setOfferDraft(draftForPreview);
+      setOffers((prev) => prev.map((item) => (item.id === draftForPreview.id ? draftForPreview : item)));
       toast.success("PDF Vorschau gerendert");
     } catch (error: any) {
       toast.error(error.message || "PDF Vorschau konnte nicht gerendert werden");
@@ -1953,7 +1956,7 @@ function OfferDetailView({
   saveOffer: () => void;
   sendOffer: () => void;
   deleteOffer: () => void;
-  previewOfferPdf: () => void;
+  previewOfferPdf: (offer?: Offer) => void;
   pdfPreviewUrl: string;
   pdfPreviewLoading: boolean;
 }) {
@@ -2037,7 +2040,7 @@ function OfferDetailView({
               <p className="mt-1 text-sm text-black/50">Rendert den aktuellen Entwurf als PDF.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={previewOfferPdf} disabled={pdfPreviewLoading || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm disabled:opacity-50">
+              <button onClick={() => previewOfferPdf(offer)} disabled={pdfPreviewLoading || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm disabled:opacity-50">
                 <FileText className="w-4 h-4" /> {pdfPreviewLoading ? "Rendere..." : "PDF rendern"}
               </button>
               {pdfPreviewUrl && <a href={pdfPreviewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">Oeffnen <ExternalLink className="w-4 h-4" /></a>}
