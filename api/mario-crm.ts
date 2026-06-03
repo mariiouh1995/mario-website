@@ -477,9 +477,9 @@ function makePdf(commands: PdfCommand[]) {
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>",
     `<< /Length ${Buffer.byteLength(content, "utf8")} >>\nstream\n${content}\nendstream`,
   ];
   let pdf = "%PDF-1.4\n";
@@ -497,12 +497,48 @@ function makePdf(commands: PdfCommand[]) {
 
 type PdfImage = { width: number; height: number; data: Buffer };
 
-function pdfUnicodeHex(value: unknown) {
-  return Buffer.from(`\uFEFF${String(value || "")}`, "utf16le").swap16().toString("hex").toUpperCase();
+function pdfWinAnsiHex(value: unknown) {
+  const bytes: number[] = [];
+  for (const char of String(value || "")) {
+    const code = char.codePointAt(0) || 0;
+    if (code <= 0x7f) {
+      bytes.push(code);
+      continue;
+    }
+    const mapped: Record<string, number> = {
+      "€": 0x80,
+      "„": 0x84,
+      "…": 0x85,
+      "†": 0x86,
+      "‡": 0x87,
+      "ˆ": 0x88,
+      "‰": 0x89,
+      "Š": 0x8a,
+      "‹": 0x8b,
+      "Œ": 0x8c,
+      "Ž": 0x8e,
+      "‘": 0x91,
+      "’": 0x92,
+      "“": 0x93,
+      "”": 0x94,
+      "•": 0x95,
+      "–": 0x96,
+      "—": 0x97,
+      "˜": 0x98,
+      "™": 0x99,
+      "š": 0x9a,
+      "›": 0x9b,
+      "œ": 0x9c,
+      "ž": 0x9e,
+      "Ÿ": 0x9f,
+    };
+    bytes.push(mapped[char] ?? (code <= 0xff ? code : 0x3f));
+  }
+  return Buffer.from(bytes).toString("hex").toUpperCase();
 }
 
 function drawUnicodeText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
-  return `BT /${font} ${size} Tf ${x} ${y} Td <${pdfUnicodeHex(value)}> Tj ET`;
+  return `BT /${font} ${size} Tf ${x} ${y} Td <${pdfWinAnsiHex(value)}> Tj ET`;
 }
 
 function drawUnicodeRightText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
