@@ -1023,7 +1023,7 @@ export function AdminPage() {
       setOffers((prev) => prev.map((item) => (item.id === data.offer.id ? data.offer : item)));
       setOfferDraft(data.offer);
       await loadCrm();
-      toast.success("Angebot gesendet");
+      toast.success(`Angebot gesendet an ${data.recipient || data.offer.email}`);
     } catch (error: any) {
       toast.error(error.message || "Angebot konnte nicht gesendet werden");
     } finally {

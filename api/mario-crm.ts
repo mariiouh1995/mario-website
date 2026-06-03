@@ -1066,16 +1066,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const offerUrl = `${publicUrl}/angebot/${saved.publicToken}`;
       const renderedBody = body.replaceAll("{offerUrl}", offerUrl).replaceAll("{customerName}", saved.customerName || "");
+      const offerCopyEmail = normalizeString(process.env.MARIO_OFFER_COPY_EMAIL);
       await createTransport().sendMail({
         from: `"Mario Schubert Photography" <${process.env.SMTP_USER}>`,
         to: saved.email,
-        bcc: process.env.SMTP_USER,
+        ...(offerCopyEmail ? { bcc: offerCopyEmail } : {}),
         subject,
         html: marioMailHtml(renderedBody),
         text: renderedBody,
         attachments: [{ filename: "Angebot.pdf", content: pdfBuffer, contentType: "application/pdf" }],
       });
-      return res.status(200).json({ offer: saved, offerUrl });
+      return res.status(200).json({ offer: saved, offerUrl, recipient: saved.email, copyRecipient: offerCopyEmail });
     }
 
     if (req.method === "POST" && action === "delete-offer") {
