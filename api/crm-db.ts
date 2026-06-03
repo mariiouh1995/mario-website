@@ -332,6 +332,7 @@ const FORCE_DEFAULT_SERVICE_CATALOG_IDS = new Set(["addon-fotospiegel", "spiegle
 
 let client: postgres.Sql | null = null;
 let schemaReady = false;
+let schemaPromise: Promise<void> | null = null;
 
 export function sql() {
   const connection = process.env.MARIO_DATABASE_URL || process.env.DATABASE_URL;
@@ -381,6 +382,17 @@ function normalizeJson<T>(value: unknown, fallback: T): T {
 }
 
 export async function ensureMarioCrmSchema() {
+  if (schemaReady) return;
+  if (schemaPromise) return schemaPromise;
+  schemaPromise = ensureMarioCrmSchemaInternal();
+  try {
+    await schemaPromise;
+  } finally {
+    if (!schemaReady) schemaPromise = null;
+  }
+}
+
+async function ensureMarioCrmSchemaInternal() {
   if (schemaReady) return;
   const db = sql();
 

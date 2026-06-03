@@ -266,6 +266,10 @@ const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli"
 const preTalkTaskId = "step-vorbesprechung_terminieren";
 const workflowTasks = () => statusSteps.map((step) => ({ id: `step-${step.key}`, title: step.label, status: "offen" as TaskStatus }));
 
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 const emptyCustomer = (): Customer => ({
   id: "",
   portalToken: "",
@@ -818,8 +822,14 @@ export function AdminPage() {
     async (action: string, init: RequestInit = {}) => {
       const headers = { "Content-Type": "application/json", "x-admin-password": adminPassword, ...(init.headers || {}) };
       const res = await fetch(`/api/mario-crm?action=${action}`, { ...init, headers });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Aktion fehlgeschlagen");
+      const raw = await res.text();
+      let data: any = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = {};
+      }
+      if (!res.ok) throw new Error(data.error || data.message || raw || `Aktion fehlgeschlagen (${res.status})`);
       return data;
     },
     [adminPassword],
@@ -830,7 +840,13 @@ export function AdminPage() {
     setLoading(true);
     setMessage("");
     try {
-      const data = await api("bootstrap");
+      let data: any;
+      try {
+        data = await api("bootstrap");
+      } catch {
+        await wait(900);
+        data = await api("bootstrap");
+      }
       setInquiries(data.inquiries || []);
       setCustomers((data.customers || []).map(normalizeCustomer));
       setOffers(data.offers || []);
