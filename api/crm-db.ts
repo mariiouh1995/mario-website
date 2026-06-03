@@ -655,16 +655,21 @@ function mapCustomer(row: any): CrmCustomer {
 }
 
 function normalizeOfferItems(items: unknown): OfferItem[] {
-  if (!Array.isArray(items)) return [];
-  return items
+  const parsedItems = typeof items === "string" ? normalizeJson<unknown>(items, []) : items;
+  if (!Array.isArray(parsedItems)) return [];
+  const textValue = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    return typeof value === "string" ? value.trim() : String(value).trim();
+  };
+  return parsedItems
     .map((item: any) => ({
-      id: item?.id || createId("offer_item"),
-      name: item?.name || "",
-      description: item?.description || "",
-      quantity: item?.quantity || "1",
-      unitPrice: item?.unitPrice || item?.price || "",
+      id: textValue(item?.id) || createId("offer_item"),
+      name: textValue(item?.name ?? item?.title ?? item?.label ?? item?.packageName),
+      description: textValue(item?.description ?? item?.details ?? item?.note),
+      quantity: textValue(item?.quantity ?? item?.qty) || "1",
+      unitPrice: textValue(item?.unitPrice ?? item?.price ?? item?.amount ?? item?.value),
     }))
-    .filter((item) => item.name.trim());
+    .filter((item) => item.name);
 }
 
 function mapOffer(row: any): CrmOffer {

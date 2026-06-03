@@ -343,15 +343,24 @@ function textValue(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value).trim();
 }
 
+function safeJsonParse<T>(value: string, fallback: T): T {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 function normalizeOfferItems(items: unknown) {
-  if (!Array.isArray(items)) return [];
-  return items
+  const parsedItems = typeof items === "string" ? safeJsonParse<unknown>(items, []) : items;
+  if (!Array.isArray(parsedItems)) return [];
+  return parsedItems
     .map((item: any) => ({
       id: textValue(item?.id) || crm.createId("offer_item"),
-      name: textValue(item?.name),
-      description: textValue(item?.description),
-      quantity: textValue(item?.quantity) || "1",
-      unitPrice: textValue(item?.unitPrice ?? item?.price),
+      name: textValue(item?.name ?? item?.title ?? item?.label ?? item?.packageName),
+      description: textValue(item?.description ?? item?.details ?? item?.note),
+      quantity: textValue(item?.quantity ?? item?.qty) || "1",
+      unitPrice: textValue(item?.unitPrice ?? item?.price ?? item?.amount ?? item?.value),
     }))
     .filter((item) => item.name);
 }
