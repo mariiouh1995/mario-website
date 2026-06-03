@@ -1036,9 +1036,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const folderId = offerCustomer
         ? await ensureCustomerDriveFolder(offerCustomer)
         : normalizeString(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID);
-      if (!folderId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured");
-      if (prepared.driveFileId) await deleteDriveFile(prepared.driveFileId);
-      const uploaded = await uploadBufferToDrive({ folderId, fileName: `${prepared.customerName || "Angebot"} - Angebot.pdf`, mimeType: "application/pdf", buffer: pdfBuffer });
+      let uploaded = { fileId: "", url: "" };
+      if (folderId) {
+        try {
+          if (prepared.driveFileId) await deleteDriveFile(prepared.driveFileId);
+          uploaded = await uploadBufferToDrive({ folderId, fileName: `${prepared.customerName || "Angebot"} - Angebot.pdf`, mimeType: "application/pdf", buffer: pdfBuffer });
+        } catch (driveError) {
+          console.warn("offer pdf drive upload failed; continuing with email/link send", driveError);
+        }
+      } else {
+        console.warn("offer pdf drive upload skipped; GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured");
+      }
       const publicUrl = process.env.PUBLIC_URL || "https://www.marioschub.com";
       const saved = await crm.upsertOffer({ ...prepared, status: "gesendet", sentAt: new Date().toISOString(), pdfUrl: uploaded.url, driveFileId: uploaded.fileId });
 
@@ -1046,7 +1054,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const customer = await crm.getCustomer(saved.customerId);
         if (customer) {
           const document = { id: `doc-offer-${saved.id}`, kind: "offer", title: saved.title || "Angebot", url: uploaded.url, driveFileId: uploaded.fileId, fileName: "Angebot.pdf", mimeType: "application/pdf", uploadedAt: new Date().toISOString() };
-          await crm.upsertCustomer({ ...customer, offerUrl: uploaded.url, documents: upsertDocument(customer, document), status: "angebot" as CustomerStatus });
+          await crm.upsertCustomer({
+            ...customer,
+            offerUrl: uploaded.url || customer.offerUrl,
+            documents: uploaded.url ? upsertDocument(customer, document) : customer.documents,
+            status: "angebot" as CustomerStatus,
+          });
         }
       }
       if (saved.inquiryId) await crm.updateInquiryStatus(saved.inquiryId, "angebot");
