@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Check, Download, ExternalLink, X } from "lucide-react";
+import { Check, Download, X } from "lucide-react";
 
 type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
 type Offer = {
@@ -86,6 +86,7 @@ export function OfferPage() {
 
   const total = offerTotal(offer);
   const isFinal = ["angenommen", "abgelehnt", "aenderungswunsch"].includes(offer.status);
+  const pdfDownloadUrl = `/api/mario-crm?action=download-offer&token=${encodeURIComponent(offer.publicToken || token || "")}`;
 
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17] px-4 py-8 md:py-12">
@@ -128,11 +129,9 @@ export function OfferPage() {
             </div>
           </div>
           {offer.notes && <p className="text-sm text-black/50 whitespace-pre-wrap">{offer.notes}</p>}
-          {offer.pdfUrl && (
-            <a href={offer.pdfUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-black/10 px-4 py-3 text-sm hover:border-black/25">
-              <Download className="w-4 h-4" /> PDF herunterladen <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
+          <a href={pdfDownloadUrl} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-4 py-3 text-sm hover:border-black/25">
+            <Download className="w-4 h-4" /> Angebot als PDF herunterladen
+          </a>
           {isFinal ? (
             <div className="rounded-lg bg-[#faf8f5] border border-black/8 p-4">
               <p className="font-medium">Danke, eure Rückmeldung ist angekommen.</p>

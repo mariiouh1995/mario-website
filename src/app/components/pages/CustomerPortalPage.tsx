@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Calendar, Camera, CheckCircle2, Circle, Clock3, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
+import { Calendar, Camera, CheckCircle2, Circle, Clock3, Download, ExternalLink, FileText, Image, ListChecks, Lock, Mail, MapPin, MessageSquareText, MessageCircle, Plus, Star, Upload } from "lucide-react";
 
 type ServiceItem = { id: string; name: string; price: string; type: "package" | "custom" };
 type ServiceCatalogItem = { id: string; name: string; price: string; group: string; description?: string; active?: boolean };
@@ -479,6 +479,9 @@ export function CustomerPortalPage() {
                         <p className="text-sm text-black/55 mt-1">{formatMoney(String(offerTotal(offer)))} · Status: {offer.status}</p>
                       </div>
                       {offer.pdfUrl && <a href={normalizeHref(offer.pdfUrl)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-[#6c5746] hover:text-black">PDF öffnen <ExternalLink className="w-4 h-4" /></a>}
+                      <a href={`/api/mario-crm?action=download-offer&token=${encodeURIComponent(offer.publicToken)}`} className="inline-flex items-center gap-2 text-sm text-[#6c5746] hover:text-black">
+                        PDF herunterladen <Download className="w-4 h-4" />
+                      </a>
                     </div>
                     {!final ? (
                       <div className="mt-4">

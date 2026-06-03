@@ -966,6 +966,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ offer });
     }
 
+    if (req.method === "GET" && action === "download-offer") {
+      const token = normalizeString(req.query.token);
+      if (!token) return res.status(400).json({ error: "token is required" });
+      const offer = await crm.getOfferByToken(token);
+      if (!offer || offer.status === "entwurf") return res.status(404).json({ error: "Angebot nicht gefunden" });
+      const prepared = await prepareOfferForPdf(offer);
+      const pdfBuffer = renderOfferPdf(prepared);
+      const fileName = `${prepared.customerName || "Angebot"} - Angebot.pdf`.replace(/[^a-z0-9 ._-]+/gi, "-");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      return res.status(200).send(pdfBuffer);
+    }
+
     if (req.method === "POST" && action === "offer-response") {
       const token = normalizeString(req.body?.token);
       const status = normalizeString(req.body?.status) as CrmOffer["status"];
