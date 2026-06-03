@@ -599,6 +599,8 @@ export function AdminPage() {
   const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "offerDetail" | "offers" | "calendar" | "services">("dashboard");
   const [selectedOfferId, setSelectedOfferId] = useState("");
   const [offerDraft, setOfferDraft] = useState<Offer | null>(null);
+  const [offerPdfPreviewUrl, setOfferPdfPreviewUrl] = useState("");
+  const [offerPdfLoading, setOfferPdfLoading] = useState(false);
   const [offerMailSubject, setOfferMailSubject] = useState("Euer persönliches Angebot");
   const [offerMailBody, setOfferMailBody] = useState("Servus ihr Lieben,\n\nich habe euch euer persönliches Angebot vorbereitet. Ihr könnt es euch über den Link in Ruhe ansehen und direkt annehmen, ablehnen oder Änderungswünsche schicken.\n\n{offerUrl}\n\nIch freue mich von euch zu hören.");
   const [editMode, setEditMode] = useState(false);
@@ -626,6 +628,7 @@ export function AdminPage() {
   });
   const autosaveSnapshotRef = useRef("");
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const offerPdfPreviewRef = useRef("");
 
   const selectedCustomer = useMemo(() => customers.find((customer) => customer.id === selectedId) || null, [customers, selectedId]);
   const selectedInquiry = useMemo(() => inquiries.find((inquiry) => inquiry.id === selectedInquiryId) || null, [inquiries, selectedInquiryId]);
@@ -835,7 +838,15 @@ export function AdminPage() {
 
   useEffect(() => {
     setOfferDraft(selectedOffer ? structuredClone(selectedOffer) : null);
+    if (offerPdfPreviewRef.current) URL.revokeObjectURL(offerPdfPreviewRef.current);
+    offerPdfPreviewRef.current = "";
+    setOfferPdfPreviewUrl("");
+    setOfferPdfLoading(false);
   }, [selectedOffer]);
+
+  useEffect(() => () => {
+    if (offerPdfPreviewRef.current) URL.revokeObjectURL(offerPdfPreviewRef.current);
+  }, []);
 
   useEffect(() => {
     const template = mailTemplates[activeMail];
@@ -906,6 +917,32 @@ export function AdminPage() {
       toast.error(error.message || "Angebot konnte nicht gespeichert werden");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const previewOfferPdf = async () => {
+    if (!offerDraft) return;
+    setOfferPdfLoading(true);
+    try {
+      const res = await fetch("/api/mario-crm?action=preview-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-password": adminPassword },
+        body: JSON.stringify({ offer: offerDraft }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "PDF konnte nicht gerendert werden");
+      }
+      const blob = await res.blob();
+      if (offerPdfPreviewRef.current) URL.revokeObjectURL(offerPdfPreviewRef.current);
+      const url = URL.createObjectURL(blob);
+      offerPdfPreviewRef.current = url;
+      setOfferPdfPreviewUrl(url);
+      toast.success("PDF Vorschau gerendert");
+    } catch (error: any) {
+      toast.error(error.message || "PDF Vorschau konnte nicht gerendert werden");
+    } finally {
+      setOfferPdfLoading(false);
     }
   };
 
@@ -1600,6 +1637,9 @@ export function AdminPage() {
               saveOffer={saveOffer}
               sendOffer={sendOffer}
               deleteOffer={() => deleteOffer(offerDraft.id)}
+              previewOfferPdf={previewOfferPdf}
+              pdfPreviewUrl={offerPdfPreviewUrl}
+              pdfPreviewLoading={offerPdfLoading}
             />
           )}
           {!loading && view === "customersList" && <CustomersListView customers={customers} notificationsByCustomer={notificationsByCustomer} onSelect={selectCustomer} />}
@@ -1853,6 +1893,9 @@ function OfferDetailView({
   saveOffer,
   sendOffer,
   deleteOffer,
+  previewOfferPdf,
+  pdfPreviewUrl,
+  pdfPreviewLoading,
 }: {
   offer: Offer;
   setOffer: (offer: Offer) => void;
@@ -1864,6 +1907,9 @@ function OfferDetailView({
   saveOffer: () => void;
   sendOffer: () => void;
   deleteOffer: () => void;
+  previewOfferPdf: () => void;
+  pdfPreviewUrl: string;
+  pdfPreviewLoading: boolean;
 }) {
   const updateItem = (id: string, patch: Partial<OfferItem>) => {
     setOffer({ ...offer, items: offer.items.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
@@ -1938,6 +1984,28 @@ function OfferDetailView({
         </div>
 
         <section className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 lg:sticky lg:top-5 self-start">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-black/40">Echte PDF Vorschau</p>
+              <p className="mt-1 text-sm text-black/50">Rendert den aktuellen Entwurf als PDF.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={previewOfferPdf} disabled={pdfPreviewLoading || saving} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm disabled:opacity-50">
+                <FileText className="w-4 h-4" /> {pdfPreviewLoading ? "Rendere..." : "PDF rendern"}
+              </button>
+              {pdfPreviewUrl && <a href={pdfPreviewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm">Oeffnen <ExternalLink className="w-4 h-4" /></a>}
+            </div>
+          </div>
+          {pdfPreviewUrl ? (
+            <iframe title="Angebot PDF Vorschau" src={pdfPreviewUrl} className="mt-4 h-[720px] w-full rounded-md border border-black/10 bg-white" />
+          ) : (
+            <div className="mt-4 flex min-h-[360px] items-center justify-center rounded-md border border-dashed border-black/15 bg-white px-6 text-center text-sm text-black/45">
+              Noch keine PDF gerendert. Klicke auf "PDF rendern", um den aktuellen Entwurf als echte PDF-Datei zu pruefen.
+            </div>
+          )}
+        </section>
+
+        <section className="hidden">
           <p className="text-xs uppercase tracking-[0.2em] text-black/40">PDF Vorschau</p>
           <h3 className="mt-2 text-2xl font-light">{offer.title}</h3>
           <p className="mt-2 text-sm text-black/55">{offer.customerName} {offer.eventDate ? `· ${offer.eventDate}` : ""}</p>

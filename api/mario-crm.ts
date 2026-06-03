@@ -355,10 +355,40 @@ function calculateOfferTotal(offer: Partial<CrmOffer>) {
   return Math.max(itemTotal + travel - discount, 0);
 }
 
-function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry") {
+function servicePrice(service: any, catalog: crm.ServiceCatalogItem[]) {
+  const direct = normalizeString(service?.price || service?.unitPrice || service?.amount || service?.value);
+  if (direct) return direct;
+  const match = catalog.find((item) => item.id === service?.id || normalizeString(item.name).toLowerCase() === normalizeString(service?.name || service?.title || service?.label).toLowerCase());
+  return match?.price || "";
+}
+
+function serviceDescription(service: any, catalog: crm.ServiceCatalogItem[]) {
+  const direct = normalizeString(service?.description || service?.note || service?.details);
+  if (direct) return direct;
+  const match = catalog.find((item) => item.id === service?.id || normalizeString(item.name).toLowerCase() === normalizeString(service?.name || service?.title || service?.label).toLowerCase());
+  return match?.description || "";
+}
+
+function serviceName(service: any) {
+  return normalizeString(service?.name || service?.title || service?.label || service?.packageName || service?.id);
+}
+
+function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry", catalog: crm.ServiceCatalogItem[] = []) {
   const services = sourceType === "customer"
     ? [...((source as CrmCustomer).bookedServices || []), ...((source as CrmCustomer).customServices || [])]
     : ((source as crm.CrmInquiry).selectedPackages || []);
+  const items = services
+    .map((service: ServiceItem) => ({
+      id: crm.createId("offer_item"),
+      name: serviceName(service),
+      description: serviceDescription(service, catalog),
+      quantity: "1",
+      unitPrice: servicePrice(service, catalog),
+    }))
+    .filter((item) => item.name);
+  if (!items.length && sourceType === "inquiry" && moneyNumber((source as crm.CrmInquiry).estimatedTotal) > 0) {
+    items.push({ id: crm.createId("offer_item"), name: "Individuelles Angebot", description: "Leistungen laut Anfrage", quantity: "1", unitPrice: (source as crm.CrmInquiry).estimatedTotal });
+  }
   return {
     sourceType,
     sourceId: source.id,
@@ -370,7 +400,7 @@ function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "cust
     title: "Persönliches Angebot",
     introText: "Servus ihr Lieben,\n\nauf Basis eurer Anfrage habe ich euch ein persönliches Angebot zusammengestellt. Schaut in Ruhe drüber. Wenn alles passt, könnt ihr es direkt bestätigen - und wenn ihr noch etwas ändern möchtet, schreibt mir einfach kurz eure Wünsche dazu.",
     notes: "Alle Preise verstehen sich inklusive der jeweils gültigen Umsatzsteuer. Fahrtkosten können je nach Location separat ausgewiesen werden.",
-    items: services.map((service: ServiceItem) => ({ id: crm.createId("offer_item"), name: service.name, description: "", quantity: "1", unitPrice: service.price || "" })),
+    items,
     travelKm: "",
     travelRate: "0.60",
     discountLabel: "",
@@ -736,7 +766,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!sourceId) return res.status(400).json({ error: "sourceId is required" });
       const source = sourceType === "customer" ? await crm.getCustomer(sourceId) : (await crm.listInquiries()).find((item) => item.id === sourceId);
       if (!source) return res.status(404).json({ error: "Quelle nicht gefunden" });
-      const base = offerFromSource(source as any, sourceType);
+      const catalog = await crm.getServiceCatalog();
+      const base = offerFromSource(source as any, sourceType, catalog);
       const offer = await crm.upsertOffer({ ...base, total: String(calculateOfferTotal(base)) });
       return res.status(201).json({ offer });
     }
@@ -748,6 +779,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!existing) return res.status(404).json({ error: "Offer not found" });
       const saved = await crm.upsertOffer({ ...existing, ...input, items: normalizeOfferItems(input.items), total: String(calculateOfferTotal(input)) });
       return res.status(200).json({ offer: saved });
+    }
+
+    if (req.method === "POST" && action === "preview-offer") {
+      const input = req.body?.offer as Partial<CrmOffer>;
+      if (!input?.id) return res.status(400).json({ error: "offer.id is required" });
+      const existing = await crm.getOffer(input.id);
+      if (!existing) return res.status(404).json({ error: "Offer not found" });
+      const saved = await crm.upsertOffer({ ...existing, ...input, items: normalizeOfferItems(input.items), total: String(calculateOfferTotal(input)) });
+      const pdfBuffer = renderOfferPdf(saved);
+      const fileName = `${saved.customerName || "Angebot"} - Angebot.pdf`.replace(/[^a-z0-9 ._-]+/gi, "-");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+      return res.status(200).send(pdfBuffer);
     }
 
     if (req.method === "POST" && action === "send-offer") {
