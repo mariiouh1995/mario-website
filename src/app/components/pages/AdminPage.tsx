@@ -1001,8 +1001,6 @@ export function AdminPage() {
       const url = URL.createObjectURL(blob);
       offerPdfPreviewRef.current = url;
       setOfferPdfPreviewUrl(url);
-      setOfferDraft(draftForPreview);
-      setOffers((prev) => prev.map((item) => (item.id === draftForPreview.id ? draftForPreview : item)));
       toast.success("PDF Vorschau gerendert");
     } catch (error: any) {
       toast.error(error.message || "PDF Vorschau konnte nicht gerendert werden");
