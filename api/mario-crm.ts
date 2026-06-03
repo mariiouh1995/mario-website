@@ -1,4 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import fs from "node:fs";
+import path from "node:path";
+import { deflateSync, inflateSync } from "node:zlib";
 import nodemailer from "nodemailer";
 import { google } from "googleapis";
 import * as crm from "./crm-db.js";
@@ -373,6 +376,12 @@ function serviceName(service: any) {
   return normalizeString(service?.name || service?.title || service?.label || service?.packageName || service?.id);
 }
 
+function defaultOfferValidUntil() {
+  const date = new Date();
+  date.setDate(date.getDate() + 14);
+  return date.toISOString().slice(0, 10);
+}
+
 function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "customer" | "inquiry", catalog: crm.ServiceCatalogItem[] = []) {
   const services = sourceType === "customer"
     ? [...((source as CrmCustomer).bookedServices || []), ...((source as CrmCustomer).customServices || [])]
@@ -397,6 +406,7 @@ function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "cust
     customerName: source.name || "",
     email: source.email || "",
     eventDate: source.eventDate || "",
+    validUntil: defaultOfferValidUntil(),
     title: "Persönliches Angebot",
     introText: "Servus ihr Lieben,\n\nauf Basis eurer Anfrage habe ich euch ein persönliches Angebot zusammengestellt. Schaut in Ruhe drüber. Wenn alles passt, könnt ihr es direkt bestätigen - und wenn ihr noch etwas ändern möchtet, schreibt mir einfach kurz eure Wünsche dazu.",
     notes: "Alle Preise verstehen sich inklusive der jeweils gültigen Umsatzsteuer. Fahrtkosten können je nach Location separat ausgewiesen werden.",
@@ -485,32 +495,156 @@ function makePdf(commands: PdfCommand[]) {
   return Buffer.from(pdf, "utf8");
 }
 
+type PdfImage = { width: number; height: number; data: Buffer };
+
+function pdfUnicodeHex(value: unknown) {
+  return Buffer.from(`\uFEFF${String(value || "")}`, "utf16le").swap16().toString("hex").toUpperCase();
+}
+
+function drawUnicodeText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
+  return `BT /${font} ${size} Tf ${x} ${y} Td <${pdfUnicodeHex(value)}> Tj ET`;
+}
+
+function drawUnicodeRightText(x: number, y: number, value: unknown, size = 10, font = "F1"): PdfCommand {
+  const width = String(value || "").length * size * 0.48;
+  return drawUnicodeText(Math.max(30, x - width), y, value, size, font);
+}
+
+function drawPdfImage(name: string, x: number, y: number, width: number, height: number): PdfCommand {
+  return `q ${width} 0 0 ${height} ${x} ${y} cm /${name} Do Q`;
+}
+
+function decodePngForPdf(buffer: Buffer): PdfImage | null {
+  if (buffer.toString("hex", 0, 8) !== "89504e470d0a1a0a") return null;
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let colorType = 0;
+  let bitDepth = 0;
+  const idat: Buffer[] = [];
+  while (offset < buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const data = buffer.subarray(offset + 8, offset + 8 + length);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      if (data[12] !== 0) return null;
+    }
+    if (type === "IDAT") idat.push(data);
+    if (type === "IEND") break;
+    offset += length + 12;
+  }
+  if (!width || !height || bitDepth !== 8 || ![2, 6].includes(colorType)) return null;
+  const channels = colorType === 6 ? 4 : 3;
+  const stride = width * channels;
+  const raw = inflateSync(Buffer.concat(idat));
+  const pixels = Buffer.alloc(height * stride);
+  let src = 0;
+  for (let row = 0; row < height; row += 1) {
+    const filter = raw[src++];
+    const rowStart = row * stride;
+    for (let col = 0; col < stride; col += 1) {
+      const left = col >= channels ? pixels[rowStart + col - channels] : 0;
+      const up = row > 0 ? pixels[rowStart + col - stride] : 0;
+      const upLeft = row > 0 && col >= channels ? pixels[rowStart + col - stride - channels] : 0;
+      const value = raw[src++];
+      let predict = 0;
+      if (filter === 1) predict = left;
+      if (filter === 2) predict = up;
+      if (filter === 3) predict = Math.floor((left + up) / 2);
+      if (filter === 4) {
+        const p = left + up - upLeft;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - upLeft);
+        predict = pa <= pb && pa <= pc ? left : pb <= pc ? up : upLeft;
+      }
+      pixels[rowStart + col] = (value + predict) & 255;
+    }
+  }
+  const rgb = Buffer.alloc(width * height * 3);
+  for (let i = 0, j = 0; i < pixels.length; i += channels, j += 3) {
+    const alpha = channels === 4 ? pixels[i + 3] / 255 : 1;
+    rgb[j] = Math.round(pixels[i] * alpha + 255 * (1 - alpha));
+    rgb[j + 1] = Math.round(pixels[i + 1] * alpha + 255 * (1 - alpha));
+    rgb[j + 2] = Math.round(pixels[i + 2] * alpha + 255 * (1 - alpha));
+  }
+  return { width, height, data: deflateSync(rgb) };
+}
+
+function readSignatureImage(): PdfImage | null {
+  try {
+    const file = path.join(process.cwd(), "public", "assets", "mario-signature.png");
+    return fs.existsSync(file) ? decodePngForPdf(fs.readFileSync(file)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function makePdfWithImages(commands: PdfCommand[], image?: PdfImage | null) {
+  const content = commands.join("\n");
+  const hasImage = Boolean(image);
+  const contentObjectNumber = hasImage ? 8 : 7;
+  const xObject = hasImage ? " /XObject << /Sig 7 0 R >>" : "";
+  const objects: Array<string | Buffer> = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >>${xObject} >> /Contents ${contentObjectNumber} 0 R >>`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>",
+  ];
+  if (image) {
+    objects.push(Buffer.concat([
+      Buffer.from(`<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${image.data.length} >>\nstream\n`, "utf8"),
+      image.data,
+      Buffer.from("\nendstream", "utf8"),
+    ]));
+  }
+  objects.push(`<< /Length ${Buffer.byteLength(content, "utf8")} >>\nstream\n${content}\nendstream`);
+  let pdf = Buffer.from("%PDF-1.4\n", "utf8");
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf = Buffer.concat([pdf, Buffer.from(`${index + 1} 0 obj\n`, "utf8"), Buffer.isBuffer(object) ? object : Buffer.from(object, "utf8"), Buffer.from("\nendobj\n", "utf8")]);
+  });
+  const xref = pdf.length;
+  let tail = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { tail += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  tail += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.concat([pdf, Buffer.from(tail, "utf8")]);
+}
+
 function renderOfferPdf(offer: CrmOffer) {
   const commands: PdfCommand[] = [];
+  const signature = readSignatureImage();
   const left = 36;
   const right = 560;
   let y = 806;
 
-  commands.push(drawText(360, y, "mario", 26, "F3"));
-  commands.push(drawText(423, y + 1, "schubert", 22, "F2"));
-  commands.push(drawText(420, y - 14, "p h o t o g r a p h y", 8, "F1"));
+  commands.push(drawUnicodeText(360, y, "mario", 26, "F3"));
+  commands.push(drawUnicodeText(423, y + 1, "schubert", 22, "F2"));
+  commands.push(drawUnicodeText(420, y - 14, "p h o t o g r a p h y", 8, "F1"));
   y = 746;
-  commands.push(drawRightText(right, y, `Innsbruck, den ${new Date().toLocaleDateString("de-DE")}`, 10, "F2"));
+  commands.push(drawUnicodeRightText(right, y, `Innsbruck, den ${new Date().toLocaleDateString("de-DE")}`, 10, "F2"));
 
   y = 718;
   const greeting = (offer.introText || "").trim()
     ? wrapText(offer.introText, 86)
-    : [`Servus ${offer.customerName || "ihr Lieben"},`, "herzlichen Glueckwunsch zu eurer bevorstehenden Hochzeit!", "Hiermit uebersende ich euch euer individuelles Angebot."];
+    : [`Servus ${offer.customerName || "ihr Lieben"},`, "herzlichen Glückwunsch zu eurer bevorstehenden Hochzeit!", "Hiermit übersende ich euch euer individuelles Angebot."];
   greeting.slice(0, 5).forEach((line) => {
-    commands.push(drawText(left, y, line, 10, line.toLowerCase().startsWith("servus") ? "F2" : "F1"));
+    commands.push(drawUnicodeText(left, y, line, 10, line.toLowerCase().startsWith("servus") ? "F2" : "F1"));
     y -= 15;
   });
 
   y -= 2;
   commands.push(drawLine(left, y, right, y, 0.55));
   y -= 17;
-  commands.push(drawText(left, y, "L E I S T U N G", 11, "F2"));
-  commands.push(drawRightText(right, y, "S U M M E", 11, "F2"));
+  commands.push(drawUnicodeText(left, y, "L E I S T U N G", 11, "F2"));
+  commands.push(drawUnicodeRightText(right, y, "S U M M E", 11, "F2"));
   y -= 10;
   commands.push(drawLine(left, y, right, y, 0.55));
   y -= 22;
@@ -518,12 +652,12 @@ function renderOfferPdf(offer: CrmOffer) {
   const itemTotal = normalizeOfferItems(offer.items || []).reduce((sum, item) => sum + moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice), 0);
   for (const item of normalizeOfferItems(offer.items || [])) {
     const amount = moneyNumber(item.quantity || "1") * moneyNumber(item.unitPrice);
-    commands.push(drawText(left, y, item.name.endsWith(":") ? item.name : `${item.name}:`, 10, "F2"));
-    commands.push(drawRightText(right, y, pdfMoney(amount), 10, "F1"));
+    commands.push(drawUnicodeText(left, y, item.name.endsWith(":") ? item.name : `${item.name}:`, 10, "F2"));
+    commands.push(drawUnicodeRightText(right, y, pdfMoney(amount), 10, "F1"));
     y -= 13;
     const description = item.description || `${item.quantity || "1"} x ${pdfMoney(moneyNumber(item.unitPrice), true)}`;
     for (const line of wrapText(description, 74).slice(0, 3)) {
-      commands.push(drawText(left, y, line, 9.5, "F1"));
+      commands.push(drawUnicodeText(left, y, line, 9.5, "F1"));
       y -= 12;
     }
     y -= 4;
@@ -532,54 +666,65 @@ function renderOfferPdf(offer: CrmOffer) {
   }
 
   const travel = offer.travelKm ? moneyNumber(offer.travelKm) * moneyNumber(offer.travelRate || "0.60") : 0;
-  commands.push(drawText(left, y, "Anfahrt ab Innsbruck", 10, "F2"));
-  commands.push(drawRightText(right, y, offer.travelKm ? pdfMoney(travel) : "inklusive", 10, "F1"));
+  commands.push(drawUnicodeText(left, y, "Anfahrt ab Innsbruck", 10, "F2"));
+  commands.push(drawUnicodeRightText(right, y, offer.travelKm ? pdfMoney(travel) : "inklusive", 10, "F1"));
   y -= 14;
   commands.push(drawLine(left, y, right, y, 0.55));
   y -= 22;
 
   const sum = itemTotal + travel;
   const discount = moneyNumber(offer.discountAmount || "");
-  commands.push(drawText(388, y, "S U M M E", 11, "F2"));
-  commands.push(drawRightText(right, y, pdfMoney(sum, true), 11, "F1"));
+  commands.push(drawUnicodeText(388, y, "S U M M E", 11, "F2"));
+  commands.push(drawUnicodeRightText(right, y, pdfMoney(sum, true), 11, "F1"));
   y -= 24;
   if (discount > 0) {
     commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
-    commands.push(drawText(292, y, offer.discountLabel || "R A B A T T", 10, "F2"));
-    commands.push(drawRightText(right, y, `-${pdfMoney(discount, true)}`, 10, "F1"));
+    commands.push(drawUnicodeText(292, y, offer.discountLabel || "R A B A T T", 10, "F2"));
+    commands.push(drawUnicodeRightText(right, y, `-${pdfMoney(discount, true)}`, 10, "F1"));
     y -= 24;
   }
   commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
-  commands.push(drawText(380, y, "G E S A M T", 11, "F2"));
-  commands.push(drawRightText(right, y, pdfMoney(Math.max(sum - discount, 0), true), 11, "F2"));
+  commands.push(drawUnicodeText(380, y, "G E S A M T", 11, "F2"));
+  commands.push(drawUnicodeRightText(right, y, pdfMoney(Math.max(sum - discount, 0), true), 11, "F2"));
   y -= 28;
   commands.push(drawLine(left, y + 12, right, y + 12, 0.3));
 
   const noteY = Math.min(y - 26, 214);
   y = noteY;
-  const notes = (offer.notes || "Angebotsgueltigkeit: Dieses Angebot ist bis zum angegebenen Datum gueltig.\nDatumssicherung: Eine verbindliche Reservierung erfolgt erst nach Unterzeichnung eines separaten Vertrages.\nHinweis zur Mehrwertsteuer: Gemaess Paragraph 6 Abs. 1 Z 27 UStG erfolgt keine Ausweisung der Umsatzsteuer.").split("\n");
+  const validUntil = offer.validUntil ? new Date(`${offer.validUntil}T00:00:00`) : null;
+  const validUntilText = validUntil && !Number.isNaN(validUntil.getTime()) ? validUntil.toLocaleDateString("de-DE") : "dem angegebenen Datum";
+  const notes = [
+    `Angebotsgültigkeit: Dieses Angebot ist gültig bis zum ${validUntilText}.`,
+    "Datumssicherung: Eine verbindliche Reservierung erfolgt erst nach Unterzeichnung eines separaten Mietvertrags.",
+    "Hinweis zur Mehrwertsteuer: Gemäß § 6 Abs. 1 Z 27 UStG erfolgt keine Ausweisung der Umsatzsteuer.",
+    offer.notes || "",
+  ].filter(Boolean);
   notes.flatMap((note) => wrapText(note, 92)).slice(0, 7).forEach((line) => {
     const [label, ...rest] = line.split(":");
     if (rest.length && label.length < 32) {
-      commands.push(drawText(left, y, `${label}:`, 9, "F2"));
-      commands.push(drawText(left + Math.min(150, label.length * 5.2 + 8), y, rest.join(":").trim(), 9, "F1"));
+      commands.push(drawUnicodeText(left, y, `${label}:`, 9, "F2"));
+      commands.push(drawUnicodeText(left + Math.min(150, label.length * 5.2 + 8), y, rest.join(":").trim(), 9, "F1"));
     } else {
-      commands.push(drawText(left, y, line, 9, "F1"));
+      commands.push(drawUnicodeText(left, y, line, 9, "F1"));
     }
     y -= 12;
   });
 
   y = 102;
-  commands.push(drawText(left, y, "Kreative Gruesse", 9.5, "F1"));
-  commands.push(drawText(left, y - 34, "Mario Schubert", 26, "F3"));
-  commands.push(drawText(left, y - 58, "Mario Schubert", 9, "F1"));
-  commands.push(drawRightText(right, y - 8, "Mario Schubert Foto- und Videografie", 9, "F1"));
-  commands.push(drawRightText(right, y - 21, "Baeckerbuehelgasse 14, 6020 Innsbruck", 9, "F1"));
-  commands.push(drawRightText(right, y - 34, "Tel. +43 67763681543", 9, "F1"));
-  commands.push(drawRightText(right, y - 47, "servus@marioschub.com", 9, "F1"));
-  commands.push(drawRightText(right, y - 60, "www.marioschub.com", 9, "F1"));
+  commands.push(drawUnicodeText(left, y, "Kreative Grüße", 9.5, "F1"));
+  if (signature) {
+    commands.push(drawPdfImage("Sig", left - 4, y - 54, 150, 54));
+  } else {
+    commands.push(drawUnicodeText(left, y - 34, "Mario Schubert", 26, "F3"));
+  }
+  commands.push(drawUnicodeText(left, y - 58, "Mario Schubert", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 8, "Mario Schubert Foto- und Videografie", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 21, "Bäckerbühelgasse 14, 6020 Innsbruck", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 34, "Tel. +43 67763681543", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 47, "servus@marioschub.com", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 60, "www.marioschub.com", 9, "F1"));
 
-  return makePdf(commands);
+  return makePdfWithImages(commands, signature);
 }
 
 async function sendOfferNotification(offer: CrmOffer) {
@@ -764,7 +909,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const sourceType = normalizeString(req.body?.sourceType) === "inquiry" ? "inquiry" : "customer";
       const sourceId = normalizeString(req.body?.sourceId);
       if (!sourceId) return res.status(400).json({ error: "sourceId is required" });
-      const source = sourceType === "customer" ? await crm.getCustomer(sourceId) : (await crm.listInquiries()).find((item) => item.id === sourceId);
+      const sourceOverride = req.body?.sourceOverride && req.body.sourceOverride.id === sourceId ? req.body.sourceOverride : null;
+      const source = sourceOverride || (sourceType === "customer" ? await crm.getCustomer(sourceId) : (await crm.listInquiries()).find((item) => item.id === sourceId));
       if (!source) return res.status(404).json({ error: "Quelle nicht gefunden" });
       const catalog = await crm.getServiceCatalog();
       const base = offerFromSource(source as any, sourceType, catalog);

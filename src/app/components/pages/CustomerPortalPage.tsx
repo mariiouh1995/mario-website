@@ -10,7 +10,7 @@ type LocationItem = { id: string; title: string; address: string };
 type PaymentItem = { id: string; title: string; amount: string; paidAt: string; note?: string };
 type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "terms" | "signed_contract" | "custom"; title: string; url: string; driveFileId?: string; fileName?: string; mimeType?: string; uploadedAt?: string };
 type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
-type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; discountLabel: string; discountAmount: string; total: string; pdfUrl: string; responseMessage: string };
+type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; validUntil: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; discountLabel: string; discountAmount: string; total: string; pdfUrl: string; responseMessage: string };
 type InspirationLink = { id: string; title: string; url: string };
 type PortalVisibility = {
   status?: boolean;

@@ -8,6 +8,7 @@ type Offer = {
   status: string;
   customerName: string;
   eventDate: string;
+  validUntil: string;
   title: string;
   introText: string;
   notes: string;

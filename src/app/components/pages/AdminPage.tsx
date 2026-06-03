@@ -63,6 +63,7 @@ type Offer = {
   customerName: string;
   email: string;
   eventDate: string;
+  validUntil: string;
   title: string;
   introText: string;
   notes: string;
@@ -890,10 +891,10 @@ export function AdminPage() {
     setView("offerDetail");
   };
 
-  const createOffer = async (sourceType: "customer" | "inquiry", sourceId: string) => {
+  const createOffer = async (sourceType: "customer" | "inquiry", sourceId: string, sourceOverride?: Customer | Inquiry) => {
     setSaving(true);
     try {
-      const data = await api("create-offer", { method: "POST", body: JSON.stringify({ sourceType, sourceId }) });
+      const data = await api("create-offer", { method: "POST", body: JSON.stringify({ sourceType, sourceId, sourceOverride }) });
       setOffers((prev) => [data.offer, ...prev.filter((item) => item.id !== data.offer.id)]);
       setSelectedOfferId(data.offer.id);
       setView("offerDetail");
@@ -1648,7 +1649,7 @@ export function AdminPage() {
             <InquiryDetail
               inquiry={selectedInquiry}
               onReply={() => openConfirm({ title: "Anfrage beantworten?", description: "Die Anfrage wird als beantwortet markiert. Optional wird direkt eine Mail verschickt.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => markInquiryAnswered(selectedInquiry.id) })}
-              onOffer={() => createOffer("inquiry", selectedInquiry.id)}
+              onOffer={() => createOffer("inquiry", selectedInquiry.id, selectedInquiry)}
               onDelete={() => openConfirm({ title: "Anfrage ablehnen oder löschen?", description: "Die Anfrage wird entfernt. Optional kann vorher eine kurze Absage-Mail gesendet werden.", templateKey: "reply", target: "inquiry", inquiryId: selectedInquiry.id, subject: "Danke für eure Anfrage", body: "Servus ihr Lieben,\n\nvielen Dank für eure Anfrage. Leider passt es diesmal nicht oder der Termin ist bereits vergeben.\n\nIch wünsche euch alles Gute.", onConfirm: () => deleteInquiryAction(selectedInquiry.id) })}
               onConvert={() => openConfirm({ title: "In Kunden umwandeln?", description: "Relevante Kontaktdaten, Leistungen, Nachrichten und Locations werden übernommen.", templateKey: "portal", target: "inquiry", inquiryId: selectedInquiry.id, onConfirm: () => convertInquiry(selectedInquiry.id) })}
             />
@@ -1693,7 +1694,7 @@ export function AdminPage() {
               addPortalMessage={addPortalMessage}
               sendMail={sendMail}
               provisionPortal={provisionPortal}
-              createOffer={() => createOffer("customer", draft.id)}
+              createOffer={() => createOffer("customer", draft.id, draft)}
             />
           )}
         </section>
@@ -1944,6 +1945,7 @@ function OfferDetailView({
               <Field label="Kundenname" value={offer.customerName} onChange={(value) => setOffer({ ...offer, customerName: value })} />
               <Field label="E-Mail" value={offer.email} onChange={(value) => setOffer({ ...offer, email: value })} />
               <Field label="Datum" type="date" value={offer.eventDate} onChange={(value) => setOffer({ ...offer, eventDate: value })} />
+              <Field label="Gültig bis" type="date" value={offer.validUntil || ""} onChange={(value) => setOffer({ ...offer, validUntil: value })} />
               <Field label="Fahrtkosten km" value={offer.travelKm} onChange={(value) => setOffer({ ...offer, travelKm: value })} placeholder="z.B. 80" />
               <Field label="Rabatt Bezeichnung" value={offer.discountLabel || ""} onChange={(value) => setOffer({ ...offer, discountLabel: value })} placeholder="z.B. Kombi-Rabatt (-15%)" />
               <Field label="Rabatt Betrag" value={offer.discountAmount || ""} onChange={(value) => setOffer({ ...offer, discountAmount: value })} placeholder="z.B. 770" />

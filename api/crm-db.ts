@@ -57,6 +57,7 @@ export type CrmOffer = {
   customerName: string;
   email: string;
   eventDate: string;
+  validUntil: string;
   title: string;
   introText: string;
   notes: string;
@@ -532,6 +533,7 @@ export async function ensureMarioCrmSchema() {
         customer_name text NOT NULL DEFAULT '',
         email text NOT NULL DEFAULT '',
         event_date text NOT NULL DEFAULT '',
+        valid_until text NOT NULL DEFAULT '',
         title text NOT NULL DEFAULT '',
         intro_text text NOT NULL DEFAULT '',
         notes text NOT NULL DEFAULT '',
@@ -549,6 +551,7 @@ export async function ensureMarioCrmSchema() {
 
     await db`ALTER TABLE mario_offers ADD COLUMN IF NOT EXISTS discount_label text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_offers ADD COLUMN IF NOT EXISTS discount_amount text NOT NULL DEFAULT ''`;
+    await db`ALTER TABLE mario_offers ADD COLUMN IF NOT EXISTS valid_until text NOT NULL DEFAULT ''`;
 
     await db`CREATE INDEX IF NOT EXISTS idx_mario_inquiries_created_at ON mario_inquiries(created_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_mario_customers_updated_at ON mario_customers(updated_at DESC)`;
@@ -668,6 +671,7 @@ function mapOffer(row: any): CrmOffer {
     customerName: row.customer_name,
     email: row.email,
     eventDate: row.event_date,
+    validUntil: row.valid_until || "",
     title: row.title,
     introText: row.intro_text,
     notes: row.notes,
@@ -759,12 +763,12 @@ export async function upsertOffer(input: Partial<CrmOffer>) {
   const rows = await sql()`
     INSERT INTO mario_offers (
       id, public_token, source_type, source_id, customer_id, inquiry_id, status, created_at, updated_at,
-      sent_at, responded_at, customer_name, email, event_date, title, intro_text, notes, items,
+      sent_at, responded_at, customer_name, email, event_date, valid_until, title, intro_text, notes, items,
       travel_km, travel_rate, discount_label, discount_amount, total, pdf_url, drive_file_id, response_message
     ) VALUES (
       ${id}, ${publicToken}, ${input.sourceType || "customer"}, ${input.sourceId || ""}, ${input.customerId || ""}, ${input.inquiryId || ""},
       ${input.status || "entwurf"}, ${input.createdAt || nowIso()}, now(), ${input.sentAt || ""}, ${input.respondedAt || ""},
-      ${input.customerName || ""}, ${input.email || ""}, ${input.eventDate || ""}, ${input.title || "Persönliches Angebot"},
+      ${input.customerName || ""}, ${input.email || ""}, ${input.eventDate || ""}, ${input.validUntil || ""}, ${input.title || "Persönliches Angebot"},
       ${input.introText || ""}, ${input.notes || ""}, ${JSON.stringify(normalizeOfferItems(input.items || []))}::jsonb,
       ${input.travelKm || ""}, ${input.travelRate || "0.60"}, ${input.discountLabel || ""}, ${input.discountAmount || ""},
       ${input.total || ""}, ${input.pdfUrl || ""}, ${input.driveFileId || ""},
@@ -783,6 +787,7 @@ export async function upsertOffer(input: Partial<CrmOffer>) {
       customer_name = EXCLUDED.customer_name,
       email = EXCLUDED.email,
       event_date = EXCLUDED.event_date,
+      valid_until = EXCLUDED.valid_until,
       title = EXCLUDED.title,
       intro_text = EXCLUDED.intro_text,
       notes = EXCLUDED.notes,
