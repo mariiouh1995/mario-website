@@ -987,6 +987,11 @@ export function AdminPage() {
     if (!draftForPreview) return;
     setOfferPdfLoading(true);
     try {
+      if (offerPdfPreviewRef.current) {
+        URL.revokeObjectURL(offerPdfPreviewRef.current);
+        offerPdfPreviewRef.current = "";
+      }
+      setOfferPdfPreviewUrl("");
       const res = await fetch("/api/mario-crm?action=preview-offer", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-password": adminPassword },

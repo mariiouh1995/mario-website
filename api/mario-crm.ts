@@ -338,15 +338,20 @@ function normalizeRequestedServices(items: unknown): ServiceItem[] {
     .filter((item) => item.name);
 }
 
+function textValue(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return typeof value === "string" ? value.trim() : String(value).trim();
+}
+
 function normalizeOfferItems(items: unknown) {
   if (!Array.isArray(items)) return [];
   return items
     .map((item: any) => ({
-      id: normalizeString(item?.id) || crm.createId("offer_item"),
-      name: normalizeString(item?.name),
-      description: normalizeString(item?.description),
-      quantity: normalizeString(item?.quantity) || "1",
-      unitPrice: normalizeString(item?.unitPrice || item?.price),
+      id: textValue(item?.id) || crm.createId("offer_item"),
+      name: textValue(item?.name),
+      description: textValue(item?.description),
+      quantity: textValue(item?.quantity) || "1",
+      unitPrice: textValue(item?.unitPrice ?? item?.price),
     }))
     .filter((item) => item.name);
 }
@@ -421,6 +426,31 @@ function offerFromSource(source: CrmCustomer | crm.CrmInquiry, sourceType: "cust
     discountLabel: "",
     discountAmount: "",
   };
+}
+
+async function offerItemsFromLinkedSource(offer: Partial<CrmOffer>) {
+  const catalog = await crm.getServiceCatalog();
+  const customerId = normalizeString(offer.customerId || (offer.sourceType === "customer" ? offer.sourceId : ""));
+  if (customerId) {
+    const customer = await crm.getCustomer(customerId);
+    if (customer) return normalizeOfferItems(offerFromSource(customer as any, "customer", catalog).items);
+  }
+
+  const inquiryId = normalizeString(offer.inquiryId || (offer.sourceType === "inquiry" ? offer.sourceId : ""));
+  if (inquiryId) {
+    const inquiry = (await crm.listInquiries()).find((item) => item.id === inquiryId);
+    if (inquiry) return normalizeOfferItems(offerFromSource(inquiry as any, "inquiry", catalog).items);
+  }
+
+  return [];
+}
+
+async function prepareOfferForPdf(base: CrmOffer, input?: Partial<CrmOffer>) {
+  const merged = { ...base, ...(input || {}) };
+  let items = normalizeOfferItems(input && Object.prototype.hasOwnProperty.call(input, "items") ? input.items : merged.items);
+  if (!items.length) items = await offerItemsFromLinkedSource(merged);
+  const prepared = { ...merged, items };
+  return crm.upsertOffer({ ...prepared, total: String(calculateOfferTotal(prepared)) });
 }
 
 function escapePdfText(value: string) {
@@ -964,7 +994,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!input?.id) return res.status(400).json({ error: "offer.id is required" });
       const existing = await crm.getOffer(input.id);
       if (!existing) return res.status(404).json({ error: "Offer not found" });
-      const saved = await crm.upsertOffer({ ...existing, ...input, items: normalizeOfferItems(input.items), total: String(calculateOfferTotal(input)) });
+      const merged = { ...existing, ...input, items: normalizeOfferItems(input.items ?? existing.items) };
+      const saved = await crm.upsertOffer({ ...merged, total: String(calculateOfferTotal(merged)) });
       return res.status(200).json({ offer: saved });
     }
 
@@ -973,11 +1004,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!input?.id) return res.status(400).json({ error: "offer.id is required" });
       const existing = await crm.getOffer(input.id);
       if (!existing) return res.status(404).json({ error: "Offer not found" });
-      const saved = await crm.upsertOffer({ ...existing, ...input, items: normalizeOfferItems(input.items), total: String(calculateOfferTotal(input)) });
+      const saved = await prepareOfferForPdf(existing, input);
       const pdfBuffer = renderOfferPdf(saved);
       const fileName = `${saved.customerName || "Angebot"} - Angebot.pdf`.replace(/[^a-z0-9 ._-]+/gi, "-");
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+      res.setHeader("X-Mario-Offer-Items", String(normalizeOfferItems(saved.items || []).length));
       return res.status(200).send(pdfBuffer);
     }
 
@@ -989,7 +1021,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!offer) return res.status(404).json({ error: "Offer not found" });
       if (!offer.email) return res.status(400).json({ error: "Angebot hat keine E-Mail-Adresse" });
 
-      const prepared = await crm.upsertOffer({ ...offer, total: String(calculateOfferTotal(offer)) });
+      const prepared = await prepareOfferForPdf(offer);
       const pdfBuffer = renderOfferPdf(prepared);
       const offerCustomer = prepared.customerId ? await crm.getCustomer(prepared.customerId) : null;
       const folderId = offerCustomer
