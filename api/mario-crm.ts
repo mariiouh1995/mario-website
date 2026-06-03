@@ -1060,7 +1060,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         subject,
         html: marioMailHtml(renderedBody),
         text: renderedBody,
-        attachments: uploaded.url ? [{ filename: "Angebot.pdf", path: uploaded.url }] : undefined,
+        attachments: [{ filename: "Angebot.pdf", content: pdfBuffer, contentType: "application/pdf" }],
       });
       return res.status(200).json({ offer: saved, offerUrl });
     }
