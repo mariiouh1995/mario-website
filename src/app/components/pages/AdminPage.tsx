@@ -2004,6 +2004,25 @@ function OfferDetailView({
         </div>
       </div>
 
+      {["angenommen", "abgelehnt", "aenderungswunsch"].includes(offer.status) && (
+        <section className="rounded-lg border border-black/8 bg-[#faf8f5] p-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-black/40">Kundenrückmeldung</p>
+              <h3 className="mt-1 font-semibold">
+                {offer.status === "aenderungswunsch" ? "Änderungswunsch zum Angebot" : offer.status === "angenommen" ? "Angebot angenommen" : "Angebot abgelehnt"}
+              </h3>
+              {offer.responseMessage ? (
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-black/70">{offer.responseMessage}</p>
+              ) : (
+                <p className="mt-2 text-sm text-black/50">Keine zusätzliche Nachricht hinterlegt.</p>
+              )}
+            </div>
+            {offer.respondedAt && <span className="shrink-0 rounded-full bg-white border border-black/8 px-3 py-1 text-xs text-black/55">{new Date(offer.respondedAt).toLocaleString("de-DE")}</span>}
+          </div>
+        </section>
+      )}
+
       <div className="grid lg:grid-cols-[1fr_0.9fr] gap-5">
         <div className="space-y-4">
           <section className="rounded-lg border border-black/8 p-4">
