@@ -8,6 +8,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   CreditCard,
   Download,
   ExternalLink,
