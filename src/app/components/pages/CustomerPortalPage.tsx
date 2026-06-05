@@ -12,6 +12,7 @@ type CustomerDocument = { id: string; kind: "offer" | "contract" | "invoice" | "
 type OfferItem = { id: string; name: string; description?: string; quantity: string; unitPrice: string };
 type Offer = { id: string; publicToken: string; status: string; customerName: string; eventDate: string; validUntil: string; title: string; introText: string; notes: string; items: OfferItem[]; travelKm: string; travelRate: string; discountLabel: string; discountAmount: string; total: string; pdfUrl: string; responseMessage: string };
 type InspirationLink = { id: string; title: string; url: string };
+type WeddingTimelineItem = { id: string; time: string; title: string };
 type PortalVisibility = {
   status?: boolean;
   tasks?: boolean;
@@ -54,6 +55,7 @@ type Customer = {
   portalIntro: string;
   portalVisibility?: PortalVisibility;
   portalMessages?: PortalMessage[];
+  weddingTimeline?: WeddingTimelineItem[];
 };
 
 const defaultVisibility: Required<PortalVisibility> = {
@@ -195,6 +197,7 @@ export function CustomerPortalPage() {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [addOnMessage, setAddOnMessage] = useState("");
   const [sendingAddOns, setSendingAddOns] = useState(false);
+  const [timelineDraft, setTimelineDraft] = useState<WeddingTimelineItem[]>([]);
 
   useEffect(() => {
     async function loadPortal() {
@@ -211,6 +214,7 @@ export function CustomerPortalPage() {
         }
         if (!res.ok) throw new Error(data.error || "Portal nicht gefunden");
         setCustomer(data.customer);
+        setTimelineDraft(data.customer?.weddingTimeline || []);
         setOffers(data.offers || []);
         setServiceCatalog(data.serviceCatalog || []);
         setNeedsPassword(false);
@@ -276,6 +280,7 @@ export function CustomerPortalPage() {
   const documents = portalDocuments(customer, visibility);
   const visibleOffers = offers.filter((offer) => offer.status !== "entwurf");
   const inspirationLinks = customer.inspirationLinks || [];
+  const weddingTimeline = timelineDraft;
   const hasSpiegleinService = services.some((service) => service.name.toLowerCase().includes("spieglein"));
   const hasSpiegleinCatalog = serviceCatalog.some((item) => item.active !== false && item.name.toLowerCase().includes("spieglein"));
 
@@ -313,6 +318,29 @@ export function CustomerPortalPage() {
     } catch (err: any) {
       setPortalNotice(err.message || "Inspirationen konnten nicht gespeichert werden.");
     }
+  };
+
+  const saveWeddingTimeline = async (items = timelineDraft) => {
+    setCustomer({ ...customer, weddingTimeline: items });
+    setPortalNotice("");
+    try {
+      const data = await portalApi("portal-wedding-timeline", { weddingTimeline: items });
+      setCustomer(data.customer);
+      setTimelineDraft(data.customer?.weddingTimeline || []);
+      setPortalNotice("Ablaufplan gespeichert.");
+    } catch (err: any) {
+      setPortalNotice(err.message || "Ablaufplan konnte nicht gespeichert werden.");
+    }
+  };
+  const addTimelineItem = () => setTimelineDraft([...weddingTimeline, { id: `timeline-${Date.now()}`, time: "", title: "Neuer Programmpunkt" }]);
+  const updateTimelineItem = (id: string, patch: Partial<WeddingTimelineItem>) => setTimelineDraft(weddingTimeline.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  const deleteTimelineItem = (id: string) => setTimelineDraft(weddingTimeline.filter((item) => item.id !== id));
+  const moveTimelineItem = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= weddingTimeline.length) return;
+    const items = [...weddingTimeline];
+    [items[index], items[nextIndex]] = [items[nextIndex], items[index]];
+    setTimelineDraft(items);
   };
 
   const uploadSignedContract = async (file: File) => {
@@ -462,6 +490,37 @@ export function CustomerPortalPage() {
             )}
           </InfoCard>
         </div>
+
+        <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-medium flex items-center gap-2">
+                <Clock3 className="w-5 h-5" /> Ablaufplan
+              </h2>
+              <p className="mt-2 text-sm text-black/55 max-w-2xl">
+                Hier könnt ihr euren groben Tagesablauf sammeln. Das hilft mir, die wichtigsten Momente gut einzuplanen und am Hochzeitstag den Überblick zu behalten.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={addTimelineItem} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Punkt</button>
+              <button onClick={() => saveWeddingTimeline()} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-3 py-2 text-sm">Speichern</button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {weddingTimeline.map((item, index) => (
+              <div key={item.id} className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_auto] rounded-md bg-[#faf8f5] border border-black/8 p-3">
+                <input type="time" value={item.time} onChange={(event) => updateTimelineItem(item.id, { time: event.target.value })} className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm" />
+                <input value={item.title} onChange={(event) => updateTimelineItem(item.id, { title: event.target.value })} className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm" placeholder="z.B. First Look, Trauung, Gruppenfotos" />
+                <div className="flex gap-2">
+                  <button onClick={() => moveTimelineItem(index, -1)} disabled={index === 0} className="rounded-md border border-black/10 px-3 py-2 text-sm disabled:opacity-35">↑</button>
+                  <button onClick={() => moveTimelineItem(index, 1)} disabled={index === weddingTimeline.length - 1} className="rounded-md border border-black/10 px-3 py-2 text-sm disabled:opacity-35">↓</button>
+                  <button onClick={() => deleteTimelineItem(item.id)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700">Löschen</button>
+                </div>
+              </div>
+            ))}
+            {weddingTimeline.length === 0 && <p className="rounded-md border border-dashed border-black/15 bg-[#faf8f5] px-4 py-5 text-sm text-black/45">Noch kein Ablaufpunkt angelegt.</p>}
+          </div>
+        </section>
 
         {visibleOffers.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">

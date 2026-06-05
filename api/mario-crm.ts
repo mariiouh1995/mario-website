@@ -338,6 +338,17 @@ function normalizeRequestedServices(items: unknown): ServiceItem[] {
     .filter((item) => item.name);
 }
 
+function normalizeWeddingTimeline(items: unknown) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item: any) => ({
+      id: normalizeString(item?.id) || crm.createId("timeline"),
+      time: normalizeString(item?.time),
+      title: normalizeString(item?.title),
+    }))
+    .filter((item) => item.time || item.title);
+}
+
 function textValue(value: unknown) {
   if (value === null || value === undefined) return "";
   return typeof value === "string" ? value.trim() : String(value).trim();
@@ -882,6 +893,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }))
         .filter((item: InspirationLink) => item.url);
       const saved = await crm.upsertCustomer({ ...customer, inspirationLinks });
+      return res.status(200).json({ customer: saved });
+    }
+
+    if (req.method === "POST" && action === "portal-wedding-timeline") {
+      const customer = await getPortalCustomer(req);
+      const weddingTimeline = normalizeWeddingTimeline(req.body?.weddingTimeline);
+      const saved = await crm.upsertCustomer({ ...customer, weddingTimeline });
       return res.status(200).json({ customer: saved });
     }
 

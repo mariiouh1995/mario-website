@@ -98,6 +98,7 @@ type PortalVisibility = {
   messages: boolean;
 };
 type PortalMessage = { id: string; title: string; message: string; createdAt: string; visible: boolean };
+type WeddingTimelineItem = { id: string; time: string; title: string };
 type Inquiry = {
   id: string;
   createdAt: string;
@@ -164,6 +165,7 @@ type Customer = {
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
   portalMessages: PortalMessage[];
+  weddingTimeline: WeddingTimelineItem[];
   notes: string;
   portalIntro: string;
 };
@@ -317,6 +319,7 @@ const emptyCustomer = (): Customer => ({
   tasks: workflowTasks(),
   portalVisibility: { ...defaultPortalVisibility },
   portalMessages: [],
+  weddingTimeline: [],
   notes: "",
   portalIntro: "",
 });
@@ -378,6 +381,7 @@ function normalizeCustomer(customer: Customer): Customer {
     portalPublishedAt: customer.portalPublishedAt || "",
     portalVisibility: { ...defaultPortalVisibility, ...(customer.portalVisibility || {}) },
     portalMessages: customer.portalMessages || [],
+    weddingTimeline: customer.weddingTimeline || [],
     bookedServices: customer.bookedServices || [],
     customServices: customer.customServices || [],
     payments: customer.payments || [],
@@ -2452,6 +2456,46 @@ function CalendarView({ month, setMonth, events, onEvent }: { month: Date; setMo
   );
 }
 
+function WeddingTimelineEditor({
+  items,
+  updateItem,
+  addItem,
+  deleteItem,
+  moveItem,
+}: {
+  items: WeddingTimelineItem[];
+  updateItem: (id: string, patch: Partial<WeddingTimelineItem>) => void;
+  addItem: () => void;
+  deleteItem: (id: string) => void;
+  moveItem: (index: number, direction: -1 | 1) => void;
+}) {
+  return (
+    <section className="rounded-lg border border-black/8 p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2"><Clock3 className="w-4 h-4" /> Ablaufplan</h3>
+          <p className="mt-2 text-sm text-black/55">Grober Tagesablauf der Hochzeit. Kunden und Mario können Punkte ergänzen, bearbeiten und sortieren.</p>
+        </div>
+        <button onClick={addItem} className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Punkt</button>
+      </div>
+      <div className="space-y-2">
+        {items.map((item, index) => (
+          <div key={item.id} className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_auto] rounded-md bg-[#faf8f5] border border-black/8 p-2">
+            <input type="time" value={item.time} onChange={(event) => updateItem(item.id, { time: event.target.value })} className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm" />
+            <input value={item.title} onChange={(event) => updateItem(item.id, { title: event.target.value })} className="rounded-md border border-black/10 bg-white px-3 py-2 text-sm" placeholder="z.B. Trauung, Gruppenfotos, Dinner" />
+            <div className="flex gap-2">
+              <button onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-md border border-black/10 px-3 py-2 text-sm disabled:opacity-35">↑</button>
+              <button onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-md border border-black/10 px-3 py-2 text-sm disabled:opacity-35">↓</button>
+              <button onClick={() => deleteItem(item.id)} className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700">Löschen</button>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="rounded-md border border-dashed border-black/15 bg-[#faf8f5] px-4 py-5 text-sm text-black/45">Noch kein Ablaufpunkt angelegt.</p>}
+      </div>
+    </section>
+  );
+}
+
 function CustomerDetail(props: {
   draft: Customer;
   workflow: WorkflowItem[];
@@ -2496,6 +2540,16 @@ function CustomerDetail(props: {
   const workflowTasksOnly = draft.tasks.filter(isWorkflowTask);
   const otherTasks = draft.tasks.filter((task) => !isWorkflowTask(task));
   const nextTaskStatus = nextOpenTaskLabel(draft.tasks);
+  const addTimelineItem = () => setDraft({ ...draft, weddingTimeline: [...draft.weddingTimeline, { id: `timeline-${Date.now()}`, time: "", title: "Neuer Programmpunkt" }] });
+  const updateTimelineItem = (id: string, patch: Partial<WeddingTimelineItem>) => setDraft({ ...draft, weddingTimeline: draft.weddingTimeline.map((item) => (item.id === id ? { ...item, ...patch } : item)) });
+  const deleteTimelineItem = (id: string) => setDraft({ ...draft, weddingTimeline: draft.weddingTimeline.filter((item) => item.id !== id) });
+  const moveTimelineItem = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= draft.weddingTimeline.length) return;
+    const items = [...draft.weddingTimeline];
+    [items[index], items[nextIndex]] = [items[nextIndex], items[index]];
+    setDraft({ ...draft, weddingTimeline: items });
+  };
 
   if (!props.editMode) {
     return (
@@ -2553,6 +2607,8 @@ function CustomerDetail(props: {
           </div>
           <ViewField label="Kategorie" value={draft.category} />
         </div>
+
+        <WeddingTimelineEditor items={draft.weddingTimeline} updateItem={updateTimelineItem} addItem={addTimelineItem} deleteItem={deleteTimelineItem} moveItem={moveTimelineItem} />
 
         <section className="rounded-lg border border-black/8 p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -2694,6 +2750,8 @@ function CustomerDetail(props: {
         <Field label="Anzahlung fällig bis" type="date" value={draft.depositDueDate} onChange={(value) => setDraft({ ...draft, depositDueDate: value })} />
         <Field label="Gesamtbetrag fällig bis" type="date" value={draft.finalPaymentDueDate} onChange={(value) => setDraft({ ...draft, finalPaymentDueDate: value })} />
       </div>
+
+      <WeddingTimelineEditor items={draft.weddingTimeline} updateItem={updateTimelineItem} addItem={addTimelineItem} deleteItem={deleteTimelineItem} moveItem={moveTimelineItem} />
 
       <section className="rounded-lg border border-black/8 p-4">
         <div className="flex items-center justify-between gap-3 mb-3">

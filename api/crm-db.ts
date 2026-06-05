@@ -136,6 +136,12 @@ export type PortalMessage = {
   visible: boolean;
 };
 
+export type WeddingTimelineItem = {
+  id: string;
+  time: string;
+  title: string;
+};
+
 export type PortalVisibility = {
   status: boolean;
   tasks: boolean;
@@ -219,6 +225,7 @@ export type CrmCustomer = {
   tasks: TaskItem[];
   portalVisibility: PortalVisibility;
   portalMessages: PortalMessage[];
+  weddingTimeline: WeddingTimelineItem[];
   notes: string;
   portalIntro: string;
 };
@@ -472,6 +479,7 @@ async function ensureMarioCrmSchemaInternal() {
         tasks jsonb NOT NULL DEFAULT '[]',
         portal_visibility jsonb NOT NULL DEFAULT '{}',
         portal_messages jsonb NOT NULL DEFAULT '[]',
+        wedding_timeline jsonb NOT NULL DEFAULT '[]',
         notes text NOT NULL DEFAULT '',
         portal_intro text NOT NULL DEFAULT ''
       )
@@ -501,6 +509,7 @@ async function ensureMarioCrmSchemaInternal() {
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_published_at text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_visibility jsonb NOT NULL DEFAULT '{}'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS portal_messages jsonb NOT NULL DEFAULT '[]'`;
+    await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS wedding_timeline jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS payments jsonb NOT NULL DEFAULT '[]'`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS deposit_due_date text NOT NULL DEFAULT ''`;
     await db`ALTER TABLE mario_customers ADD COLUMN IF NOT EXISTS final_payment_due_date text NOT NULL DEFAULT ''`;
@@ -649,6 +658,7 @@ function mapCustomer(row: any): CrmCustomer {
     tasks: normalizeJson<TaskItem[]>(row.tasks, DEFAULT_TASKS),
     portalVisibility: { ...DEFAULT_PORTAL_VISIBILITY, ...normalizeJson<Partial<PortalVisibility>>(row.portal_visibility, {}) },
     portalMessages: normalizeJson<PortalMessage[]>(row.portal_messages, []),
+    weddingTimeline: normalizeJson<WeddingTimelineItem[]>(row.wedding_timeline, []),
     notes: row.notes,
     portalIntro: row.portal_intro,
   };
@@ -849,7 +859,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       bride_name, groom_name, customer_address, location_address, locations,
       registry_office_date, event_time, event_end_time, coverage_duration, guest_count, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, wedding_timeline, notes, portal_intro
     ) VALUES (
       ${id}, ${portalToken}, ${input.sourceInquiryId || ""}, ${input.status || "anfrage"},
       ${input.name || ""}, ${input.email || ""}, ${input.secondaryEmail || ""}, ${input.phone || ""}, ${input.secondaryPhone || ""}, ${input.category || ""},
@@ -867,6 +877,7 @@ export async function appendCustomer(input: Partial<CrmCustomer>) {
       ${JSON.stringify(input.tasks || DEFAULT_TASKS)}::jsonb,
       ${JSON.stringify(input.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
       ${JSON.stringify(input.portalMessages || [])}::jsonb,
+      ${JSON.stringify(input.weddingTimeline || [])}::jsonb,
       ${input.notes || ""}, ${input.portalIntro || ""}
     )
     RETURNING *
@@ -881,7 +892,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       id, portal_token, source_inquiry_id, created_at, updated_at, status, name, bride_name, groom_name, email, secondary_email, phone, secondary_phone, category, event_date, registry_office_date, event_time, event_end_time, coverage_duration, guest_count, location,
       customer_address, location_address, locations, consultation_date, consultation_type, gallery_url, offer_url, contract_url, invoice_url,
       portal_enabled, portal_password, portal_published_at, contract_status,
-      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, notes, portal_intro
+      booked_services, custom_services, payments, deposit_due_date, final_payment_due_date, documents, inspiration_links, add_on_requests, drive_folder_id, tasks, portal_visibility, portal_messages, wedding_timeline, notes, portal_intro
     ) VALUES (
       ${customer.id}, ${customer.portalToken}, ${customer.sourceInquiryId}, ${customer.createdAt || nowIso()},
       now(), ${customer.status}, ${customer.name}, ${customer.brideName}, ${customer.groomName}, ${customer.email}, ${customer.secondaryEmail || ""}, ${customer.phone}, ${customer.secondaryPhone || ""}, ${customer.category},
@@ -895,7 +906,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       ${JSON.stringify(customer.documents || [])}::jsonb, ${JSON.stringify(customer.inspirationLinks || [])}::jsonb,
       ${JSON.stringify(customer.addOnRequests || [])}::jsonb, ${customer.driveFolderId || ""},
       ${JSON.stringify(customer.tasks || [])}::jsonb, ${JSON.stringify(customer.portalVisibility || DEFAULT_PORTAL_VISIBILITY)}::jsonb,
-      ${JSON.stringify(customer.portalMessages || [])}::jsonb, ${customer.notes}, ${customer.portalIntro}
+      ${JSON.stringify(customer.portalMessages || [])}::jsonb, ${JSON.stringify(customer.weddingTimeline || [])}::jsonb, ${customer.notes}, ${customer.portalIntro}
     )
     ON CONFLICT (id) DO UPDATE SET
       source_inquiry_id = EXCLUDED.source_inquiry_id,
@@ -941,6 +952,7 @@ export async function upsertCustomer(customer: CrmCustomer) {
       tasks = EXCLUDED.tasks,
       portal_visibility = EXCLUDED.portal_visibility,
       portal_messages = EXCLUDED.portal_messages,
+      wedding_timeline = EXCLUDED.wedding_timeline,
       notes = EXCLUDED.notes,
       portal_intro = EXCLUDED.portal_intro
     RETURNING *
