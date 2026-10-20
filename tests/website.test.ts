@@ -4,6 +4,8 @@ import { cleanPublicText, publicStories, validateSiteDocument } from '../src/con
 import { parseConsent } from '../src/app/components/consent';
 import { youtubeEmbedUrl } from '../src/content/youtube';
 import { getImageFraming, positionCss, setImageFraming, validImageFraming } from '../src/content/image-framing';
+import { applyRelaunch, withRelaunchDefaults } from '../src/content/relaunch';
+import { validatePublicInquiry } from '../src/content/inquiry';
 
 test('published packages hide prices and excluded services without changing customer records', () => {
   const stories: any[] = [
@@ -82,4 +84,34 @@ test('image framing keeps desktop and mobile positions independent and restores 
   assert.equal(validImageFraming({ ...framing, mobile: { x: 101, y: 50 } }), false);
   assert.equal(validImageFraming({ ...framing, desktop: { x: NaN, y: 0 } }), false);
   assert.throws(() => validateSiteDocument({ stories: [], edits: [], media: [{ url, name: 'Invalid', type: 'image', framing: { desktop: { x: 0, y: 0 }, mobile: { x: 'url(script)', y: 0 } } }] }));
+});
+
+test('relaunch changes only public content, preserves galleries and supports subsequent editor changes', () => {
+  const original: any = { capturedAt: 'original', stories: [
+    { full_slug: 'pages/home', content: { hero_tagline_de: 'Old copy', hero_image: 'https://example.com/original.jpg' } },
+    { full_slug: 'gallery/a', content: { component: 'gallery_image', image_url: 'https://example.com/a.jpg' } },
+    { full_slug: 'packages/classic-wedding-photo', content: { component: 'package', category: 'wedding-photo', name: 'CLASSIC' } },
+  ], edits: [], media: [{ url: 'https://example.com/a.jpg', name: 'Original', type: 'image', framing: { desktop: { x: 0, y: 0 }, mobile: { x: 50, y: 50 } } }] };
+  const next = applyRelaunch(original);
+  assert.equal(original.stories[0].content.hero_tagline_de, 'Old copy');
+  assert.deepEqual(next.media, original.media);
+  assert.deepEqual(next.stories.find(story => story.full_slug === 'gallery/a'), original.stories[1]);
+  assert.equal(next.stories.find(story => story.full_slug === 'pages/home')!.content.hero_image, 'https://example.com/original.jpg');
+  const packages = next.stories.filter(story => story.content.component === 'package' && story.content.category === 'wedding-photo' && story.content.public_visible);
+  assert.deepEqual(packages.map(story => story.content.name), ['Standesamt', 'Hochzeitsreportage', 'Ganzer Hochzeitstag']);
+  for (const story of packages) { assert.equal(story.content.price, 'Auf Anfrage'); assert.equal(/48h|72h|Innsbruck|\.\.\./.test(story.content.features + story.content.features_en), false); }
+  next.stories.find(story => story.full_slug === 'pages/home')!.content.hero_tagline_de = 'Mario hat das bearbeitet';
+  assert.deepEqual(applyRelaunch(next), next, 'Migration is idempotent and never resets later edits');
+  assert.equal(withRelaunchDefaults(next).stories.find(story => story.full_slug === 'pages/home')!.content.hero_tagline_de, 'Mario hat das bearbeitet');
+});
+
+test('public enquiry validation accepts optional phone and open dates, and rejects invalid payloads', () => {
+  const input = { name: 'Lisa & Armin', email: 'lisa@example.com', date: 'noch offen', locationAddress: 'Söll', message: 'Foto und Film, bitte.', interests: ['Hochzeit Foto + Film'] };
+  assert.equal(validatePublicInquiry(input).phone, '');
+  assert.equal(validatePublicInquiry(input).locationAddress, 'Söll');
+  assert.throws(() => validatePublicInquiry({ ...input, email: 'not an email' }));
+  assert.throws(() => validatePublicInquiry({ ...input, name: '<img>' }));
+  assert.throws(() => validatePublicInquiry({ ...input, message: 'x'.repeat(6001) }));
+  assert.throws(() => validatePublicInquiry({ ...input, selectedPackages: [{ name: {}, price: '' }] }));
+  assert.throws(() => validatePublicInquiry(null));
 });

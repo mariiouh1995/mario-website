@@ -48,4 +48,8 @@ export function trackPageView(url: string, title?: string) {
   window.gtag('event', 'page_view', { page_location: location.origin + path, page_title: title || document.title, send_to: measurementId });
 }
 export function restoreConsentFromStorage() { updateGoogleConsent(); }
+export function trackLeadEvent(event: 'form_start' | 'form_submit_success', leadType: string) {
+  if (!allowed() || !initialized || !['wedding', 'animal', 'portrait', 'general'].includes(leadType)) return;
+  window.gtag('event', event, { lead_type: leadType, page_location: location.origin + location.pathname, send_to: measurementId });
+}
 if (typeof window !== 'undefined') window.addEventListener('mario:consent', updateGoogleConsent);

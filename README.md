@@ -59,3 +59,34 @@ saving; `node tests/image-framing.mjs` captures original/cropped image compariso
 
 Consent controls do not replace verification of the business's provider contracts,
 Analytics account settings or the completeness of its legal disclosures.
+
+## October 2026 Editorial Update
+
+- Public pages keep the same React/Vite, Neon, Blob and Vercel architecture.
+  `/kontakt` and the contact modal share one form and the existing enquiry APIs.
+  The CRM must confirm storage before success is shown; a failed notification
+  email does not erase a saved enquiry. Phone is optional, and location, scope,
+  package interest and open dates are retained. Analytics events contain only
+  an allowlisted enquiry category, never form values, and require consent.
+- Texts live in the existing page stories. New FAQ entries use the FAQ manager;
+  `relaunch_page` selects `weddings`, `animals` or `portrait`. `public_visible`
+  controls public package/FAQ/review visibility. Wedding testimonials use topic
+  `wedding`; original quotations are not rewritten or presented as a current
+  Google aggregate rating. Public packages still show prices on request.
+- Home and wedding heroes have separately editable `hero_mobile_image` assets.
+  Both assets also support the existing 9-point positioning controls. Old videos,
+  package records and business statistics are retained in the CMS but not
+  advertised where they make unconfirmed or conflicting promises.
+- `node --import tsx scripts/relaunch-content.mjs` previews the one-time content
+  migration. `--apply` backs up the complete website row before atomically
+  updating draft and published documents. It never modifies CRM records and
+  does not reset subsequent edits. Apply only with the matching code deployed.
+- `node --import tsx tests/relaunch-browser.mjs` checks the public pages and
+  intercepts all test submissions and emails. `tests/relaunch-editor.mjs` checks
+  new content editing without saving. Set `RELAUNCH_FIXTURE=1` only for the Vite
+  development server before migrating content. `tests/inquiry-api.mjs` creates
+  and deletes six clearly marked CRM test enquiries without calling email APIs.
+- Prices, binding delivery times, travel allowances, staffing, studio availability,
+  publication permissions and external Search Console/Business profiles still
+  require Mario's factual confirmation. No speculative regional case studies or
+  new price suggestions were published.

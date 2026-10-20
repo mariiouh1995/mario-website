@@ -10,7 +10,8 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const { media } = useSiteDocument();
 
-  const { src, alt, style, className, ...rest } = props
+  const { src, alt, style, className, fetchPriority, ...rest } = props
+  const priority = fetchPriority ? { fetchpriority: fetchPriority } : {};
   const source = src ? resolveSiteAsset(src) : src;
   const framing = getImageFraming(source || '', media);
   const imageStyle = { '--image-position-desktop': positionCss(framing.desktop), '--image-position-mobile': positionCss(framing.mobile), ...style } as CSSProperties;
@@ -25,6 +26,6 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
       </div>
     </div>
   ) : (
-    <img src={source} alt={alt} className={className} style={imageStyle} data-image-framing="" {...rest} onError={event => { setFailedSource(source || ''); rest.onError?.(event); }} />
+    <img src={source} alt={alt} className={className} style={imageStyle} data-image-framing="" {...priority} {...rest} onError={event => { setFailedSource(source || ''); rest.onError?.(event); }} />
   )
 }

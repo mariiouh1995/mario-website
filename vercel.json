@@ -38,7 +38,7 @@
       "continue": true
     },
     {
-      "src": "^/(hochzeiten|tierfotografie|portrait|ueber-mich|destination-wedding|impressum|datenschutz)/+$",
+      "src": "^/(hochzeiten|tierfotografie|portrait|ueber-mich|destination-wedding|impressum|datenschutz|kontakt)/+$",
       "headers": {
         "Location": "/$1"
       },
@@ -75,6 +75,10 @@
     {
       "src": "^/datenschutz$",
       "dest": "/api/website?action=page&path=%2Fdatenschutz"
+    },
+    {
+      "src": "^/kontakt$",
+      "dest": "/api/website?action=page&path=%2Fkontakt"
     },
     {
       "src": "^/sitemap\\.xml$",

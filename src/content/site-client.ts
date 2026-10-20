@@ -1,6 +1,7 @@
 import { collectMedia, publicStories, type SiteDocument } from './site-content';
 import { mapAssets } from './media';
 import { withSeoFields } from './seo';
+import { applyRelaunch } from './relaunch';
 
 export const initialSiteDocument: SiteDocument = withSeoFields(mapAssets({
   capturedAt: '',
@@ -26,7 +27,7 @@ export function loadSiteDocument() {
     .then(doc => { setSiteDocument(doc); return doc; })
     .catch(async () => {
       const { default: snapshot } = await import('./live-snapshot.json');
-      const fallback = mapAssets({ capturedAt: snapshot.capturedAt, stories: publicStories(snapshot.stories), edits: [], media: collectMedia(snapshot.stories) });
+      const fallback = mapAssets(applyRelaunch({ capturedAt: snapshot.capturedAt, stories: publicStories(snapshot.stories), edits: [], media: collectMedia(snapshot.stories) }));
       setSiteDocument(fallback);
       return current;
     });

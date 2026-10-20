@@ -18,5 +18,6 @@ export function usePageContent(pageKey: string, lang: Language) {
     const name = String(content?.[key] || '').toLowerCase();
     return Object.entries(ICON_MAP).find(([key]) => key.toLowerCase() === name)?.[1] || fallback;
   }, [content]);
-  return { getText, getAsset, getIcon, loading: false, hasContent: Boolean(content) };
+  const bindText = (key: string) => ({ 'data-cms-source-story': `pages/${pageKey}`, 'data-cms-source-field': `${key}_${lang}` });
+  return { getText, getAsset, getIcon, bindText, loading: false, hasContent: Boolean(content) };
 }

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
+import { validatePublicInquiry } from '../src/content/inquiry.js';
 
 // ── CORS Headers ──
 const CORS_HEADERS = {
@@ -26,7 +27,7 @@ function escapeHtml(value: string | undefined): string {
   return (value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;").replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function buildMarioSignatureHtml() {
@@ -81,8 +82,8 @@ function buildPackageSummaryHtml(
     for (const pkg of selectedPackages!) {
       html += `
         <tr>
-          <td style="padding:6px 0;font-size:14px;color:#555;border-bottom:1px solid rgba(0,0,0,0.06)">${pkg.name}</td>
-          <td style="padding:6px 0;font-size:14px;color:#333;text-align:right;font-weight:500;border-bottom:1px solid rgba(0,0,0,0.06);white-space:nowrap">${pkg.price}</td>
+          <td style="padding:6px 0;font-size:14px;color:#555;border-bottom:1px solid rgba(0,0,0,0.06)">${escapeHtml(pkg.name)}</td>
+          <td style="padding:6px 0;font-size:14px;color:#333;text-align:right;font-weight:500;border-bottom:1px solid rgba(0,0,0,0.06);white-space:nowrap">${escapeHtml(pkg.price)}</td>
         </tr>
       `;
     }
@@ -128,6 +129,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  let validated;
+  try { validated = validatePublicInquiry(req.body); } catch { return res.status(400).json({ error: 'Ungültige Anfrage.' }); }
+  if (validated.website) return res.status(200).json({ success: true });
   const {
     name,
     email,
@@ -142,11 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     estimatedTotal,
     meetingDate,
     meetingType,
-  } = req.body;
-
-  if (!name || !email || !phone) {
-    return res.status(400).json({ error: "Name, email, and phone are required" });
-  }
+    locationAddress,
+  } = validated;
 
   // ── SMTP Transporter (IONOS) ──
   const transporter = nodemailer.createTransport({
@@ -163,7 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   const interestsText = (interests || []).join(", ") || "\u2013";
-  const firstName = name.split(" ")[0];
+  const firstName = name;
   const packageSummaryMario = buildPackageSummaryHtml(selectedPackages, selectedAddons, estimatedTotal, "mario");
   const packageSummaryCustomer = buildPackageSummaryHtml(selectedPackages, selectedAddons, estimatedTotal, "customer");
   const hasPackageSelection = (selectedPackages && selectedPackages.length > 0) || (selectedAddons && selectedAddons.length > 0);
@@ -181,24 +182,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `Interesse: ${interestsText}`,
       `Datum: ${date || "-"}`,
       `Nachricht: ${message || "-"}`,
+      `Ort / Location: ${locationAddress || '-'}`,
     ].join("\n"),
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:650px;margin:0 auto;color:#333">
         <h2 style="font-family:Georgia,serif;font-weight:300;font-size:24px;border-bottom:1px solid #eee;padding-bottom:16px">Neue Anfrage über die Website</h2>
         <table style="border-collapse:collapse;width:100%;margin:20px 0">
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;width:180px;vertical-align:top">Name</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${name}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">E-Mail</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0"><a href="mailto:${email}" style="color:#333">${email}</a></td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Telefon</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${phone}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Gefunden über</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${foundVia || "\u2013"}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Interesse</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${interestsText}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Datum</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${date || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;width:180px;vertical-align:top">Name</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(name)}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">E-Mail</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0"><a href="mailto:${escapeHtml(email)}" style="color:#333">${escapeHtml(email)}</a></td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Telefon</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(phone)}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Gefunden über</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(foundVia) || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Interesse</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(interestsText)}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Datum</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(date) || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Ort / Location</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(locationAddress) || '-'}</td></tr>
           <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Wedding Guide</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${weddingGuide ? "Ja, bitte zusenden" : "Nein"}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Termin</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${meetingDate || "\u2013"}</td></tr>
-          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Terminart</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${meetingType || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Termin</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(meetingDate) || "\u2013"}</td></tr>
+          <tr><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-weight:600;vertical-align:top">Terminart</td><td style="padding:10px 12px;border-bottom:1px solid #f0f0f0">${escapeHtml(meetingType) || "\u2013"}</td></tr>
         </table>
         ${packageSummaryMario}
         <h3 style="font-family:Georgia,serif;font-weight:400;font-size:18px;margin-top:24px">Nachricht:</h3>
-        <div style="white-space:pre-wrap;background:#f8f7f5;padding:20px;border-left:3px solid #333;margin:12px 0;line-height:1.7;color:#555">${message || "\u2013 keine Nachricht \u2013"}</div>
+        <div style="white-space:pre-wrap;background:#f8f7f5;padding:20px;border-left:3px solid #333;margin:12px 0;line-height:1.7;color:#555">${escapeHtml(message) || "\u2013 keine Nachricht \u2013"}</div>
         <p style="color:#999;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:16px">Diese Anfrage wurde über das Kontaktformular auf marioschub.com gesendet.</p>
       </div>
     `,
@@ -227,9 +230,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <img src="${MARIO_LOGO_URL}" alt="Mario Schubert Photography" style="height:36px" />
         </div>
         <div style="padding:40px 24px">
-          <h1 style="font-family:Georgia,serif;font-weight:300;font-size:28px;margin-bottom:8px;color:#111">Servus ${firstName}!</h1>
+          <h1 style="font-family:Georgia,serif;font-weight:300;font-size:28px;margin-bottom:8px;color:#111">Servus ${escapeHtml(firstName)}!</h1>
           <p style="line-height:1.8;color:#555;font-size:15px;margin-top:16px">
-            Vielen Dank für deine Anfrage! Ich habe deine Nachricht erhalten und melde mich so schnell wie möglich bei dir \u2013 in der Regel innerhalb von <strong>48 Stunden</strong>.
+            Danke für eure Anfrage! Eure Nachricht ist bei mir eingegangen. Ich schaue mir eure Pläne an und melde mich persönlich bei euch. Euer Termin ist damit noch nicht reserviert.
           </p>
           <p style="line-height:1.8;color:#555;font-size:15px">
             Ich freue mich schon darauf, mehr über eure Pläne zu erfahren und gemeinsam etwas Besonderes zu schaffen.
@@ -239,8 +242,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           <div style="background:#f8f7f5;padding:20px;margin:28px 0;border-left:3px solid #333">
             <p style="margin:0;color:#555;font-size:14px;line-height:1.6">
-              <strong>Eure Anfrage:</strong> ${interestsText}<br/>
-              ${date ? `<strong>Datum:</strong> ${date}<br/>` : ""}
+              <strong>Eure Anfrage:</strong> ${escapeHtml(interestsText)}<br/>
+              ${date ? `<strong>Datum:</strong> ${escapeHtml(date)}<br/>` : ""}
               ${message ? `<strong>Nachricht:</strong> ${escapeHtml(message.substring(0, 300))}${message.length > 300 ? "..." : ""}` : ""}
             </p>
           </div>

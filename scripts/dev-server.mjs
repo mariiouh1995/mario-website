@@ -31,7 +31,7 @@ const server = http.createServer(async (req, res) => {
     res.status = code => { res.statusCode = code; return res; };
     res.json = data => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)); return res; };
     res.send = data => { res.end(data); return res; };
-    const handlers = { '/api/website': '../api/website.ts', '/api/mario-crm': '../api/mario-crm.ts', '/api/admin-verify': '../api/admin-verify.ts' };
+    const handlers = { '/api/website': '../api/website.ts', '/api/mario-crm': '../api/mario-crm.ts', '/api/admin-verify': '../api/admin-verify.ts', '/api/submit-inquiry': '../api/submit-inquiry.ts', '/api/send-email': '../api/send-email.ts' };
     const handler = handlers[url.pathname];
     if (!handler) return res.status(404).json({ error: 'Not found' });
     await (await import(handler)).default(req, res);

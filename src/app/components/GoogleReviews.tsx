@@ -121,6 +121,7 @@ function RatingBadge({
 // ──────────────────────────────────────────────
 
 interface ReviewsSectionProps {
+  topic?: string;
   /** How many reviews to show (default: 3) */
   count?: number;
   /** Section title override */
@@ -139,14 +140,16 @@ export function GoogleReviewsGrid({
   title,
   preTitle,
   bg = "cream",
+  topic,
 }: ReviewsSectionProps) {
   const { lang } = useLanguage();
-  const { reviews, averageRating, totalReviews } = useGoogleReviews(4);
+  const { reviews } = useGoogleReviews(4, topic);
 
   const displayReviews = reviews.slice(0, count);
+  if (!displayReviews.length) return null;
 
   const defaultPreTitle = lang === "de" ? "KUNDENSTIMMEN" : "TESTIMONIALS";
-  const defaultTitle = lang === "de" ? "Das sagen meine Kunden" : "What my clients say";
+  const defaultTitle = lang === "de" ? (topic === 'wedding' ? 'Was Paare über die Zusammenarbeit sagen' : 'Das sagen meine Kunden') : (topic === 'wedding' ? 'What couples say about working together' : 'What my clients say');
 
   return (
     <section
@@ -175,16 +178,12 @@ export function GoogleReviewsGrid({
           </div>
         </SectionReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className={`grid grid-cols-1 ${displayReviews.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-8`}>
           {displayReviews.map((review, i) => (
             <ReviewCard key={review.author + i} review={review} delay={i * 0.12} />
           ))}
         </div>
 
-        <RatingBadge
-          averageRating={averageRating}
-          totalReviews={totalReviews}
-        />
       </div>
     </section>
   );

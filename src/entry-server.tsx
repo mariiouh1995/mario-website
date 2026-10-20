@@ -12,10 +12,11 @@ import { AboutPage } from './app/components/pages/AboutPage';
 import { DestinationWeddingPage } from './app/components/pages/DestinationWeddingPage';
 import { ImpressumPage } from './app/components/pages/ImpressumPage';
 import { DatenschutzPage } from './app/components/pages/DatenschutzPage';
+import { ContactPage } from './app/components/pages/ContactPage';
 import { getSiteDocument, setSiteDocument } from './content/site-client';
 import type { SiteDocument } from './content/site-content';
 
-const pages = { '/': HomePage, '/hochzeiten': WeddingsPage, '/tierfotografie': AnimalsPage, '/portrait': PortraitPage, '/ueber-mich': AboutPage, '/destination-wedding': DestinationWeddingPage, '/impressum': ImpressumPage, '/datenschutz': DatenschutzPage };
+const pages = { '/': HomePage, '/hochzeiten': WeddingsPage, '/tierfotografie': AnimalsPage, '/portrait': PortraitPage, '/ueber-mich': AboutPage, '/destination-wedding': DestinationWeddingPage, '/impressum': ImpressumPage, '/datenschutz': DatenschutzPage, '/kontakt': ContactPage };
 // Rendering is synchronous: a request's document is never shared across an await.
 export function render(path: string, language: 'de' | 'en', document: SiteDocument) {
   const original = getSiteDocument();

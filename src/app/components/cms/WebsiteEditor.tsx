@@ -8,11 +8,12 @@ import { GalleryManager } from './GalleryManager';
 import { changeGalleryImage } from '../../../content/gallery';
 import { ImageFramingControls } from './ImageFramingControls';
 import { setImageFraming } from '../../../content/image-framing';
+import { seoPages } from '../../../content/seo';
 import './website-editor.css';
 
 type Selection = { tag: string; fields: SiteEdit[]; framing?: boolean };
 type Api = (action: string, options?: RequestInit) => Promise<any>;
-const pageNames = ['Startseite', 'Hochzeiten', 'Tierfotografie', 'Portrait', 'Über mich', 'Destination Wedding', 'Impressum', 'Datenschutz'];
+const pageNames = publicPages.map(path => seoPages[path].label);
 const groups: Record<string, string> = { pages: 'Seitentexte', packages: 'Pakete', addons: 'Zusatzleistungen', faqs: 'FAQ', reviews: 'Bewertungen' };
 const fieldNames: Record<string, string> = { src: 'Bild / Video', poster: 'Vorschaubild', href: 'Linkziel', alt: 'Bildbeschreibung', title: 'Titel', placeholder: 'Platzhalter', 'aria-label': 'Beschriftung' };
 
@@ -21,7 +22,7 @@ function ContentFields({ value, onChange, path = '' }: { value: any; onChange: (
   if (typeof value === 'number') return <label className="cms-field">{path}<input type="number" value={value} onChange={event => onChange(Number(event.target.value))} /></label>;
   if (typeof value === 'string') return <label className="cms-field">{path}<textarea rows={value.length > 140 || value.includes('\n') ? 5 : 2} value={value} onChange={event => onChange(event.target.value)} /></label>;
   if (Array.isArray(value)) return <div className="cms-fields">{value.map((item, index) => <div key={index}><ContentFields value={item} path={`${path} ${index + 1}`} onChange={next => onChange(value.map((old, i) => i === index ? next : old))} /><button className="cms-link" onClick={() => onChange(value.filter((_, i) => i !== index))}>Eintrag entfernen</button></div>)}<button className="cms-button" onClick={() => onChange([...value, value.length ? structuredClone(value[0]) : ''])}><Plus size={15} /> Eintrag</button></div>;
-  if (value && typeof value === 'object') return <div className="cms-fields">{Object.entries(value).filter(([key]) => !key.startsWith('_') && !['component', 'id', 'fieldtype', 'is_external_url'].includes(key)).map(([key, item]) => <ContentFields key={key} value={item} path={key.replace(/_/g, ' ')} onChange={next => onChange({ ...value, [key]: next })} />)}</div>;
+  if (value && typeof value === 'object') return <div className="cms-fields">{Object.entries(value).filter(([key]) => !key.startsWith('_') && !['component', 'id', 'fieldtype', 'is_external_url', 'relaunch_version'].includes(key)).map(([key, item]) => <ContentFields key={key} value={item} path={({ public_visible: 'Öffentlich anzeigen', relaunch_page: 'Seite (weddings / animals / portrait)', topic: 'Bereich (wedding / animal / portrait)' } as Record<string, string>)[key] || key.replace(/_/g, ' ')} onChange={next => onChange({ ...value, [key]: next })} />)}</div>;
   return null;
 }
 
@@ -144,11 +145,11 @@ export function WebsiteEditor({ password }: { password: string }) {
     if (!doc || group === 'pages') return;
     const id = crypto.randomUUID();
     const contents: Record<string, any> = {
-      packages: { component: 'package', name: 'Neues Paket', price: 'Auf Anfrage', subtitle: '', subtitle_en: '', features: '', features_en: '', highlight: false, category: 'wedding-photo', sort_order: stories.length + 1 },
+      packages: { component: 'package', name: 'Neues Paket', name_en: '', price: 'Auf Anfrage', subtitle: '', subtitle_en: '', features: '', features_en: '', highlight: false, public_visible: true, category: 'wedding-photo', sort_order: stories.length + 1 },
       addons: { component: 'addon', text_de: 'Neue Zusatzleistung', text_en: '', sort_order: stories.length + 1 },
       gallery: { component: 'gallery_image', page: 'hochzeit', category: 'paarshooting', image_url: '', alt_de: '', alt_en: '', sort_order: stories.length + 1 },
-      faqs: { component: 'faq_item', category_key: 'allgemein', category_label_de: 'Allgemein', category_label_en: 'General', question_de: 'Neue Frage', question_en: '', answer_de: '', answer_en: '', sort_order: stories.length + 1 },
-      reviews: { component: 'review', author: '', rating: 5, text: '', text_en: '', sort_order: stories.length + 1 },
+      faqs: { component: 'faq_item', category_key: 'hochzeit', relaunch_page: 'weddings', public_visible: true, category_label_de: 'Hochzeiten', category_label_en: 'Weddings', question_de: 'Neue Frage', question_en: '', answer_de: '', answer_en: '', sort_order: stories.length + 1 },
+      reviews: { component: 'review', author: '', rating: 5, text: '', text_en: '', topic: 'wedding', public_visible: true, sort_order: stories.length + 1 },
     };
     const story: SiteStory = { uuid: id, slug: id, full_slug: `${group}/${id}`, name: 'Neuer Eintrag', content: contents[group] };
     update({ ...doc, stories: [...doc.stories, story] }); setStoryId(story.full_slug);

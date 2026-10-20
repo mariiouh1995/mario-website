@@ -71,7 +71,7 @@ export function WebsiteSurface() {
       let element = embeddedVideo || target.closest('img, video, iframe') || target.closest('a, button, label, p, h1, h2, h3, h4, h5, h6, li, span, strong, em, input, textarea') || target;
       if (element === target && !target.matches('img, video, iframe, a, button, label, p, h1, h2, h3, h4, h5, h6, li, span, strong, em, input, textarea')) {
         const hero = target.closest('section');
-        if (hero?.querySelector('h1')) element = hero.querySelector('[data-image-framing], video') || element;
+        if (hero?.querySelector('h1')) element = [...hero.querySelectorAll('[data-image-framing], video')].find(item => item.getBoundingClientRect().width > 0) || element;
       }
       if (!element.textContent?.trim() && !['IMG', 'VIDEO', 'IFRAME'].includes(element.tagName)) element = element.closest('section')?.querySelector('video,img') || element;
       if (element.closest('svg, script, style, [data-cms-ignore]')) return;
@@ -97,16 +97,21 @@ export function WebsiteSurface() {
         if (!element.hasAttribute(attribute) && !['alt', 'poster'].includes(attribute)) continue;
         fields.push(field('attribute', originalAttr(element, attribute), element.getAttribute(attribute) || '', { attribute }));
       }
-      const pageKey = ({ '/': 'home', '/hochzeiten': 'weddings', '/tierfotografie': 'animals', '/portrait': 'portrait', '/ueber-mich': 'about' } as Record<string, string>)[pathname];
+      const pageKey = ({ '/': 'home', '/hochzeiten': 'weddings', '/tierfotografie': 'animals', '/portrait': 'portrait', '/ueber-mich': 'about', '/destination-wedding': 'destination', '/kontakt': 'contact' } as Record<string, string>)[pathname];
       for (const edit of fields) {
         if (scope === '*') continue;
+        if (edit.kind === 'text' && element.hasAttribute('data-cms-source-field')) {
+          edit.sourceStory = element.getAttribute('data-cms-source-story') || undefined;
+          edit.sourceField = element.getAttribute('data-cms-source-field') || undefined;
+          continue;
+        }
         if (element.hasAttribute('data-cms-gallery-image')) {
           const galleryPage = ({ '/hochzeiten': 'hochzeit', '/tierfotografie': 'tiere', '/portrait': 'portrait' } as Record<string, string>)[pathname];
           const image = element.getAttribute('data-cms-gallery-image');
           const story = getSiteDocument().stories.find(story => story.content.component === 'gallery_image' && (!galleryPage || story.content.page === galleryPage) && resolveSiteAsset(story.content.image_url?.filename || story.content.image_url || '') === image);
           if (story && ['src', 'alt'].includes(edit.attribute || '')) { edit.sourceStory = story.full_slug; edit.sourceField = edit.attribute === 'src' ? 'image_url' : `alt_${lang}`; continue; }
         }
-        const candidates = getSiteDocument().stories.filter(story => story.full_slug === `pages/${pageKey}` || ['faq_item', 'review', 'package', 'gallery_image'].includes(story.content.component));
+        const candidates = getSiteDocument().stories.filter(story => story.full_slug === `pages/${pageKey}` || story.full_slug === 'pages/region' || ['faq_item', 'review', 'package', 'gallery_image'].includes(story.content.component));
         for (const story of candidates) {
           const source = Object.entries(story.content).find(([key, value]) => {
             if (key.startsWith('_') || key === 'component') return false;

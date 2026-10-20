@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { parseHTML } from 'linkedom';
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5180';
 const headers = process.env.TEST_VERCEL_BYPASS ? { 'x-vercel-protection-bypass': process.env.TEST_VERCEL_BYPASS } : {};
-const paths = ['/', '/hochzeiten', '/tierfotografie', '/portrait', '/ueber-mich', '/destination-wedding', '/impressum', '/datenschutz'];
+const paths = ['/', '/hochzeiten', '/tierfotografie', '/portrait', '/ueber-mich', '/destination-wedding', '/impressum', '/datenschutz', '/kontakt'];
 for (const path of paths) {
   const response = await fetch(base + path, { headers, signal: AbortSignal.timeout(45000) });
   assert.equal(response.status, 200, path);
@@ -22,6 +22,6 @@ const { document } = parseHTML(await (await fetch(base + '/hochzeiten?lang=en', 
 assert.equal(document.documentElement.lang, 'en');
 assert.equal(document.querySelector('link[rel="canonical"]').getAttribute('href'), 'https://www.marioschub.com/hochzeiten?lang=en');
 const sitemap = await (await fetch(base + '/sitemap.xml', { headers })).text();
-assert.equal((sitemap.match(/<url>/g) || []).length, 16);
+assert.equal((sitemap.match(/<url>/g) || []).length, 18);
 assert.equal(/spieglein|kundenportal|angebot\//i.test(sitemap), false);
-console.log('SEO verified: 8 server-rendered pages, unique metadata, headings, canonical and language links, business address, service regions and public-only sitemap.');
+console.log('SEO verified: 9 server-rendered pages, unique metadata, headings, canonical and language links, business address, service regions and public-only sitemap.');

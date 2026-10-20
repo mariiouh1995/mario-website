@@ -3,8 +3,9 @@ import snapshot from '../src/content/live-snapshot.json' with { type: 'json' };
 import { collectMedia, publicStories, validateSiteDocument, type SiteDocument } from '../src/content/site-content.js';
 import { mapAssets } from '../src/content/media.js';
 import { withSeoFields } from '../src/content/seo.js';
+import { applyRelaunch } from '../src/content/relaunch.js';
 
-const seed: SiteDocument = { capturedAt: snapshot.capturedAt, stories: publicStories(snapshot.stories), edits: [], media: collectMedia(snapshot.stories) };
+const seed: SiteDocument = applyRelaunch({ capturedAt: snapshot.capturedAt, stories: publicStories(snapshot.stories), edits: [], media: collectMedia(snapshot.stories) });
 let schema: Promise<void> | undefined;
 let publicCache: { document: SiteDocument; expires: number } | undefined;
 async function ensureSchema() {

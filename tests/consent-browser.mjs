@@ -26,7 +26,6 @@ try {
   await dialog.getByRole('button', { name: 'Alle ablehnen', exact: true }).click();
   assert.equal(await page.evaluate(() => window['ga-disable-G-YPBWYFCNYX']), true);
   assert.equal((await context.cookies()).some(cookie => cookie.name === '_ga'), false, 'Withdrawal clears Analytics cookies');
-  await page.getByRole('button', { name: /^videos$/i }).click();
   await page.getByRole('button', { name: 'Video-Einstellungen öffnen' }).first().click();
   await dialog.locator('label').filter({ hasText: 'Externe Videos' }).locator('input').check();
   await dialog.getByRole('button', { name: 'Auswahl speichern', exact: true }).click();

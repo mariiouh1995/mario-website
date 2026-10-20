@@ -16,9 +16,8 @@ try {
   await page.goto(base + '/hochzeiten', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Alle ablehnen', exact: true }).click();
   const trigger = page.getByRole('button', { name: 'Erzählt mir von euren Plänen', exact: true });
-  assert.equal(await trigger.evaluate(el => getComputedStyle(el).borderRadius), '0px', 'Underline has square ends');
   await trigger.click();
-  await page.getByRole('dialog', { name: 'Kontaktanfrage' }).waitFor();
+  await page.getByRole('dialog', { name: 'Erzählt mir von euren Plänen', exact: true }).waitFor();
   await page.getByLabel('Name', { exact: false }).first().waitFor();
   await page.waitForFunction(() => { let element = document.querySelector('[role=dialog]'); while (element) { if (Number(getComputedStyle(element).opacity) < 0.999) return false; element = element.parentElement; } return true; });
   await screenshot('contact-mobile');

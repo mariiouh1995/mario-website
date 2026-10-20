@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { Menu, X, Instagram, Mail, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
@@ -13,58 +13,6 @@ import { WebsiteSurface } from './cms/WebsiteSurface';
 import { publicPaths } from '../../content/seo';
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
-
-/** Global camera shutter flash on CTA button clicks */
-function useCameraFlashGlobal() {
-  const handleClick = useCallback((e: MouseEvent) => {
-    if (!publicPaths.includes(window.location.pathname) || new URLSearchParams(window.location.search).has('cms-preview')) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const target = e.target as HTMLElement;
-    const btn = target.closest("button, a") as HTMLElement | null;
-    if (!btn) return;
-
-    const cl = btn.className || "";
-    // Only trigger on styled CTA buttons with padding (px-* py-*)
-    const isCTA =
-      (cl.includes("px-") && cl.includes("py-")) ||
-      (cl.includes("px-") && cl.includes("bg-black"));
-    // Skip non-CTA elements
-    if (!isCTA) return;
-    // Skip inside modals, lightbox, gallery filters
-    if (
-      btn.closest("[data-slot=dialog]") ||
-      btn.closest(".lightbox-overlay") ||
-      cl.includes("border-none") && !cl.includes("bg-black")
-    ) return;
-
-    const rect = btn.getBoundingClientRect();
-    // Camera emoji
-    const emoji = document.createElement("span");
-    emoji.textContent = "\u{1F4F8}";
-    emoji.style.cssText = `
-      position:fixed;left:${rect.left + rect.width / 2}px;top:${rect.top - 4}px;
-      transform:translate(-50%,-100%) scale(0.5) rotate(-15deg);
-      font-size:1.5rem;pointer-events:none;z-index:99999;opacity:0;
-      animation:camera-flash 550ms ease-out forwards;
-    `;
-    document.body.appendChild(emoji);
-    // White flash overlay
-    const flash = document.createElement("div");
-    flash.style.cssText = `
-      position:fixed;left:${rect.left}px;top:${rect.top}px;
-      width:${rect.width}px;height:${rect.height}px;
-      background:white;border-radius:12px;pointer-events:none;z-index:99998;opacity:0;
-      animation:flash-overlay 350ms ease-out forwards;
-    `;
-    document.body.appendChild(flash);
-    setTimeout(() => { emoji.remove(); flash.remove(); }, 700);
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener("click", handleClick, true);
-    return () => document.removeEventListener("click", handleClick, true);
-  }, [handleClick]);
-}
 
 export function Layout() {
   const { t, lang, toggleLanguage } = useLanguage();
@@ -84,8 +32,6 @@ export function Layout() {
     if (url.searchParams.get('lang') !== 'en') { url.searchParams.set('lang', 'en'); window.history.replaceState(window.history.state, '', url); }
   }, [lang, location.pathname]);
 
-  // Camera flash animation on CTA clicks
-  useCameraFlashGlobal();
 
   // Google Analytics: Restore consent from localStorage on mount
   useEffect(() => {
@@ -110,7 +56,7 @@ export function Layout() {
     { path: "/", label: t.nav.home },
     { path: "/hochzeiten", label: t.nav.weddings },
     { path: "/tierfotografie", label: t.nav.animals },
-    { path: "/portrait", label: t.nav.portrait },
+    { path: "/portrait", label: lang === 'de' ? 'Paare & Porträts' : 'Couples & portraits' },
     { path: "/ueber-mich", label: t.nav.about },
   ];
 
@@ -171,7 +117,7 @@ export function Layout() {
                 className="text-[0.78rem] tracking-[0.12em] uppercase bg-black text-white px-5 py-2 cursor-pointer border border-black hover:bg-transparent hover:text-black transition-all duration-300"
                 style={{ fontWeight: 400 }}
               >
-                {lang === "de" ? "Anfrage" : "Inquire"}
+                {lang === "de" ? "Anfrage senden" : "Send enquiry"}
               </button>
             </div>
 
@@ -255,7 +201,7 @@ export function Layout() {
                   className="mt-4 text-[0.82rem] tracking-[0.12em] uppercase bg-black text-white px-6 py-3 cursor-pointer border border-black hover:bg-transparent hover:text-black transition-all duration-300 w-full text-center"
                   style={{ fontWeight: 400 }}
                 >
-                  {lang === "de" ? "Anfrage" : "Inquire"}
+                  {lang === "de" ? "Anfrage senden" : "Send enquiry"}
                 </button>
               </div>
             </motion.div>
@@ -289,6 +235,7 @@ export function Layout() {
                   ? "Fotografie & Videografie aus Söll am Wilden Kaiser. Für euch in Tirol und Bayern unterwegs."
                   : "Photography & films from Söll near the Wilder Kaiser. Working across Tyrol and Bavaria."}
               </p>
+              <a href="https://www.wyldworks.de/" target="_blank" rel="noopener noreferrer" className="inline-block mt-5 text-white/80 text-sm underline underline-offset-4">{lang === 'de' ? 'Foto & Video für Unternehmen: wyldworks.de' : 'Photo & video for businesses: wyldworks.de'}</a>
             </div>
 
             {/* Navigation */}
@@ -300,6 +247,7 @@ export function Layout() {
                 {lang === "de" ? "Navigation" : "Navigation"}
               </p>
               <div className="flex flex-col gap-3">
+                <Link to="/kontakt" className="text-white/80 text-sm underline underline-offset-4">{lang === 'de' ? 'Kontakt & Anfrage' : 'Contact & enquiries'}</Link>
                 {navItems.map((item) => (
                   <Link
                     key={item.path}

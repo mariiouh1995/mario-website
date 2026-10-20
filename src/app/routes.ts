@@ -9,6 +9,7 @@ import { AboutPage } from "./components/pages/AboutPage";
 import { ImpressumPage } from "./components/pages/ImpressumPage";
 import { DatenschutzPage } from "./components/pages/DatenschutzPage";
 import { NotFoundPage } from "./components/pages/NotFoundPage";
+import { ContactPage } from './components/pages/ContactPage';
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "ueber-mich", Component: AboutPage },
       { path: "impressum", Component: ImpressumPage },
       { path: "datenschutz", Component: DatenschutzPage },
+      { path: "kontakt", Component: ContactPage },
       { path: "admin", lazy: async () => ({ Component: (await import('./components/pages/AdminPage')).AdminPage }) },
       { path: "kundenportal/:token", lazy: async () => ({ Component: (await import('./components/pages/CustomerPortalPage')).CustomerPortalPage }) },
       { path: "angebot/:token", lazy: async () => ({ Component: (await import('./components/pages/OfferPage')).OfferPage }) },
