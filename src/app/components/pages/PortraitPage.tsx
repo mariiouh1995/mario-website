@@ -10,7 +10,6 @@ import { Lightbox, useLightbox } from "../Lightbox";
 import { motion } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
-import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 import { FAQSection } from "../FAQSection";
@@ -66,22 +65,7 @@ export function PortraitPage() {
     },
   ];
 
-  // Pull portrait images from Google Sheet (ImageKit "Other" folder → page "portrait")
-  // Falls back to hardcoded Unsplash images if API unavailable
-  const fallbackImages = [
-    { src: IMAGES.coupleSunset, alt: "Romantisches Couple Shooting bei Sonnenuntergang – Paarfotograf Tirol" },
-    { src: IMAGES.family, alt: "Natuerliches Familienshooting Outdoor – Familienfotograf Innsbruck" },
-    { src: IMAGES.baptismChurch, alt: "Taufe Zeremonie in der Kirche – Taufe Fotograf Innsbruck" },
-    { src: IMAGES.coupleLaughing, alt: "Lachendes Paar beim Engagement Shooting – Couple Fotograf Bayern" },
-    { src: IMAGES.familyAutumn, alt: "Familienportrait Herbst Outdoor – Familienfotografie Tirol" },
-    { src: IMAGES.couple, alt: "Romantisches Paar Outdoor in den Alpen – Paarshooting Mario Schubert" },
-    { src: IMAGES.hero, alt: "Couple Shooting Outdoor – Portrait und Paarfotografie Innsbruck" },
-    { src: IMAGES.baptism, alt: "Taufe Fotografie – Babyfotograf und Eventfotograf Tirol" },
-  ];
-
-  const apiImages = getImagesForPage("portrait", undefined, lang);
-  const rawGalleryImages = apiImages.length > 0 ? apiImages : fallbackImages;
-  const galleryImages = useShuffledGallery(rawGalleryImages);
+  const galleryImages = getImagesForPage("portrait", undefined, lang);
 
   return (
     <>

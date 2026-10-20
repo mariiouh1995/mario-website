@@ -4,7 +4,7 @@ export type SiteMedia = { url: string; name: string; type: 'image' | 'video'; al
 export type SiteDocument = { stories: SiteStory[]; edits: SiteEdit[]; media: SiteMedia[]; capturedAt: string };
 
 export const removedService = /spieglein|fotospiegel|photo\s*mirror|fotobox|photo\s*booth/i;
-const pricePattern = /(?:ab\s*|from\s*)?(?:€\s*[\d.,]+|[\d.,]+\s*(?:€|EUR(?:O)?S?\b))/gi;
+const pricePattern = /(?:ab\s*|from\s*)?(?:€\s*\d[\d.,]*|\d[\d.,]*\s*(?:€|EUR(?:O)?S?\b))/gi;
 export const inquiryPrice = (lang = 'de') => lang === 'en' ? 'On request' : 'Auf Anfrage';
 
 export function cleanPublicText(value: string, lang = 'de') {

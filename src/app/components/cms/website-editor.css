@@ -27,6 +27,7 @@
 .cms-pane h3 { font-size:15px; font-weight:600; }
 .cms-field { display:flex; flex-direction:column; gap:6px; font-size:12px; color:#575d59; min-width:0; }
 .cms-field textarea,.cms-field input { width:100%; font-size:14px; color:#202622; resize:vertical; }
+.cms-field select { font:inherit; color:#202622; padding:9px; border:1px solid #d9dcd9; border-radius:4px; background:white; max-width:100%; min-width:0; }
 .cms-fields { display:flex; flex-direction:column; gap:14px; }
 .cms-link { display:inline-flex; gap:5px; align-items:center; font-size:12px; color:#57655d; text-align:left; }
 .cms-check { display:flex; gap:8px; align-items:center; }
@@ -41,9 +42,33 @@
 .cms-medium img,.cms-medium video { width:100%; aspect-ratio:1; object-fit:cover; }
 .cms-medium span { display:block; font-size:11px; padding:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cms-upload input { display:none; }
+.cms-gallery { padding:24px 0; }
+.cms-gallery-heading,.cms-gallery-pickerbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+.cms-gallery-heading h2 { display:flex; align-items:center; gap:10px; font-size:20px; margin-bottom:5px; }
+.cms-gallery-filters { display:flex; align-items:end; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+.cms-gallery-filters .cms-search { min-width:0; flex:1; }
+.cms-gallery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:20px; margin-bottom:24px; }
+.cms-gallery-item { min-width:0; border:1px solid #d9dcd9; border-radius:6px; overflow:hidden; }
+.cms-gallery-image { display:block; width:100%; background:#edf0ed; cursor:pointer; }
+.cms-gallery-image img { width:100%; aspect-ratio:4/3; object-fit:cover; }
+.cms-gallery-caption { display:flex; align-items:center; gap:8px; padding:12px; }
+.cms-gallery-caption p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.cms-gallery-position { font-size:12px; color:#626962; font-variant-numeric:tabular-nums; }
+.cms-gallery-tools { display:flex; justify-content:space-between; gap:3px; padding:0 8px 8px; }
+.cms-gallery-tools .cms-icon { min-width:38px; min-height:44px; padding:9px; }
+.cms-gallery-empty { padding:48px 16px; color:#626962; text-align:center; }
+.cms-media-dialog { width:calc(100% - 32px); max-width:800px; max-height:calc(100dvh - 32px); overflow:auto; }
+.cms-gallery-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; max-height:48dvh; overflow:auto; padding:3px; }
+.cms-medium { position:relative; }
+.cms-medium[aria-pressed=true] { outline:2px solid #1a665a; outline-offset:1px; }
+.cms-medium:disabled { opacity:.45; cursor:not-allowed; }
+.cms-medium-check { position:absolute; right:8px; top:8px; background:#1a665a; color:white; border-radius:4px; }
+.cms-gallery-pickerbar { margin:0; }
+.cms-gallery-pickerbar .cms-search { flex:1; min-width:150px; }
 .cms-error { color:#9d2525; background:#fff0f0; padding:12px; margin:8px 0; border:1px solid #efbcbc; border-radius:4px; overflow-wrap:anywhere; }
 .cms-danger { color:#a52e2e; }
 .cms-loading { padding:60px 16px; display:flex; flex-direction:column; align-items:center; gap:15px; }
-@media(max-width:767px) { .cms-toolbar { top:64px; } }
+@media(max-width:767px) { .cms-gallery-grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); } .cms-gallery-filters>* { width:100%; } .cms-button,.cms-icon,.cms-segment button { min-height:44px; } .cms-gallery-heading { align-items:start; } }
 @media(max-width:1000px) { .cms-workspace { grid-template-columns:minmax(0,1fr) 270px; } }
+@media(max-width:767px) { .cms-toolbar { top:64px; } }
 @media(max-width:700px) { .cms-workspace { display:flex; flex-direction:column; height:auto; min-height:0; } .cms-canvas { height:60vh; min-height:420px; } .cms-inspector { border-left:0; border-top:1px solid #dfe3df; max-height:65vh; } .cms-title span { display:block; max-width:220px; } .cms-actions { flex-wrap:wrap; } .cms-previewbar select:first-child { flex:1; } }

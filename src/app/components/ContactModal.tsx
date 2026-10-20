@@ -1,4 +1,5 @@
-import { useState, useMemo, createContext, useContext, useCallback } from "react";
+import { useState, useMemo, useRef, createContext, useContext, useCallback } from "react";
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Calculator, Heart, Camera, User, ArrowRight, ArrowLeft, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
@@ -144,12 +145,10 @@ export function ContactModalProvider({ children }: { children: React.ReactNode }
   const openContact = useCallback((cat?: InquiryCategory) => {
     setCategory(cat || "general");
     setIsOpen(true);
-    document.body.style.overflow = "hidden";
   }, []);
 
   const closeContact = useCallback(() => {
     setIsOpen(false);
-    document.body.style.overflow = "";
   }, []);
 
   return (
@@ -379,6 +378,7 @@ function ContactModalInner({
 }) {
   const { lang } = useLanguage();
   const { packages } = usePackages();
+  const returnFocus = useRef<HTMLElement | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [showPackages, setShowPackages] = useState(true);
@@ -612,8 +612,10 @@ function ContactModalInner({
   };
 
   return (
+    <DialogPrimitive.Root open={isOpen} onOpenChange={open => { if (!open) handleClose(); }}>
     <AnimatePresence>
       {isOpen && (
+        <DialogPrimitive.Portal forceMount>
         <motion.div
           className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto"
           initial={{ opacity: 0 }}
@@ -622,6 +624,7 @@ function ContactModalInner({
           transition={{ duration: 0.3 }}
         >
           {/* Backdrop */}
+          <DialogPrimitive.Overlay asChild>
           <motion.div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleClose}
@@ -629,20 +632,23 @@ function ContactModalInner({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
+          </DialogPrimitive.Overlay>
 
           {/* Modal */}
+          <DialogPrimitive.Content asChild aria-describedby={undefined} onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}>
           <motion.div
-            className="relative w-full max-w-2xl mx-4 my-8 md:my-16 bg-white z-10"
+            className="relative w-full min-w-0 max-w-2xl mx-4 my-8 md:my-16 bg-white z-10"
             initial={{ opacity: 0, y: 40, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.97 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
+            <DialogPrimitive.Title className="sr-only">{isDE ? 'Kontaktanfrage' : 'Contact request'}</DialogPrimitive.Title>
             {/* Close button */}
             <button
               onClick={handleClose}
               className="absolute top-4 right-4 z-10 bg-transparent border-none cursor-pointer p-2 text-black/40 hover:text-black transition-colors"
-              aria-label="Close"
+              aria-label={isDE ? 'Schließen' : 'Close'}
             >
               <X size={20} />
             </button>
@@ -705,7 +711,7 @@ function ContactModalInner({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className="p-8 md:p-12"
+                  className="p-5 sm:p-8 md:p-12"
                 >
                   {/* Back button (only if we came from category selection) */}
                   {category === "general" && (
@@ -747,10 +753,12 @@ function ContactModalInner({
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-name" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.name}
                       </label>
                       <input
+                        id="contact-name"
+                        autoComplete="name"
                         type="text"
                         required
                         value={form.name}
@@ -762,10 +770,12 @@ function ContactModalInner({
 
                     {/* Email */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-email" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.email}
                       </label>
                       <input
+                        id="contact-email"
+                        autoComplete="email"
                         type="email"
                         required
                         value={form.email}
@@ -777,10 +787,12 @@ function ContactModalInner({
 
                     {/* Phone */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-phone" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.phone}
                       </label>
                       <input
+                        id="contact-phone"
+                        autoComplete="tel"
                         type="tel"
                         required
                         value={form.phone}
@@ -792,10 +804,11 @@ function ContactModalInner({
 
                     {/* Found via */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-source" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.foundVia}
                       </label>
                       <input
+                        id="contact-source"
                         type="text"
                         value={form.foundVia}
                         onChange={(e) => handleChange("foundVia", e.target.value)}
@@ -996,10 +1009,11 @@ function ContactModalInner({
 
                     {/* Date */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-date" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.date}
                       </label>
                       <input
+                        id="contact-date"
                         type="text"
                         value={form.date}
                         onChange={(e) => handleChange("date", e.target.value)}
@@ -1028,10 +1042,11 @@ function ContactModalInner({
 
                     {/* Message */}
                     <div>
-                      <label className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
+                      <label htmlFor="contact-message" className="block text-[0.82rem] mb-2" style={{ fontWeight: 600 }}>
                         {t.message}
                       </label>
                       <textarea
+                        id="contact-message"
                         rows={4}
                         value={form.message}
                         onChange={(e) => handleChange("message", e.target.value)}
@@ -1058,12 +1073,13 @@ function ContactModalInner({
                           <label className="block text-[0.78rem] mb-1.5 text-black/60" style={{ fontWeight: 400 }}>
                             {isDE ? "Terminvorschlag" : "Suggested date"}
                           </label>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[0.68rem] text-black/35 mb-1" style={{ fontWeight: 300 }}>
+                              <label htmlFor="contact-meeting-date" className="block text-[0.68rem] text-black/65 mb-1" style={{ fontWeight: 300 }}>
                                 {isDE ? "Datum" : "Date"}
                               </label>
                               <input
+                                id="contact-meeting-date"
                                 type="date"
                                 value={form.meetingDate ? form.meetingDate.split("T")[0] : ""}
                                 onChange={(e) => {
@@ -1076,10 +1092,11 @@ function ContactModalInner({
                               />
                             </div>
                             <div>
-                              <label className="block text-[0.68rem] text-black/35 mb-1" style={{ fontWeight: 300 }}>
+                              <label htmlFor="contact-meeting-time" className="block text-[0.68rem] text-black/65 mb-1" style={{ fontWeight: 300 }}>
                                 {isDE ? "Uhrzeit" : "Time"}
                               </label>
                               <input
+                                id="contact-meeting-time"
                                 type="time"
                                 value={form.meetingDate ? (form.meetingDate.split("T")[1] || "10:00") : ""}
                                 onChange={(e) => {
@@ -1184,8 +1201,11 @@ function ContactModalInner({
               )}
             </AnimatePresence>
           </motion.div>
+          </DialogPrimitive.Content>
         </motion.div>
+        </DialogPrimitive.Portal>
       )}
     </AnimatePresence>
+    </DialogPrimitive.Root>
   );
 }

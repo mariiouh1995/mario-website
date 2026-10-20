@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster, toast } from "sonner";
+import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
 import {
   ArrowRight,
   AlarmClock,
@@ -658,6 +659,12 @@ export function AdminPage() {
   const [newPaymentAmount, setNewPaymentAmount] = useState("");
   const [newPaymentDate, setNewPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setNotificationsOpen(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [notificationsOpen]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [syncingImages, setSyncingImages] = useState(false);
   const [activeAddOnRequest, setActiveAddOnRequest] = useState<{ customerId: string; requestId: string } | null>(null);
@@ -1553,7 +1560,7 @@ export function AdminPage() {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/5 mb-4"><Lock className="w-6 h-6 text-white/45" /></div>
             <h1 className="text-white text-lg tracking-wide">Mario Admin</h1>
           </div>
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Passwort" className="w-full px-4 py-3 bg-white/6 border border-white/10 rounded-lg text-white placeholder-white/35 focus:outline-none focus:border-white/35" />
+          <input type="password" aria-label="Admin-Passwort" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Passwort" className="w-full px-4 py-3 bg-white/6 border border-white/10 rounded-lg text-white placeholder-white/35 focus:outline-none focus:border-white/35" />
           {authError && <p className="text-red-300 text-sm text-center mt-3">{authError}</p>}
           <button className="w-full mt-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 disabled:opacity-40" disabled={!password}>Anmelden</button>
         </form>
@@ -1585,19 +1592,19 @@ export function AdminPage() {
             <button onClick={() => setView("dashboard")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
             <button onClick={() => setView(view === "calendar" ? "customersList" : "calendar")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><CalendarDays className="w-4 h-4" /> {view === "calendar" ? "Liste anzeigen" : "Kalender"}</button>
             <div className="relative">
-              <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10">
+              <button aria-label="Benachrichtigungen" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen(!notificationsOpen)} className="relative inline-flex items-center justify-center rounded-md border border-white/15 w-11 h-11">
                 <Bell className="w-4 h-4" />
                 {notifications.length > 0 && <span className="absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-600 text-white text-[11px] flex items-center justify-center">{notifications.length}</span>}
               </button>
               {notificationsOpen && (
                 <>
                 <button aria-label="Notifications schließen" onClick={() => setNotificationsOpen(false)} className="fixed inset-0 z-20 cursor-default bg-transparent" />
-                <div className="fixed left-3 right-3 top-20 z-30 rounded-lg bg-white text-black shadow-xl border border-black/10 p-3 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[20rem]">
+                <div role="region" aria-label="Benachrichtigungen" className="fixed left-3 right-3 top-24 z-30 rounded-lg bg-white text-black shadow-xl border border-black/10 p-3 max-h-[calc(100dvh-7rem)] overflow-auto lg:absolute lg:left-auto lg:right-0 lg:top-12 lg:w-[20rem]">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Notifications</p>
                     <div className="flex items-center gap-2">
                       {notifications.length > 0 && <button onClick={markAllNotificationsRead} className="text-xs text-black/45 hover:text-black">Alle gelesen</button>}
-                      <button onClick={() => setSettingsOpen(true)} className="text-black/50 hover:text-black"><Settings className="w-4 h-4" /></button>
+                      <button aria-label="Benachrichtigungseinstellungen" onClick={() => { setNotificationsOpen(false); setSettingsOpen(true); }} className="text-black/50 hover:text-black min-w-11 min-h-11 inline-flex items-center justify-center"><Settings className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <div className="space-y-2 max-h-80 overflow-auto">
@@ -1629,7 +1636,7 @@ export function AdminPage() {
             <button onClick={() => setView("offers")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><FileText className="w-4 h-4" /> Angebote</button>
             <button onClick={() => setSettingsOpen(true)} className="inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10 text-white/80" title="Globale Settings"><Settings className="w-4 h-4" /></button>
             <button onClick={createCustomer} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-3 py-2 text-sm"><Plus className="w-4 h-4" /> Kunde</button>
-            <button onClick={logout} className="inline-flex items-center justify-center gap-2 text-white/55 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
+            <button onClick={logout} aria-label="Abmelden" className="inline-flex items-center justify-center gap-2 text-white/70 hover:text-white text-sm px-2 py-2"><LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Abmelden</span></button>
           </div>
         </div>
       </header>
@@ -1652,16 +1659,17 @@ export function AdminPage() {
                 {syncingImages ? "Synchronisiere..." : "ImageKit Sync starten"}
               </button>
             </section>
-            <section>
-              <h3 className="font-semibold mb-2">Sinnvolle nächste globale Settings</h3>
-              <p className="text-sm text-black/55 leading-relaxed">Als Nächstes wären Standard-Mailtexte, Standard-Aufgaben je neuer Kunde und ein Standard-Zahlungsplan sinnvoll. Die technische Grundlage ist jetzt da.</p>
-            </section>
           </div>
         </Modal>
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-5 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[310px_minmax(0,1fr)] gap-5 sm:gap-6">
-        <aside className="space-y-5">
+        <div className="lg:hidden flex flex-wrap gap-2 min-w-0" aria-label="Kunden-Navigation">
+          <button onClick={() => setView('customersList')} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md border border-black/15 bg-white px-3 py-3 text-sm"><UserRound size={16} />Alle Kunden ({customers.length})</button>
+          <button onClick={() => setView('inquiriesList')} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md border border-black/15 bg-white px-3 py-3 text-sm"><Mail size={16} />Anfragen ({inquiries.filter(item => item.status !== 'umgewandelt').length})</button>
+          <select aria-label="Kunden direkt öffnen" value={view === 'customerDetail' ? selectedId : ''} onChange={event => { if (event.target.value) selectCustomer(event.target.value); }} className="w-full min-w-0 rounded-md border border-black/15 bg-white p-3 text-sm"><option value="">Kunden direkt öffnen …</option>{customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name || 'Unbenannter Kunde'}</option>)}</select>
+        </div>
+        <aside className="hidden lg:block space-y-5">
           <section className="bg-white border border-black/8 rounded-lg p-4">
             <button onClick={() => setView("dashboard")} className="mb-3 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] px-3 py-2 text-sm text-white"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
             <div className="flex items-center justify-between gap-3 mb-3">
@@ -1697,7 +1705,7 @@ export function AdminPage() {
           </section>
         </aside>
 
-        <section className="bg-white border border-black/8 rounded-lg p-4 sm:p-5 md:p-6 min-h-[40rem] min-w-0">
+        <section data-admin-panel className="bg-white border border-black/8 rounded-lg p-4 sm:p-5 md:p-6 min-h-[40rem] min-w-0">
           {message && <p className="rounded-md bg-[#f4f0eb] px-3 py-2 text-sm text-black/65 mb-5">{message}</p>}
           {loading && <p className="text-black/45">Lade CRM...</p>}
           {!loading && view === "dashboard" && <DashboardView items={dashboardItems} customers={customers} inquiries={inquiries} notifications={notifications} onSelect={selectCustomer} onCalendar={() => setView("calendar")} onCustomers={() => setView("customersList")} />}
@@ -1875,7 +1883,7 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
         <p className="text-xs uppercase tracking-[0.22em] text-black/40">Übersicht</p>
         <h2 className="mt-1 text-2xl">Alle Kunden</h2>
       </div>
-      <div className="grid gap-3 md:hidden">
+      <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
         {customers.map((customer) => (
           <button key={customer.id} onClick={() => onSelect(customer.id)} className="relative text-left rounded-lg border border-black/8 bg-[#faf8f5] p-4">
             {notificationsByCustomer[customer.id] > 0 && <span className="absolute right-3 top-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] text-white">{notificationsByCustomer[customer.id]}</span>}
@@ -1885,13 +1893,13 @@ function CustomersListView({ customers, notificationsByCustomer, onSelect }: { c
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{statusSteps.find((item) => item.key === customer.status)?.label || customer.status}</span>
               <span className="rounded-full bg-white border border-black/8 px-2 py-1">{customer.portalEnabled ? "Portal aktiv" : "Portal nicht aktiv"}</span>
             </div>
-            <p className="mt-3 text-sm text-black/55">{[customer.email, customer.secondaryEmail].filter(Boolean).join(" / ") || "Keine E-Mail"}</p>
+            <p className="mt-3 text-sm text-black/65 break-words [overflow-wrap:anywhere]">{[customer.email, customer.secondaryEmail].filter(Boolean).join(" / ") || "Keine E-Mail"}</p>
             {[customer.phone, customer.secondaryPhone].filter(Boolean).map((phone) => <p key={phone} className="mt-1 text-sm text-black/55">{phone}</p>)}
           </button>
         ))}
         {customers.length === 0 && <p className="rounded-lg border border-black/8 bg-[#faf8f5] p-4 text-sm text-black/45">Noch keine Kunden angelegt.</p>}
       </div>
-      <div className="hidden md:block overflow-x-auto rounded-lg border border-black/8">
+      <div className="hidden lg:block overflow-x-auto rounded-lg border border-black/8">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-[#faf8f5] text-left text-xs uppercase tracking-[0.14em] text-black/40">
             <tr>
@@ -3263,12 +3271,12 @@ function PortalControls({ draft, setDraft, addPortalMessage, provisionPortal, re
 
 function Modal({ title, children, onClose, wide = false }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 px-3 sm:px-4 py-4 sm:py-6 flex items-center justify-center">
-      <div className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[calc(100vh-2rem)] overflow-hidden rounded-lg bg-white shadow-2xl border border-black/10`}>
-        <div className="flex items-start justify-between gap-4 border-b border-black/8 p-4 sm:p-5"><h2 className="text-lg font-semibold">{title}</h2><button onClick={onClose} className="text-black/45 hover:text-black"><X className="w-5 h-5" /></button></div>
-        <div className="p-4 sm:p-5 overflow-auto max-h-[calc(100vh-7rem)]">{children}</div>
-      </div>
-    </div>
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className={`${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'} p-0 gap-0 max-h-[calc(100dvh-2rem)] overflow-hidden`}>
+        <div className="border-b border-black/8 p-4 pr-14 sm:p-5 sm:pr-14"><DialogTitle className="text-lg font-semibold">{title}</DialogTitle></div>
+        <div className="p-4 sm:p-5 overflow-auto max-h-[calc(100dvh-7rem)]">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

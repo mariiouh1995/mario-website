@@ -17,6 +17,8 @@ const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo
 /** Global camera shutter flash on CTA button clicks */
 function useCameraFlashGlobal() {
   const handleClick = useCallback((e: MouseEvent) => {
+    if (!publicPaths.includes(window.location.pathname) || new URLSearchParams(window.location.search).has('cms-preview')) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const target = e.target as HTMLElement;
     const btn = target.closest("button, a") as HTMLElement | null;
     if (!btn) return;
@@ -69,6 +71,13 @@ export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const { openContact } = useContactModal();
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [menuOpen]);
   useEffect(() => {
     if (lang !== 'en') return;
     const url = new URL(window.location.href);
@@ -169,8 +178,10 @@ export function Layout() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="lg:hidden bg-transparent border-none cursor-pointer p-2 text-black"
-              aria-label={menuOpen ? "Menu schliessen" : "Menu oeffnen"}
+              className="lg:hidden bg-transparent border-none cursor-pointer p-2 min-w-11 min-h-11 text-black"
+              aria-label={menuOpen ? "Menü schließen" : "Menü öffnen"}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
             >
               <AnimatePresence mode="wait">
                 {menuOpen ? (
@@ -207,7 +218,8 @@ export function Layout() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:hidden overflow-hidden bg-white border-t border-black/5"
+              id="mobile-navigation"
+              className="lg:hidden overflow-y-auto max-h-[calc(100dvh-5rem)] bg-white border-t border-black/5"
             >
               <div className="px-4 py-6 flex flex-col">
                 {navItems.map((item) => (
@@ -252,7 +264,7 @@ export function Layout() {
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 pt-16 md:pt-20">
+      <main className="flex-1 pt-16 md:pt-20 overflow-x-clip">
         <ScrollToTop />
         <WebsiteSurface />
         <Outlet />
@@ -270,7 +282,7 @@ export function Layout() {
                 className="h-8 w-auto mb-6 invert brightness-200"
               />
               <p
-                className="text-white/40 text-[0.82rem] max-w-xs"
+                className="text-white/70 text-[0.82rem] max-w-xs"
                 style={{ lineHeight: 1.7, fontWeight: 300 }}
               >
                 {lang === "de"
@@ -282,7 +294,7 @@ export function Layout() {
             {/* Navigation */}
             <div>
               <p
-                className="text-white/30 text-[0.7rem] tracking-[0.3em] uppercase mb-6"
+                className="text-white/60 text-[0.7rem] tracking-[0.3em] uppercase mb-6"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "Navigation" : "Navigation"}
@@ -292,7 +304,7 @@ export function Layout() {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="text-white/50 text-[0.85rem] no-underline hover:text-white transition-colors"
+                    className="text-white/70 text-[0.85rem] no-underline hover:text-white transition-colors"
                     style={{ fontWeight: 300 }}
                   >
                     {item.label}
@@ -304,7 +316,7 @@ export function Layout() {
             {/* Contact */}
             <div>
               <p
-                className="text-white/30 text-[0.7rem] tracking-[0.3em] uppercase mb-6"
+                className="text-white/60 text-[0.7rem] tracking-[0.3em] uppercase mb-6"
                 style={{ fontWeight: 400 }}
               >
                 {lang === "de" ? "Kontakt" : "Contact"}
@@ -312,7 +324,7 @@ export function Layout() {
               <div className="flex flex-col gap-3">
                 <a
                   href="mailto:servus@marioschub.com"
-                  className="text-white/50 text-[0.85rem] no-underline hover:text-white transition-colors flex items-center gap-2"
+                  className="text-white/70 text-[0.85rem] no-underline hover:text-white transition-colors flex items-center gap-2"
                   style={{ fontWeight: 300 }}
                 >
                   <Mail size={14} />
@@ -322,14 +334,14 @@ export function Layout() {
                   href="https://instagram.com/marioschub"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/50 text-[0.85rem] no-underline hover:text-white transition-colors flex items-center gap-2"
+                  className="text-white/70 text-[0.85rem] no-underline hover:text-white transition-colors flex items-center gap-2"
                   style={{ fontWeight: 300 }}
                 >
                   <Instagram size={14} />
                   @marioschub
                 </a>
                 <p
-                  className="text-white/50 text-[0.85rem] flex items-center gap-2"
+                  className="text-white/70 text-[0.85rem] flex items-center gap-2"
                   style={{ fontWeight: 300 }}
                 >
                   <MapPin size={14} />
@@ -341,21 +353,21 @@ export function Layout() {
 
           {/* Bottom */}
           <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-white/25 text-[0.75rem]" style={{ fontWeight: 300 }}>
+            <p className="text-white/65 text-[0.75rem]" style={{ fontWeight: 300 }}>
               &copy; {new Date().getFullYear()} Mario Schubert Photography.{" "}
               {lang === "de" ? "Alle Rechte vorbehalten." : "All rights reserved."}
             </p>
             <div className="flex gap-6">
               <Link
                 to="/impressum"
-                className="text-white/25 text-[0.75rem] no-underline hover:text-white/50 transition-colors"
+                className="text-white/65 text-[0.75rem] no-underline hover:text-white transition-colors"
                 style={{ fontWeight: 300 }}
               >
                 {lang === "de" ? "Impressum" : "Imprint"}
               </Link>
               <Link
                 to="/datenschutz"
-                className="text-white/25 text-[0.75rem] no-underline hover:text-white/50 transition-colors"
+                className="text-white/65 text-[0.75rem] no-underline hover:text-white transition-colors"
                 style={{ fontWeight: 300 }}
               >
                 {lang === "de" ? "Datenschutz" : "Privacy"}
@@ -364,7 +376,7 @@ export function Layout() {
                 href="https://ik.imagekit.io/r2yqrg6np/Allgemeine%20Gescha%CC%88ftsbedingungen%20_%20Stand%20Januar%202026.pdf?updatedAt=1773009281173"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/25 text-[0.75rem] no-underline hover:text-white/50 transition-colors"
+                className="text-white/65 text-[0.75rem] no-underline hover:text-white transition-colors"
                 style={{ fontWeight: 300 }}
               >
                 AGB

@@ -129,14 +129,21 @@
   }
 
   /* Global 12px border-radius for styled CTA buttons only */
-  button[class*="border-black"],
+  button[class*="border-black"][class*="px-"][class*="py-"],
   button[class*="bg-black"],
   a[class*="border-black"][class*="px-"],
   a[class*="bg-black"][class*="px-"],
-  button[class*="border-white"],
+  button[class*="border-white"][class*="px-"][class*="py-"],
   a[class*="border-white"][class*="px-"] {
     border-radius: 12px;
   }
+
+  :where(button, a, input, textarea, select, summary):focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  :where(input, textarea, select) { min-width: 0; }
 
   /* Camera shutter flash animation for buttons */
   @keyframes camera-flash {

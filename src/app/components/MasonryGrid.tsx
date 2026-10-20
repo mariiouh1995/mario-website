@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, type CSSProperties } from "react";
 import { motion } from "motion/react";
 import { SectionReveal } from "./SectionReveal";
 
@@ -38,8 +38,10 @@ export function MasonryGrid({
           <SectionReveal
             delay={itemIdx < initialPageSize ? Math.min(itemIdx * 0.04, 0.4) : 0}
           >
-            <motion.div
-              className="overflow-hidden cursor-pointer"
+            <motion.button
+              type="button"
+              aria-label={`Bild öffnen: ${img.alt}`}
+              className="overflow-hidden cursor-pointer block w-full border-none p-0 text-left"
               onClick={() => openLightbox(itemIdx)}
               whileHover={{ scale: 0.98 }}
               transition={{ duration: 0.3 }}
@@ -49,6 +51,7 @@ export function MasonryGrid({
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               >
                 <img
+                  data-cms-gallery-image={img.src}
                   src={img.src}
                   alt={img.alt}
                   loading="lazy"
@@ -60,7 +63,7 @@ export function MasonryGrid({
                   }}
                 />
               </motion.div>
-            </motion.div>
+            </motion.button>
           </SectionReveal>
         </div>
       );
@@ -69,37 +72,8 @@ export function MasonryGrid({
   );
 
   return (
-    <>
-      {/* Mobile */}
-      <div
-        className="md:hidden"
-        style={{
-          columnCount: colConfig.mobile,
-          columnGap: gap,
-        }}
-      >
-        {images.map((img, i) => renderItem(img, i))}
-      </div>
-      {/* Tablet */}
-      <div
-        className="hidden md:block lg:hidden"
-        style={{
-          columnCount: colConfig.tablet,
-          columnGap: gap,
-        }}
-      >
-        {images.map((img, i) => renderItem(img, i))}
-      </div>
-      {/* Desktop */}
-      <div
-        className="hidden lg:block"
-        style={{
-          columnCount: colConfig.desktop,
-          columnGap: gap,
-        }}
-      >
-        {images.map((img, i) => renderItem(img, i))}
-      </div>
-    </>
+    <div className="columns-[var(--gallery-mobile)] md:columns-[var(--gallery-tablet)] lg:columns-[var(--gallery-desktop)]" style={{ '--gallery-mobile': colConfig.mobile, '--gallery-tablet': colConfig.tablet, '--gallery-desktop': colConfig.desktop, columnGap: gap } as CSSProperties}>
+      {images.map((img, i) => renderItem(img, i))}
+    </div>
   );
 }

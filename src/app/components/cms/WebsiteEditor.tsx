@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { Check, ExternalLink, Eye, Globe, ImagePlus, Monitor, MousePointer2, Plus, RefreshCw, Save, Search, Smartphone, Trash2, Undo2, Upload, X } from 'lucide-react';
+import { Check, ExternalLink, Eye, Globe, ImagePlus, Images, Monitor, MousePointer2, Plus, RefreshCw, Save, Search, Smartphone, Trash2, Undo2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { collectMedia, type SiteDocument, type SiteEdit, type SiteMedia, type SiteStory } from '../../../content/site-content';
 import { publicPages } from './WebsiteSurface';
+import { GalleryManager } from './GalleryManager';
+import { changeGalleryImage } from '../../../content/gallery';
 import './website-editor.css';
 
 type Selection = { tag: string; fields: SiteEdit[] };
 type Api = (action: string, options?: RequestInit) => Promise<any>;
 const pageNames = ['Startseite', 'Hochzeiten', 'Tierfotografie', 'Portrait', 'Über mich', 'Destination Wedding', 'Impressum', 'Datenschutz'];
-const groups: Record<string, string> = { pages: 'Seitentexte', packages: 'Pakete', addons: 'Zusatzleistungen', gallery: 'Galerien', faqs: 'FAQ', reviews: 'Bewertungen' };
+const groups: Record<string, string> = { pages: 'Seitentexte', packages: 'Pakete', addons: 'Zusatzleistungen', faqs: 'FAQ', reviews: 'Bewertungen' };
 const fieldNames: Record<string, string> = { src: 'Bild / Video', poster: 'Vorschaubild', href: 'Linkziel', alt: 'Bildbeschreibung', title: 'Titel', placeholder: 'Platzhalter', 'aria-label': 'Beschriftung' };
 
 function ContentFields({ value, onChange, path = '' }: { value: any; onChange: (value: any) => void; path?: string }) {
@@ -35,7 +37,7 @@ export function WebsiteEditor({ password }: { password: string }) {
   const [lang, setLang] = useState('de');
   const [mobile, setMobile] = useState(false);
   const [editing, setEditing] = useState(true);
-  const [tab, setTab] = useState<'selection' | 'content' | 'media'>('selection');
+  const [tab, setTab] = useState<'selection' | 'content' | 'media' | 'gallery'>('selection');
   const [selection, setSelection] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -78,11 +80,12 @@ export function WebsiteEditor({ password }: { password: string }) {
     return () => window.removeEventListener('beforeunload', leave);
   }, [dirty]);
 
-  const update = (next: SiteDocument) => { setDoc(next); setDirty(true); };
+  const update = (next: SiteDocument) => { docRef.current = next; setDoc(next); setDirty(true); };
   const setEdit = (field: SiteEdit, value: string) => {
     if (!doc) return;
     if (field.sourceStory && field.sourceField) {
-      const stories = doc.stories.map(story => {
+      const selected = doc.stories.find(story => story.full_slug === field.sourceStory);
+      const stories = selected?.content.component === 'gallery_image' && field.sourceField === 'image_url' ? changeGalleryImage(doc.stories, selected, { image_url: value }) : doc.stories.map(story => {
         if (story.full_slug !== field.sourceStory) return story;
         const original = story.content[field.sourceField!];
         const next = original && typeof original === 'object' && 'filename' in original ? { ...original, filename: value } : value;
@@ -115,7 +118,7 @@ export function WebsiteEditor({ password }: { password: string }) {
     finally { setBusy(false); }
   };
   const uploadFile = async (file: File) => {
-    if (!doc) return;
+    if (!doc) return null;
     setProgress(0);
     try {
       const blob = await upload(`website/${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`, file, { access: 'public', handleUploadUrl: '/api/website?action=upload', clientPayload: JSON.stringify({ password }), multipart: file.size > 5 * 1024 * 1024, onUploadProgress: event => setProgress(Math.round(event.percentage)) });
@@ -123,7 +126,8 @@ export function WebsiteEditor({ password }: { password: string }) {
       const current = docRef.current!;
       update({ ...current, media: [...current.media, medium] });
       toast.success('Medium hochgeladen');
-    } catch (error: any) { toast.error(error.message || 'Upload fehlgeschlagen'); }
+      return medium;
+    } catch (error: any) { toast.error(error.message || 'Upload fehlgeschlagen'); return null; }
     finally { setProgress(null); }
   };
   const chooseMedia = (medium: SiteMedia) => {
@@ -160,8 +164,9 @@ export function WebsiteEditor({ password }: { password: string }) {
       <div className="cms-segment"><button title="Desktop" aria-pressed={!mobile} onClick={() => setMobile(false)}><Monitor size={17} /></button><button title="Mobil" aria-pressed={mobile} onClick={() => setMobile(true)}><Smartphone size={17} /></button></div>
       <div className="cms-segment"><button title="Inhalte auswählen" aria-pressed={editing} onClick={() => setEditing(true)}><MousePointer2 size={17} /></button><button title="Seite bedienen" aria-pressed={!editing} onClick={() => setEditing(false)}><Eye size={17} /></button></div>
       <a className="cms-icon" href={page} target="_blank" rel="noreferrer" title="Live-Seite öffnen"><ExternalLink size={17} /></a>
+      <button className="cms-button" aria-pressed={tab === 'gallery'} onClick={() => { setTab(tab === 'gallery' ? 'selection' : 'gallery'); setMediaTarget(null); setSearch(''); }}><Images size={17} />{tab === 'gallery' ? 'Seitenvorschau' : 'Galerien'}</button>
     </div>
-    <div className="cms-workspace">
+    {tab === 'gallery' ? <GalleryManager stories={doc.stories} media={media} initialPage={page === '/tierfotografie' ? 'tiere' : page === '/portrait' ? 'portrait' : 'hochzeit'} change={apply => { const current = docRef.current!; update({ ...current, stories: apply(current.stories) }); }} uploadFile={uploadFile} progress={progress} /> : <div className="cms-workspace">
       <div className={`cms-canvas ${mobile ? 'cms-mobile' : ''}`}><iframe key={`${page}:${lang}`} ref={frame} title="Website-Vorschau" src={`${page}?cms-preview=1&lang=${lang}`} /></div>
       <aside className="cms-inspector">
         <div className="cms-tabs">{(['selection', 'content', 'media'] as const).map((name, index) => <button key={name} aria-pressed={tab === name} onClick={() => { setTab(name); setSearch(''); }}>{['Auswahl', 'Inhalte', 'Medien'][index]}</button>)}</div>
@@ -169,6 +174,6 @@ export function WebsiteEditor({ password }: { password: string }) {
         {tab === 'content' && <div className="cms-pane"><div className="cms-row"><select aria-label="Inhaltsbereich" value={group} onChange={event => { setGroup(event.target.value); setStoryId(''); setSearch(''); }}>{Object.entries(groups).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select>{group !== 'pages' && <button className="cms-icon" title="Eintrag hinzufügen" onClick={createStory}><Plus size={17} /></button>}</div><label className="cms-search"><Search size={15} /><input placeholder="Suchen" value={search} onChange={event => setSearch(event.target.value)} /></label><select aria-label="Inhaltseintrag" value={storyId} onChange={event => setStoryId(event.target.value)}><option value="">Eintrag auswählen ({stories.length})</option>{stories.map(story => <option key={story.full_slug} value={story.full_slug}>{story.name}</option>)}</select>{selectedStory && <><label className="cms-field">Name<input value={selectedStory.name} onChange={event => update({ ...doc, stories: doc.stories.map(story => story.full_slug === storyId ? { ...story, name: event.target.value } : story) })} /></label><ContentFields value={selectedStory.content} onChange={content => update({ ...doc, stories: doc.stories.map(story => story.full_slug === storyId ? { ...story, content } : story) })} /><button className="cms-button cms-danger" onClick={() => { if (window.confirm('Diesen Inhaltseintrag entfernen?')) { update({ ...doc, stories: doc.stories.filter(story => story.full_slug !== storyId) }); setStoryId(''); } }}><Trash2 size={15} /> Eintrag entfernen</button></>}</div>}
         {tab === 'media' && <div className="cms-pane">{mediaTarget && <div className="cms-row"><span>Medium für {fieldNames[mediaTarget.attribute || 'src']} wählen</span><button className="cms-icon" title="Auswahl abbrechen" onClick={() => setMediaTarget(null)}><X size={16} /></button></div>}<label className="cms-button cms-upload"><Upload size={16} /> {progress === null ? 'Bild / Video hochladen' : `Upload ${progress} %`}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm,video/quicktime" disabled={progress !== null} onChange={event => { const file = event.target.files?.[0]; if (file) uploadFile(file); event.target.value = ''; }} /></label><label className="cms-search"><Search size={15} /><input placeholder="Medien suchen" value={search} onChange={event => setSearch(event.target.value)} /></label><div className="cms-media-grid">{media.slice(0, 100).map(item => <button key={item.url} title={item.name} className="cms-medium" onClick={() => mediaTarget ? chooseMedia(item) : (navigator.clipboard.writeText(item.url).then(() => toast.success('Medienadresse kopiert')))}>{item.type === 'image' ? <img src={item.url} alt={item.alt || item.name} loading="lazy" /> : <video src={item.url} preload="none" muted />}<span>{item.name}</span></button>)}</div>{media.length > 100 && <p className="cms-muted">{media.length} Medien. Suche eingrenzen, um weitere zu finden.</p>}</div>}
       </aside>
-    </div>
+    </div>}
   </div>;
 }

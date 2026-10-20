@@ -9,7 +9,6 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useContactModal } from "../ContactModal";
 import { GoogleReviewSingle } from "../GoogleReviews";
-import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 import { usePageContent } from "../storyblok";
@@ -89,9 +88,8 @@ export function HomePage() {
     return mixed;
   }, [getImagesForPage, lang]);
 
-  const shuffledGallery = useShuffledGallery(allGalleryImages);
-  const visibleGallery = useMemo(() => shuffledGallery.slice(0, visibleCount), [shuffledGallery, visibleCount]);
-  const hasMoreGallery = visibleCount < shuffledGallery.length;
+  const visibleGallery = useMemo(() => allGalleryImages.slice(0, visibleCount), [allGalleryImages, visibleCount]);
+  const hasMoreGallery = visibleCount < allGalleryImages.length;
 
   const handleLoadMore = useCallback(() => {
     setVisibleCount(prev => prev + GALLERY_PAGE_SIZE);
@@ -431,7 +429,7 @@ export function HomePage() {
       </section>
 
       <Lightbox
-        images={shuffledGallery}
+        images={allGalleryImages}
         initialIndex={index}
         open={open}
         onClose={closeLightbox}

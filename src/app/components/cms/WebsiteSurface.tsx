@@ -96,6 +96,12 @@ export function WebsiteSurface() {
       const pageKey = ({ '/': 'home', '/hochzeiten': 'weddings', '/tierfotografie': 'animals', '/portrait': 'portrait', '/ueber-mich': 'about' } as Record<string, string>)[pathname];
       for (const edit of fields) {
         if (scope === '*') continue;
+        if (element.hasAttribute('data-cms-gallery-image')) {
+          const galleryPage = ({ '/hochzeiten': 'hochzeit', '/tierfotografie': 'tiere', '/portrait': 'portrait' } as Record<string, string>)[pathname];
+          const image = element.getAttribute('data-cms-gallery-image');
+          const story = getSiteDocument().stories.find(story => story.content.component === 'gallery_image' && (!galleryPage || story.content.page === galleryPage) && resolveSiteAsset(story.content.image_url?.filename || story.content.image_url || '') === image);
+          if (story && ['src', 'alt'].includes(edit.attribute || '')) { edit.sourceStory = story.full_slug; edit.sourceField = edit.attribute === 'src' ? 'image_url' : `alt_${lang}`; continue; }
+        }
         const candidates = getSiteDocument().stories.filter(story => story.full_slug === `pages/${pageKey}` || ['faq_item', 'review', 'package', 'gallery_image'].includes(story.content.component));
         for (const story of candidates) {
           const source = Object.entries(story.content).find(([key, value]) => {

@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 interface LightboxImage {
   src: string;
@@ -16,6 +17,7 @@ interface LightboxProps {
 
 export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) setCurrentIndex(initialIndex);
@@ -32,23 +34,23 @@ export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxPr
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
     };
     document.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
     };
   }, [open, onClose, goNext, goPrev]);
 
   if (!open || images.length === 0) return null;
 
   return (
+    <DialogPrimitive.Root open={open} onOpenChange={value => { if (!value) onClose(); }}>
+    <DialogPrimitive.Portal>
     <AnimatePresence>
       {open && (
+        <DialogPrimitive.Content asChild aria-describedby={undefined} onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }} onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -57,6 +59,7 @@ export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxPr
           className="fixed inset-0 z-[9999] flex items-center justify-center"
           onClick={onClose}
         >
+          <DialogPrimitive.Title className="sr-only">Bildergalerie</DialogPrimitive.Title>
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/95" />
 
@@ -104,13 +107,13 @@ export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxPr
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="relative z-5 max-w-[92vw] max-h-[88vh] flex items-center justify-center"
+              className="relative z-5 max-w-[92vw] max-h-[calc(100dvh-10rem)] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
               <img
                 src={images[currentIndex].src}
                 alt={images[currentIndex].alt}
-                className="max-w-full max-h-[88vh] object-contain select-none"
+                className="max-w-full max-h-[calc(100dvh-10rem)] object-contain select-none"
                 draggable={false}
               />
             </motion.div>
@@ -122,6 +125,8 @@ export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxPr
               {images.map((img, i) => (
                 <button
                   key={i}
+                  aria-label={`Bild ${i + 1} anzeigen`}
+                  aria-current={i === currentIndex ? 'true' : undefined}
                   onClick={(e) => { e.stopPropagation(); setCurrentIndex(i); }}
                   className={`shrink-0 w-12 h-12 md:w-16 md:h-16 overflow-hidden border-2 transition-all cursor-pointer bg-transparent p-0 ${
                     i === currentIndex ? "border-white opacity-100" : "border-transparent opacity-40 hover:opacity-70"
@@ -131,14 +136,18 @@ export function Lightbox({ images, initialIndex = 0, open, onClose }: LightboxPr
                     src={img.src}
                     alt={img.alt}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </button>
               ))}
             </div>
           )}
         </motion.div>
+        </DialogPrimitive.Content>
       )}
     </AnimatePresence>
+    </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 

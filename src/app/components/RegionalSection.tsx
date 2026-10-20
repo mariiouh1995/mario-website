@@ -23,8 +23,8 @@ export function RegionalSection({ wedding = false }: { wedding?: boolean }) {
       <p className="mb-10 max-w-2xl text-sm leading-7 text-black/70">{de ? 'Servus, ich bin Mario, Fotograf und Videograf aus Söll am Wilden Kaiser. Ich halte fest, was euch ausmacht: natürlich, persönlich und ohne steife Posen.' : 'Servus, I am Mario, a photographer and filmmaker from Söll near the Wilder Kaiser. I capture what makes you who you are: naturally, personally and without stiff poses.'}</p>
       <div className="grid gap-8 md:grid-cols-3">{areas.map(([title, text]) => <div key={title}><h3 className="mb-3 text-base font-medium">{title}</h3><p className="text-sm leading-7 text-black/70">{text}</p></div>)}</div>
       <div className="mt-10 flex flex-wrap gap-6">
-        <button className="inline-flex items-center gap-2 border-b border-black pb-1 text-sm" onClick={() => openContact(wedding ? 'wedding' : 'general')}>{de ? 'Erzählt mir von euren Plänen' : 'Tell me about your plans'}<ArrowRight size={16} /></button>
-        <Link className="text-sm underline underline-offset-4" to={wedding ? '/destination-wedding' : '/hochzeiten'}>{de ? (wedding ? 'Ihr heiratet im Ausland?' : 'Mehr zur Hochzeitsbegleitung') : (wedding ? 'Getting married abroad?' : 'Explore wedding photography')}</Link>
+        <button className="inline-flex min-h-11 items-center gap-2 border-b border-black pb-1 text-sm text-left" onClick={() => openContact(wedding ? 'wedding' : 'general')}>{de ? 'Erzählt mir von euren Plänen' : 'Tell me about your plans'}<ArrowRight size={16} className="shrink-0" /></button>
+        <Link className="inline-flex min-h-11 items-center text-sm underline underline-offset-4" to={wedding ? '/destination-wedding' : '/hochzeiten'}>{de ? (wedding ? 'Ihr heiratet im Ausland?' : 'Mehr zur Hochzeitsbegleitung') : (wedding ? 'Getting married abroad?' : 'Explore wedding photography')}</Link>
       </div>
     </div>
   </section>;

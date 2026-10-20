@@ -1,7 +1,7 @@
 import { usePageContent } from "../storyblok";
 import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 import { GoogleReviewSingle } from "../GoogleReviews";
-import { useShuffledGallery } from "../useShuffledGallery";
+import { useImages } from "../useImages";
 import { ArrowRight, Check, Star, Heart, Leaf, Sun, Camera as CameraIcon } from "lucide-react";
 import { useLanguage } from "../LanguageContext";
 import { SectionReveal } from "../SectionReveal";
@@ -27,6 +27,7 @@ export function AnimalsPage() {
   const { t, lang } = useLanguage();
   const { open, index, openLightbox, closeLightbox } = useLightbox();
   const { openContact } = useContactModal();
+  const { getImagesForPage } = useImages();
   const { getText, getAsset, getIcon } = usePageContent("animals", lang);
 
   const seo = lang === "de"
@@ -112,40 +113,7 @@ export function AnimalsPage() {
     },
   ];
 
-  const galleryImages = [
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3474_(WebRes).jpg?updatedAt=1772999916029", alt: "Hundeshooting Outdoor – Tierfotografie Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3137_(WebRes).jpg?updatedAt=1772999916001", alt: "Hundeportrait im Wald – Tierfotograf Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1604_(WebRes).jpg?updatedAt=1772999915990", alt: "Hund in der Natur – Outdoor Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2905_(WebRes).jpg?updatedAt=1772999915968", alt: "Hundeshooting Herbst – Mario Schubert Fotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3887_(WebRes).jpg?updatedAt=1772999915959", alt: "Professionelles Hundeportrait – Tierfotografie Alpen" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3825_(WebRes).jpg?updatedAt=1772999915827", alt: "Hund auf der Wiese – Tiershooting Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3321_(WebRes).jpg?updatedAt=1772999915644", alt: "Hundefotografie Outdoor – Natürliches Licht" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3406_(WebRes).jpg?updatedAt=1772999915637", alt: "Hundeblick – Emotionale Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1936_(WebRes).jpg?updatedAt=1772999915611", alt: "Hund im Herbstlaub – Tierfotograf Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-3925_(WebRes).jpg?updatedAt=1772999915496", alt: "Hundeshooting Goldene Stunde – Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4206_(WebRes).jpg?updatedAt=1772999915438", alt: "Hund Portrait Close-up – Mario Schubert" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2275_(WebRes).jpg?updatedAt=1773000790968", alt: "Hundeshooting Nahaufnahme – Tierfotografie Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2260_(WebRes).jpg?updatedAt=1773000797178", alt: "Hund Outdoor Portrait – Tierfotograf Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_0606_(WebRes).jpg?updatedAt=1773000798391", alt: "Tierfotografie Natur – Professionelles Tiershooting" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-2288_(WebRes).jpg?updatedAt=1773000799744", alt: "Hundeportrait Outdoor – Mario Schubert Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1038_(WebRes).jpg?updatedAt=1773000802084", alt: "Tiershooting im Freien – Tierfotograf Alpen" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_0996_(WebRes).jpg?updatedAt=1773000802181", alt: "Natürliche Tierfotografie – Outdoor Shooting Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1141_(WebRes).jpg?updatedAt=1773000802588", alt: "Tierfotografie Goldene Stunde – Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1083_(WebRes).jpg?updatedAt=1773000803246", alt: "Professionelles Tiershooting – Tierfotograf Bayern" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1054_(WebRes).jpg?updatedAt=1773000803645", alt: "Tier im Abendlicht – Outdoor Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_R52_1146_(WebRes).jpg?updatedAt=1773000805276", alt: "Tierfotografie Detail – Mario Schubert Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8472.jpg?updatedAt=1773000809216", alt: "Pferdefotografie – Majestic Horse Portrait Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/8D2A8536.jpg?updatedAt=1773000811495", alt: "Pferdeportrait Outdoor – Pferdefotograf Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1616_(WebRes).jpg?updatedAt=1772999915085", alt: "Hund im Freien – Professionelle Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1812_(WebRes).jpg?updatedAt=1772999915072", alt: "Hundeportrait Natur – Tierfotograf Innsbruck" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1788_(WebRes).jpg?updatedAt=1772999915075", alt: "Hund Spaziergang – Outdoor Tierfotografie Tirol" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1716_(WebRes).jpg?updatedAt=1772999915061", alt: "Hund im Abendlicht – Emotionale Hundefotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-1606_(WebRes)-2.jpg?updatedAt=1772999913978", alt: "Hundeshooting Detail – Tierfotografie Alpen" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4107_(WebRes).jpg?updatedAt=1772999913835", alt: "Hund im Grünen – Natürliche Tierfotografie" },
-    { src: "https://ik.imagekit.io/r2yqrg6np/Tiere/20251019_Hundeshooting-4009_(WebRes).jpg?updatedAt=1772999913826", alt: "Hundeportrait Outdoor – Tierfotograf Bayern" },
-  ];
-
-  const shuffledGalleryImages = useShuffledGallery(galleryImages);
+  const shuffledGalleryImages = getImagesForPage('tiere', undefined, lang);
 
   return (
     <>

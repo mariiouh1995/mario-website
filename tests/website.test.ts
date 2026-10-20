@@ -44,3 +44,26 @@ test('video URLs accept YouTube links without permitting arbitrary iframe origin
   assert.equal(youtubeEmbedUrl('https://example.com/embed/B5ncNtkQkKs'), '');
   assert.equal(youtubeEmbedUrl('javascript:alert(1)'), '');
 });
+import { addGalleryImages, changeGalleryImage, galleryRows, galleryUrl, moveGalleryImage } from '../src/content/gallery';
+
+test('public price replacement never consumes punctuation or the word eure', () => {
+  for (const text of ['Euer Moment. Eure Bilder', 'Euer Tag, eure Geschichte', 'Anfrage, eure Wünsche', 'Everything, euros included']) assert.equal(cleanPublicText(text), text);
+  assert.equal(cleanPublicText('Paket 550,50 € und 1.200 EUR'), 'Paket Auf Anfrage und Auf Anfrage');
+});
+
+test('gallery operations preserve page boundaries, handle imported duplicates and persist order', () => {
+  const make = (id: string, page: string, url: string, order: number): any => ({ uuid: id, slug: id, full_slug: 'gallery/' + id, name: id, content: { component: 'gallery_image', page, image_url: url, sort_order: order } });
+  const initial = [make('a', 'hochzeit', 'https://example.com/a.jpg', 1), make('b', 'hochzeit', 'https://example.com/b.jpg', 2), make('copy-a', 'hochzeit', 'https://example.com/a.jpg', 3), make('animal', 'tiere', 'https://example.com/a.jpg', 1)];
+  assert.deepEqual(galleryRows(initial, 'hochzeit').map(row => row.slug), ['a', 'b']);
+  const moved = moveGalleryImage(initial, 'hochzeit', ['gallery/a', 'gallery/b'], 'gallery/b', -1);
+  assert.deepEqual(galleryRows(moved, 'hochzeit').map(row => row.slug), ['b', 'a']);
+  const updated = changeGalleryImage(moved, initial[0], { image_url: 'https://example.com/c.jpg', category: 'party' });
+  assert.equal(updated.filter(row => row.content.page === 'hochzeit' && galleryUrl(row) === 'https://example.com/c.jpg').length, 2);
+  const deleted = changeGalleryImage(updated, galleryRows(updated, 'hochzeit')[1], null);
+  assert.equal(galleryRows(deleted, 'hochzeit').length, 1);
+  assert.equal(galleryRows(deleted, 'tiere').length, 1);
+  const added = addGalleryImages(deleted, 'hochzeit', 'standesamt', [{ url: 'https://example.com/b.jpg', name: 'duplicate', type: 'image' }, { url: 'https://example.com/new.jpg', name: 'New', type: 'image' }]);
+  assert.equal(galleryRows(added, 'hochzeit').length, 2);
+  assert.equal(galleryRows(added, 'hochzeit')[1].content.category, 'standesamt');
+  assert.equal(initial[0].content.sort_order, 1, 'source is not mutated');
+});

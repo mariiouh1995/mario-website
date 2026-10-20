@@ -15,7 +15,6 @@ import { usePageContent } from "../storyblok";
 import { useWeddingPackages } from "../usePackagesFormatted";
 import { ConsentVideo } from '../ConsentVideo';
 import { useImages } from "../useImages";
-import { useShuffledGallery } from "../useShuffledGallery";
 import { GoogleReviewsGrid } from "../GoogleReviews";
 import { RegionalSection } from '../RegionalSection';
 
@@ -67,19 +66,16 @@ export function WeddingsPage() {
     { key: "party", label: { de: "Abend-Party", en: "Evening Party" } },
   ];
 
-  // Get all wedding images from Google Sheets (with fallback)
+  // The CMS order is also the visible order in each category.
   const weddingGallery = useMemo(
     () => getImagesForPage("hochzeit", undefined, lang),
     [getImagesForPage, lang]
   );
 
-  // Shuffle gallery on mount for varied display each page load
-  const shuffledGallery = useShuffledGallery(weddingGallery);
-
   // Filter by selected category
   const filteredGallery = useMemo(
-    () => galleryCategory === "all" ? shuffledGallery : shuffledGallery.filter((img) => img.category === galleryCategory),
-    [shuffledGallery, galleryCategory]
+    () => galleryCategory === "all" ? weddingGallery : weddingGallery.filter((img) => img.category === galleryCategory),
+    [weddingGallery, galleryCategory]
   );
 
   // Visible slice for Load More
