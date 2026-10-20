@@ -1,5 +1,8 @@
 @custom-variant dark (&:is(.dark *));
 
+[data-image-framing] { object-position: var(--image-position-mobile, 50% 50%); }
+@media (min-width: 768px) { [data-image-framing] { object-position: var(--image-position-desktop, 50% 50%); } }
+
 :root {
   --font-size: 16px;
   --background: #ffffff;

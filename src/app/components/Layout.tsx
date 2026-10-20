@@ -136,7 +136,7 @@ export function Layout() {
             </Link>
 
             {/* Desktop Nav */}
-            <div className="hidden lg:flex items-center gap-8">
+            <div className="hidden xl:flex items-center gap-8">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
@@ -178,7 +178,7 @@ export function Layout() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="lg:hidden bg-transparent border-none cursor-pointer p-2 min-w-11 min-h-11 text-black"
+              className="xl:hidden bg-transparent border-none cursor-pointer p-2 min-w-11 min-h-11 text-black"
               aria-label={menuOpen ? "Menü schließen" : "Menü öffnen"}
               aria-expanded={menuOpen}
               aria-controls="mobile-navigation"
@@ -219,7 +219,7 @@ export function Layout() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               id="mobile-navigation"
-              className="lg:hidden overflow-y-auto max-h-[calc(100dvh-5rem)] bg-white border-t border-black/5"
+              className="xl:hidden overflow-y-auto max-h-[calc(100dvh-5rem)] bg-white border-t border-black/5"
             >
               <div className="px-4 py-6 flex flex-col">
                 {navItems.map((item) => (
@@ -387,7 +387,7 @@ export function Layout() {
       </footer>
 
       {publicPaths.includes(location.pathname) && !new URLSearchParams(location.search).has('cms-preview') && <FloatingWhatsApp />}
-      {publicPaths.includes(location.pathname) && <CookieBanner />}
+      {publicPaths.includes(location.pathname) && <CookieBanner preview={new URLSearchParams(location.search).has('cms-preview')} />}
     </div>
   );
 }

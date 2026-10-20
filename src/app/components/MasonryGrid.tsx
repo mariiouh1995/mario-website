@@ -46,10 +46,7 @@ export function MasonryGrid({
               whileHover={{ scale: 0.98 }}
               transition={{ duration: 0.3 }}
             >
-              <motion.div
-                whileHover={{ scale: 1.08 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              >
+              <div>
                 <img
                   data-cms-gallery-image={img.src}
                   src={img.src}
@@ -62,7 +59,7 @@ export function MasonryGrid({
                     if (parent) parent.style.display = "none";
                   }}
                 />
-              </motion.div>
+              </div>
             </motion.button>
           </SectionReveal>
         </div>

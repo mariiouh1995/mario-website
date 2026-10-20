@@ -1,6 +1,6 @@
 export type SiteStory = { name: string; slug: string; full_slug: string; uuid: string; content: Record<string, any>; [key: string]: any };
 export type SiteEdit = { id: string; page: string; lang: string; selector: string; kind: 'text' | 'attribute'; index?: number; attribute?: string; original: string; value: string; sourceStory?: string; sourceField?: string };
-export type SiteMedia = { url: string; name: string; type: 'image' | 'video'; alt?: string };
+export type SiteMedia = { url: string; name: string; type: 'image' | 'video'; alt?: string; framing?: ImageFraming };
 export type SiteDocument = { stories: SiteStory[]; edits: SiteEdit[]; media: SiteMedia[]; capturedAt: string };
 
 export const removedService = /spieglein|fotospiegel|photo\s*mirror|fotobox|photo\s*booth/i;
@@ -61,7 +61,10 @@ export function validateSiteDocument(input: unknown): asserts input is SiteDocum
       if (edit.attribute === 'href' && !/^(https?:\/\/|mailto:|tel:|#|\/(?!\/))/.test(edit.value)) throw new Error('Ungültiger Link.');
     }
   }
-  for (const medium of doc.media) if (!medium || !validMediaUrl(medium.url) || !['image', 'video'].includes(medium.type)) throw new Error('Ungültiges Medium.');
+  for (const medium of doc.media) {
+    if (!medium || !validMediaUrl(medium.url) || !['image', 'video'].includes(medium.type)) throw new Error('Ungültiges Medium.');
+    if (medium.framing !== undefined && !validImageFraming(medium.framing)) throw new Error('Ungültiger Bildausschnitt. Bitte die Position neu auswählen.');
+  }
 }
 
 export function collectMedia(stories: SiteStory[]): SiteMedia[] {
@@ -75,3 +78,4 @@ export function collectMedia(stories: SiteStory[]): SiteMedia[] {
   stories.forEach(story => visit(story.content, story.name));
   return [...media.values()];
 }
+import { validImageFraming, type ImageFraming } from './image-framing.js';

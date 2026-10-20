@@ -23,6 +23,10 @@ The Vercel routes intentionally render public pages before checking static files
   five seconds; the captured website is an availability fallback, not CRM mock data.
 - Text and media can be selected in the preview. Packages, FAQs,
   reviews and SEO fields are also editable under Inhalte.
+- Select a page image (or an empty area of its hero background) to adjust its
+  position with the 9-point grid. Desktop and mobile positions are independent,
+  stored with the media record, and follow the draft/publish workflow. Reset
+  restores the curated default. Gallery photos retain their full aspect ratio.
 - Admin > Website > Galerien manages wedding, animal and portrait gallery images:
   upload or select media, replace images, edit descriptions/categories, reorder,
   and remove images. Imported duplicates are handled as one image per gallery.
@@ -50,6 +54,8 @@ views and gallery editing without saving changes. `node tests/ui-audit.mjs`
 captures the eight public pages at four widths and checks layout geometry.
 Set `TEST_BASE_URL` for regression tests and `UI_AUDIT_BASE_URL` for the audit;
 the gallery regression test defaults to the local port 5181.
+`node tests/image-framing-editor.mjs` exercises the 9-point controls without
+saving; `node tests/image-framing.mjs` captures original/cropped image comparisons.
 
 Consent controls do not replace verification of the business's provider contracts,
 Analytics account settings or the completeness of its legal disclosures.

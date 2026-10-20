@@ -80,6 +80,7 @@ export function PortraitPage() {
 
       {/* Hero with Parallax */}
       <ParallaxHero
+        imageFit="contain"
         imageSrc={getAsset("hero_image", IMAGES.hero)}
         imageAlt="Romantisches Couple Shooting Outdoor – Portrait und Paarfotografie in Innsbruck, Tirol von Mario Schubert"
         preTitle={getText("hero_title", t.portrait.heroTitle)}

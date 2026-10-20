@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { cleanPublicText, publicStories, validateSiteDocument } from '../src/content/site-content';
 import { parseConsent } from '../src/app/components/consent';
 import { youtubeEmbedUrl } from '../src/content/youtube';
+import { getImageFraming, positionCss, setImageFraming, validImageFraming } from '../src/content/image-framing';
 
 test('published packages hide prices and excluded services without changing customer records', () => {
   const stories: any[] = [
@@ -66,4 +67,19 @@ test('gallery operations preserve page boundaries, handle imported duplicates an
   assert.equal(galleryRows(added, 'hochzeit').length, 2);
   assert.equal(galleryRows(added, 'hochzeit')[1].content.category, 'standesamt');
   assert.equal(initial[0].content.sort_order, 1, 'source is not mutated');
+});
+
+test('image framing keeps desktop and mobile positions independent and restores defaults', () => {
+  const url = 'https://example.com/portrait.jpg';
+  const original: any[] = [{ url, name: 'Portrait', type: 'image' }];
+  const framing = { desktop: { x: 50, y: 0 }, mobile: { x: 100, y: 50 } };
+  const next = setImageFraming(original, url, framing);
+  assert.deepEqual(getImageFraming(url, next), framing);
+  assert.equal(positionCss(getImageFraming(url, next).mobile), '100% 50%');
+  assert.equal(original[0].framing, undefined);
+  assert.deepEqual(getImageFraming(url, setImageFraming(next, url)), { desktop: { x: 50, y: 50 }, mobile: { x: 50, y: 50 } });
+  assert.equal(validImageFraming(framing), true);
+  assert.equal(validImageFraming({ ...framing, mobile: { x: 101, y: 50 } }), false);
+  assert.equal(validImageFraming({ ...framing, desktop: { x: NaN, y: 0 } }), false);
+  assert.throws(() => validateSiteDocument({ stories: [], edits: [], media: [{ url, name: 'Invalid', type: 'image', framing: { desktop: { x: 0, y: 0 }, mobile: { x: 'url(script)', y: 0 } } }] }));
 });

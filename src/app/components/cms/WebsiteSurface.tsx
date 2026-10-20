@@ -69,6 +69,10 @@ export function WebsiteSurface() {
     const describe = (target: Element) => {
       const embeddedVideo = target.closest('[data-cms-video-src]');
       let element = embeddedVideo || target.closest('img, video, iframe') || target.closest('a, button, label, p, h1, h2, h3, h4, h5, h6, li, span, strong, em, input, textarea') || target;
+      if (element === target && !target.matches('img, video, iframe, a, button, label, p, h1, h2, h3, h4, h5, h6, li, span, strong, em, input, textarea')) {
+        const hero = target.closest('section');
+        if (hero?.querySelector('h1')) element = hero.querySelector('[data-image-framing], video') || element;
+      }
       if (!element.textContent?.trim() && !['IMG', 'VIDEO', 'IFRAME'].includes(element.tagName)) element = element.closest('section')?.querySelector('video,img') || element;
       if (element.closest('svg, script, style, [data-cms-ignore]')) return;
       const selector = selectorFor(element);
@@ -114,7 +118,7 @@ export function WebsiteSurface() {
         }
       }
       if (!fields.length) return;
-      post({ type: 'selection', tag: element.tagName.toLowerCase(), fields });
+      post({ type: 'selection', tag: element.tagName.toLowerCase(), fields, framing: element.hasAttribute('data-image-framing') });
     };
     const click = (event: MouseEvent) => {
       if (!preview) return;
