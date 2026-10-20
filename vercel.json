@@ -1,9 +1,103 @@
 {
-  "buildCommand": "vite build",
+  "buildCommand": "npm run build",
+  "regions": [
+    "fra1"
+  ],
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
-    { "source": "/robots.txt", "destination": "/robots.txt" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "functions": {
+    "api/website.ts": {
+      "includeFiles": "{dist/index.html,dist-server/**}",
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "continue": true
+    },
+    {
+      "src": "/api/(.*)",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow",
+        "Cache-Control": "no-store"
+      },
+      "continue": true
+    },
+    {
+      "src": "/(admin|kundenportal/.*|angebot/.*)",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/(hochzeiten|tierfotografie|portrait|ueber-mich|destination-wedding|impressum|datenschutz)/+$",
+      "headers": {
+        "Location": "/$1"
+      },
+      "status": 308
+    },
+    {
+      "src": "^/$",
+      "dest": "/api/website?action=page&path=%2F"
+    },
+    {
+      "src": "^/hochzeiten$",
+      "dest": "/api/website?action=page&path=%2Fhochzeiten"
+    },
+    {
+      "src": "^/tierfotografie$",
+      "dest": "/api/website?action=page&path=%2Ftierfotografie"
+    },
+    {
+      "src": "^/portrait$",
+      "dest": "/api/website?action=page&path=%2Fportrait"
+    },
+    {
+      "src": "^/ueber-mich$",
+      "dest": "/api/website?action=page&path=%2Fueber-mich"
+    },
+    {
+      "src": "^/destination-wedding$",
+      "dest": "/api/website?action=page&path=%2Fdestination-wedding"
+    },
+    {
+      "src": "^/impressum$",
+      "dest": "/api/website?action=page&path=%2Fimpressum"
+    },
+    {
+      "src": "^/datenschutz$",
+      "dest": "/api/website?action=page&path=%2Fdatenschutz"
+    },
+    {
+      "src": "^/sitemap\\.xml$",
+      "dest": "/api/website?action=sitemap"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/admin/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/kundenportal/[^/]+/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "^/angebot/[^/]+/?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/website?action=not-found"
+    }
   ]
 }

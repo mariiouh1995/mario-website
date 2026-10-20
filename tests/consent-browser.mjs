@@ -1,0 +1,42 @@
+import { chromium } from '@playwright/test';
+import assert from 'node:assert/strict';
+const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5180';
+const browser = await chromium.launch();
+const context = await browser.newContext();
+if (process.env.TEST_VERCEL_BYPASS) await context.route(base + '/**', route => route.continue({ headers: { ...route.request().headers(), 'x-vercel-protection-bypass': process.env.TEST_VERCEL_BYPASS } }));
+const requests = [];
+await context.route(/googletagmanager\.com|google-analytics\.com|youtube(?:-nocookie)?\.com/, async route => {
+  requests.push(route.request().url());
+  await route.fulfill({ status: 200, contentType: route.request().resourceType() === 'script' ? 'application/javascript' : 'text/html', body: route.request().resourceType() === 'script' ? "window.__analyticsTestLoaded=true; document.cookie='_ga=test; path=/';" : '<html><body>Video test</body></html>' });
+});
+const page = await context.newPage();
+try {
+  await page.goto(base + '/hochzeiten');
+  await page.getByRole('button', { name: 'Alle ablehnen', exact: true }).click();
+  assert.equal(requests.length, 0, 'No optional services before consent or after rejection');
+  await page.getByRole('button', { name: 'Cookie-Einstellungen', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Deine Privatsphäre' });
+  await dialog.locator('label').filter({ hasText: 'Google Analytics' }).locator('input').check();
+  await dialog.getByRole('button', { name: 'Auswahl speichern', exact: true }).click();
+  await page.waitForFunction(() => window.__analyticsTestLoaded);
+  assert.ok(requests.some(url => url.includes('G-YPBWYFCNYX')));
+  assert.equal(requests.some(url => /youtube/.test(url)), false, 'Analytics does not enable videos');
+  assert.ok((await context.cookies()).some(cookie => cookie.name === '_ga'));
+  await page.getByRole('button', { name: 'Cookie-Einstellungen', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Alle ablehnen', exact: true }).click();
+  assert.equal(await page.evaluate(() => window['ga-disable-G-YPBWYFCNYX']), true);
+  assert.equal((await context.cookies()).some(cookie => cookie.name === '_ga'), false, 'Withdrawal clears Analytics cookies');
+  await page.getByRole('button', { name: /^videos$/i }).click();
+  await page.getByRole('button', { name: 'Video-Einstellungen öffnen' }).first().click();
+  await dialog.locator('label').filter({ hasText: 'Externe Videos' }).locator('input').check();
+  await dialog.getByRole('button', { name: 'Auswahl speichern', exact: true }).click();
+  await page.locator('iframe[src*="youtube"]').first().waitFor();
+  await page.getByRole('button', { name: 'Cookie-Einstellungen', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Alle ablehnen', exact: true }).click();
+  assert.equal(await page.locator('iframe[src*="youtube"]').count(), 0);
+  const count = requests.length;
+  await page.goto(base + '/admin');
+  await page.locator('input[type="password"]').waitFor();
+  assert.equal(requests.length, count, 'Private routes do not load tracking');
+  console.log('Consent verified: initial blocking, rejection, separate choices, existing GA property, withdrawal, cookie deletion, video removal and private-route exclusion. Google requests were intercepted, not sent.');
+} finally { await browser.close(); }

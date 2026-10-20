@@ -13,11 +13,17 @@ const LanguageContext = createContext<LanguageContextType>({
   toggleLanguage: () => {},
 });
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Language>("de");
+export function LanguageProvider({ children, initialLanguage = 'de' }: { children: ReactNode; initialLanguage?: Language }) {
+  const [lang, setLang] = useState<Language>(() => typeof window === 'undefined' ? initialLanguage : new URLSearchParams(window.location.search).get('lang') === 'en' ? 'en' : 'de');
 
   const toggleLanguage = useCallback(() => {
-    setLang((prev) => (prev === "de" ? "en" : "de"));
+    setLang((prev) => {
+      const next = prev === 'de' ? 'en' : 'de';
+      const url = new URL(window.location.href);
+      if (next === 'en') url.searchParams.set('lang', 'en'); else url.searchParams.delete('lang');
+      window.history.replaceState(window.history.state, '', url);
+      return next;
+    });
   }, []);
 
   const t = translations[lang];

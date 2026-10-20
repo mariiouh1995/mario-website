@@ -1,3 +1,4 @@
+import { getSiteDocument } from '../../content/site-client';
 // Central FAQ data with DE/EN translations, organized by category
 // Source: Mario Schubert FAQ spreadsheet
 
@@ -130,8 +131,8 @@ export const faqCategories: FAQCategory[] = [
       {
         q: { de: "In welcher Preisspanne liegen deine Leistungen?", en: "What is your price range?" },
         a: {
-          de: "Meine Reportagen und Shootings liegen je nach Dauer, Umfang und ob Foto, Video oder beides im Bereich von etwa 2.500 bis 3.500 Euro und darüber. Eine detaillierte Übersicht der Pakete bekommst du im persönlichen Angebot.",
-          en: "My reportages and shoots range from about 2,500 to 3,500 euros and above, depending on duration, scope and whether it's photo, video or both. You'll get a detailed package overview in a personal quote.",
+          de: "Meine Preise erhaltet ihr auf Anfrage. Erzählt mir von euren Plänen, dann stelle ich euch ein persönliches Angebot zusammen.",
+          en: "Prices are available on request. Tell me about your plans and I will prepare a personal offer for you.",
         },
       },
       {
@@ -422,13 +423,6 @@ export const faqCategories: FAQCategory[] = [
           en: "Yes, I'll accompany you not only in Tyrol and Bavaria, but also across Europe and worldwide. Whether mountains, lake, city or abroad, we simply clarify travel, accommodation and any travel days in advance.",
         },
       },
-      {
-        q: { de: "Was ist das Spieglein?", en: "What is the Spieglein (photo mirror)?" },
-        a: {
-          de: "Das Spieglein ist ein moderner Fotospiegel für eure Hochzeit. Stilvoll, interaktiv und ein echtes Highlight für eure Gäste. Kein Plastik-Kasten, sondern ein Spiegel, der aussieht, als gehöre er zur Deko. Wenn du bei mir eine Fotobegleitung buchst, bekommst du das Spieglein zum Vorzugspreis.",
-          en: "The Spieglein is a modern photo mirror for your wedding. Stylish, interactive and a real highlight for your guests. Not a plastic box, but a mirror that looks like it belongs to the decor. When you book photo coverage with me, you get the Spieglein at a preferential rate.",
-        },
-      },
     ],
   },
   {
@@ -462,7 +456,16 @@ export const faqCategories: FAQCategory[] = [
 
 // Helper to get FAQs for specific categories
 export function getFAQsByCategories(categoryKeys: string[]): FAQCategory[] {
-  return faqCategories.filter((cat) => categoryKeys.includes(cat.key));
+  const stories = getSiteDocument().stories.filter(story => story.content.component === 'faq_item');
+  const groups = new Map<string, FAQCategory>();
+  for (const story of [...stories].sort((a, b) => Number(a.content.sort_order || 0) - Number(b.content.sort_order || 0))) {
+    const c = story.content;
+    const key = c.category_key || c.category || 'allgemein';
+    if (!categoryKeys.includes(key)) continue;
+    if (!groups.has(key)) groups.set(key, { key, label: { de: c.category_label_de || key, en: c.category_label_en || c.category_label_de || key }, items: [] });
+    groups.get(key)!.items.push({ q: { de: c.question_de || '', en: c.question_en || c.question_de || '' }, a: { de: c.answer_de || '', en: c.answer_en || c.answer_de || '' } });
+  }
+  return categoryKeys.map(key => groups.get(key)).filter((group): group is FAQCategory => Boolean(group));
 }
 
 // Page-specific FAQ mappings

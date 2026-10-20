@@ -11,8 +11,8 @@ export function ImpressumPage() {
       <SEO
         title={lang === "de" ? "Impressum | Mario Schubert Photography" : "Imprint | Mario Schubert Photography"}
         description={lang === "de"
-          ? "Impressum von Mario Schubert Fotografie, Innsbruck, Tirol. Angaben gemäß §5 TMG."
-          : "Legal notice of Mario Schubert Photography, Innsbruck, Tyrol."}
+          ? "Impressum von Mario Schubert Fotografie, Söll, Tirol."
+          : "Legal notice of Mario Schubert Photography, Söll, Tyrol."}
         canonical="/impressum"
         lang={lang}
         keywords="Impressum Mario Schubert, Fotograf Innsbruck Kontakt, Imprint"
@@ -60,15 +60,15 @@ export function ImpressumPage() {
                     fontWeight: 600,
                   }}
                 >
-                  {lang === "de" ? "Angaben gemäß §5 TMG" : "Information according to §5 TMG"}
+                  {lang === "de" ? "Anbieter und Kontakt" : "Business and contact"}
                 </h2>
                 <div className="space-y-1">
                   <p className="text-black/70 text-[0.9rem]" style={{ fontWeight: 400 }}>
                     Mario Schubert Fotografie
                   </p>
                   <p className="text-black/60 text-[0.9rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
-                    Bäckerbühelgasse 14<br />
-                    6020 Innsbruck<br />
+                    Hauning 30a<br />
+                    6306 Söll<br />
                     Austria
                   </p>
                 </div>
@@ -98,8 +98,8 @@ export function ImpressumPage() {
               <div className="pt-8 border-t border-black/10">
                 <p className="text-black/40 text-[0.8rem]" style={{ lineHeight: 1.7, fontWeight: 300 }}>
                   {lang === "de"
-                    ? "Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV: Mario Schubert, Bäckerbühelgasse 14, 6020 Innsbruck, Austria."
-                    : "Responsible for content according to § 55 Abs. 2 RStV: Mario Schubert, Bäckerbühelgasse 14, 6020 Innsbruck, Austria."}
+                    ? "Inhaltlich verantwortlich: Mario Schubert, Hauning 30a, 6306 Söll, Österreich."
+                    : "Responsible for the content: Mario Schubert, Hauning 30a, 6306 Söll, Austria."}
                 </p>
               </div>
             </div>

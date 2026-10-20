@@ -13,9 +13,11 @@ import { FAQSection } from "../FAQSection";
 import { getFAQsByCategories, PAGE_FAQ_CATEGORIES } from "../faqData";
 import { usePageContent } from "../storyblok";
 import { useWeddingPackages } from "../usePackagesFormatted";
+import { ConsentVideo } from '../ConsentVideo';
 import { useImages } from "../useImages";
 import { useShuffledGallery } from "../useShuffledGallery";
 import { GoogleReviewsGrid } from "../GoogleReviews";
+import { RegionalSection } from '../RegionalSection';
 
 const HERO_VIDEO = "https://ik.imagekit.io/r2yqrg6np/Lo%CC%88wenClip_fu%CC%88r_Webseite_compressed.mp4?updatedAt=1773077988312";
 
@@ -538,7 +540,7 @@ export function WeddingsPage() {
                         lineHeight: 1.1,
                       }}
                     >
-                      {pkg.price}
+                      {lang === 'de' ? 'Auf Anfrage' : 'On request'}
                     </p>
                     <p
                       className="text-black/50 text-[0.8rem] mb-6"
@@ -842,8 +844,8 @@ export function WeddingsPage() {
               ].map((video, i) => (
                 <SectionReveal key={video.id} delay={i * 0.08}>
                   <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "16/9" }}>
-                    <iframe
-                      src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1`}
+                    <ConsentVideo
+                      src={getText(`gallery_video_${i + 1}_url`, `https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1`)}
                       title={`${video.title} ${i + 1}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
@@ -858,29 +860,13 @@ export function WeddingsPage() {
         </div>
       </section>
 
-      <section className="px-4 py-10 bg-[#f8f7f5]">
-        <div className="max-w-7xl mx-auto">
-          <a href="/das-spieglein" className="group block border border-black/10 bg-white px-5 py-5 md:px-8 md:py-6 no-underline text-black hover:border-black/25 transition-colors">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-[0.72rem] tracking-[0.24em] uppercase text-black/45 mb-2">das Spieglein</p>
-                <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.25rem, 2vw, 1.8rem)", fontWeight: 700 }}>Fotobox mit Wow-Faktor</h2>
-                <p className="mt-2 text-sm text-black/60 max-w-2xl">Sofortdrucke, Requisiten, Onlinegalerie und ein Fotospiegel, der eure Gäste unkompliziert zum Lachen bringt.</p>
-              </div>
-              <span className="inline-flex items-center gap-2 text-[0.75rem] tracking-[0.15em] uppercase group-hover:gap-3 transition-all">
-                Entdecken <ArrowRight className="w-4 h-4" />
-              </span>
-            </div>
-          </a>
-        </div>
-      </section>
-
       {/* Wedding Testimonials */}
       <GoogleReviewsGrid
         count={3}
         title={lang === "de" ? "Das sagen meine Paare" : "What my couples say"}
       />
 
+      <RegionalSection wedding />
       {/* Wedding FAQ */}
       <FAQSection
         categories={getFAQsByCategories(PAGE_FAQ_CATEGORIES.weddings)}
@@ -960,69 +946,6 @@ export function WeddingsPage() {
               </SectionReveal>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Wedding Guide Download CTA */}
-      <section className="py-20 md:py-28 bg-[#f8f7f5] px-4">
-        <div className="max-w-3xl mx-auto">
-          <SectionReveal>
-            <div className="relative border border-black/10 bg-white p-8 sm:p-12 md:p-16 text-center overflow-hidden">
-              {/* Decorative corner accents */}
-              <div className="absolute top-4 left-4 w-8 h-8 border-t border-l border-black/15" />
-              <div className="absolute top-4 right-4 w-8 h-8 border-t border-r border-black/15" />
-              <div className="absolute bottom-4 left-4 w-8 h-8 border-b border-l border-black/15" />
-              <div className="absolute bottom-4 right-4 w-8 h-8 border-b border-r border-black/15" />
-
-              <p
-                className="text-[0.7rem] tracking-[0.35em] uppercase text-black/50 mb-4"
-                style={{ fontWeight: 400 }}
-              >
-                {lang === "de" ? "Kostenloser Download" : "Free Download"}
-              </p>
-              <h2
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: "clamp(1.6rem, 3.5vw, 2.5rem)",
-                  fontWeight: 300,
-                  lineHeight: 1.15,
-                  marginBottom: "1rem",
-                }}
-              >
-                Wedding Guide
-              </h2>
-              <p
-                className="text-black/50 text-[0.82rem] mb-2"
-                style={{ fontWeight: 300, fontStyle: "italic" }}
-              >
-                {lang === "de" ? "Saison 2026/27" : "Season 2026/27"}
-              </p>
-              <p
-                className="text-black/65 text-[0.88rem] max-w-md mx-auto mb-10"
-                style={{ lineHeight: 1.75, fontWeight: 300 }}
-              >
-                {lang === "de"
-                  ? "Alle Infos zu meinen Paketen, meinem Stil und wertvolle Tipps für eure Hochzeitsplanung \u2013 kompakt zusammengefasst."
-                  : "All the info about my packages, my style and valuable tips for your wedding planning \u2013 in one compact guide."}
-              </p>
-              <a
-                href="https://ik.imagekit.io/r2yqrg6np/WeddingGuide_MarioSchubert_Saison26_27_compressed.pdf?updatedAt=1773007904883"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 bg-black text-white px-10 py-4 text-[0.8rem] tracking-[0.15em] uppercase no-underline hover:bg-black/80 transition-all duration-300"
-                style={{ fontWeight: 400 }}
-              >
-                <Download size={16} />
-                {lang === "de" ? "Guide herunterladen" : "Download Guide"}
-              </a>
-              <p
-                className="text-black/40 text-[0.72rem] mt-6"
-                style={{ fontWeight: 300 }}
-              >
-                PDF · {lang === "de" ? "Kostenlos & unverbindlich" : "Free & no strings attached"}
-              </p>
-            </div>
-          </SectionReveal>
         </div>
       </section>
 

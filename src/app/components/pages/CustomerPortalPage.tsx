@@ -281,8 +281,6 @@ export function CustomerPortalPage() {
   const visibleOffers = offers.filter((offer) => offer.status !== "entwurf");
   const inspirationLinks = customer.inspirationLinks || [];
   const weddingTimeline = timelineDraft;
-  const hasSpiegleinService = services.some((service) => service.name.toLowerCase().includes("spieglein"));
-  const hasSpiegleinCatalog = serviceCatalog.some((item) => item.active !== false && item.name.toLowerCase().includes("spieglein"));
 
   const portalApi = async (action: string, body: Record<string, unknown>) => {
     const res = await fetch(`/api/mario-crm?action=${action}`, {
@@ -677,33 +675,16 @@ export function CustomerPortalPage() {
           </section>
         )}
 
-        {!hasSpiegleinService && hasSpiegleinCatalog && (
-          <section className="bg-white/70 border border-black/8 rounded-lg p-4 md:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <Camera className="w-5 h-5 text-[#8a6a45] mt-0.5" />
-                <div>
-                  <h2 className="text-base font-medium">Ihr braucht noch eine Fotobox?</h2>
-                  <p className="text-sm text-black/55 mt-1">Mit das Spieglein bekommen eure Gäste Sofortdrucke, Requisiten und eine digitale Galerie.</p>
-                </div>
-              </div>
-              <a href="/das-spieglein" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 py-2.5 text-sm hover:border-black/25">
-                das Spieglein ansehen <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-          </section>
-        )}
-
         {serviceCatalog.length > 0 && (
           <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
             <h2 className="text-lg font-medium mb-2">Weitere Leistungen und Add-ons buchen</h2>
             <p className="text-sm text-black/55 mb-4">Wenn ihr noch etwas ergänzen möchtet, könnt ihr es hier unverbindlich anfragen. Ich prüfe es und melde mich mit der finalen Bestätigung.</p>
             <div className="space-y-2">
-              {Array.from(new Set(serviceCatalog.filter((item) => item.active !== false && (!hasSpiegleinService || !item.name.toLowerCase().includes("spieglein"))).map((item) => item.group))).map((group) => (
+              {Array.from(new Set(serviceCatalog.filter((item) => item.active !== false && !/spieglein|fotospiegel/i.test(item.name)).map((item) => item.group))).map((group) => (
                 <details key={group} className="rounded-md border border-black/8 bg-[#faf8f5]">
                   <summary className="cursor-pointer px-4 py-3 font-medium">{group}</summary>
                   <div className="px-4 pb-4 space-y-2">
-                    {serviceCatalog.filter((item) => item.active !== false && item.group === group && (!hasSpiegleinService || !item.name.toLowerCase().includes("spieglein"))).map((item) => (
+                    {serviceCatalog.filter((item) => item.active !== false && item.group === group && !/spieglein|fotospiegel/i.test(item.name)).map((item) => (
                       <label key={item.id} className="flex items-start gap-3 rounded-md bg-white border border-black/8 px-3 py-3 text-sm">
                         <input
                           type="checkbox"
@@ -796,7 +777,7 @@ export function CustomerPortalPage() {
         <section className="bg-white border border-black/8 rounded-lg p-5 md:p-6">
           <h2 className="text-lg font-medium mb-2">Direkt zu mir</h2>
           <p className="text-sm text-black/55 mb-4">Wenn etwas offen ist oder ihr kurz etwas abstimmen wollt, erreicht ihr mich direkt hier.</p>
-          <p className="text-sm text-black/55 mb-4">Mario Schubert, Bäckerbühelgasse 14, 6020 Innsbruck</p>
+          <p className="text-sm text-black/55 mb-4">Mario Schubert, Hauning 30a, 6306 Söll</p>
           <div className="flex flex-col sm:flex-row gap-2">
             <a href="https://wa.me/4915155338029" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#11100f] text-white px-4 py-3 text-sm hover:bg-black">
               <MessageCircle className="w-4 h-4" /> WhatsApp

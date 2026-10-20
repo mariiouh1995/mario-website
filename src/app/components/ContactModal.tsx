@@ -208,7 +208,7 @@ function PackageCard({
           lineHeight: 1.2,
         }}
       >
-        {pkg.price}
+        {isDE ? 'Auf Anfrage' : 'On request'}
       </p>
       <p className="text-black/45 text-[0.75rem] mt-1" style={{ fontWeight: 300 }}>
         {isDE ? pkg.subtitle : pkg.subtitleEn}
@@ -525,9 +525,7 @@ function ContactModalInner({
       return addon ? (isDE ? addon.textDe : addon.textEn) : "";
     }).filter(Boolean);
 
-    const totalStr = priceBreakdown.total > 0
-      ? `${priceBreakdown.hasAb ? "ab " : ""}${formatPrice(priceBreakdown.total)}`
-      : "";
+    const totalStr = '';
 
     const interests: string[] = [];
     if (form.selectedPhotoPackage) interests.push(`Hochzeit Foto (${form.selectedPhotoPackage})`);
@@ -1126,7 +1124,7 @@ function ContactModalInner({
                           </div>
                           {form.meetingType === "vor-ort" && (
                             <p className="text-[0.72rem] text-black/35 mt-2" style={{ fontWeight: 300, lineHeight: 1.4 }}>
-                              {"\u{1F4CD}"} Backerbuhelgasse 14, 6020 Innsbruck
+                              {"\u{1F4CD}"} Hauning 30a, 6306 Söll
                             </p>
                           )}
                         </div>

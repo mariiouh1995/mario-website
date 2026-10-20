@@ -8,9 +8,9 @@ import { useContactModal } from "../ContactModal";
 const HERO_IMAGE = "https://ik.imagekit.io/r2yqrg6np/Wedding/Paarfotos/250830_LJ_152738_0428(LowRes).jpg?updatedAt=1773007053353";
 
 const examples = [
-  { place: "Mallorca", package: "Signature Fotografie", travel: "Reise 250 EUR", hotel: "Unterkunft 200 EUR", fee: "Blocking-Fee 500 EUR", total: "ca. 3.540 EUR" },
-  { place: "Island", package: "Complete Fotografie", travel: "Reise 450 EUR", hotel: "Unterkunft 300 EUR", fee: "Blocking-Fee 800 EUR", total: "ca. 5.040 EUR" },
-  { place: "Toskana", package: "Essential Fotografie", travel: "Reise 180 EUR", hotel: "Unterkunft 100 EUR", fee: "Blocking-Fee 300 EUR", total: "ca. 2.670 EUR" },
+  { place: "Mallorca", package: "Signature Fotografie", travel: "Reise individuell geplant", hotel: "Unterkunft nach Absprache", fee: "Reisetage berücksichtigt", total: "Auf Anfrage" },
+  { place: "Island", package: "Complete Fotografie", travel: "Reise individuell geplant", hotel: "Unterkunft nach Absprache", fee: "Reisetage berücksichtigt", total: "Auf Anfrage" },
+  { place: "Toskana", package: "Essential Fotografie", travel: "Reise individuell geplant", hotel: "Unterkunft nach Absprache", fee: "Reisetage berücksichtigt", total: "Auf Anfrage" },
 ];
 
 export function DestinationWeddingPage() {
@@ -50,14 +50,14 @@ export function DestinationWeddingPage() {
               Euer Paket bleibt die Basis.
             </h2>
             <p className="mt-6 text-black/65 leading-relaxed">
-              Für Destination Weddings wählt ihr zuerst ein Foto- oder Videopaket aus meiner Preisliste. Dazu kommen die tatsächlichen Reisekosten, eine Unterkunft bis maximal 100 EUR pro Nacht und eine Blocking-Fee für geblockte Reisetage.
+              Für eure Destination Wedding stelle ich ein persönliches Foto- oder Videoangebot zusammen. Reise, Unterkunft und geblockte Reisetage planen wir passend zu eurem Ort und eurem Ablauf. Alle Preise erhaltet ihr auf Anfrage.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <Info icon={<Sparkles className="w-5 h-5" />} title="Paket nach Wahl" text="Essential, Signature, Classic, Complete oder Foto + Video, passend zu eurem Tag." />
             <Info icon={<Plane className="w-5 h-5" />} title="Reise transparent" text="Flug, Bahn, Auto oder Fähre werden realistisch und nachvollziehbar kalkuliert." />
-            <Info icon={<Hotel className="w-5 h-5" />} title="Unterkunft" text="Wenn eine Übernachtung nötig ist, wird sie mit maximal 100 EUR pro Nacht angesetzt." />
-            <Info icon={<CalendarDays className="w-5 h-5" />} title="Blocking-Fee" text="1 Nacht 300 EUR, 2 Nächte 500 EUR, 3+ Nächte 800 EUR." />
+            <Info icon={<Hotel className="w-5 h-5" />} title="Unterkunft" text="Wenn eine Übernachtung nötig ist, planen wir sie vorab gemeinsam ein." />
+            <Info icon={<CalendarDays className="w-5 h-5" />} title="Reisetage" text="Die benötigten Reisetage berücksichtige ich transparent im persönlichen Angebot." />
           </div>
         </div>
       </section>
@@ -67,7 +67,7 @@ export function DestinationWeddingPage() {
           <div className="max-w-3xl mb-10">
             <p className="text-[0.75rem] tracking-[0.3em] uppercase text-black/45 mb-4">Beispiele</p>
             <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 700, lineHeight: 1.05 }}>
-              Damit ihr ein Gefühl für die Größenordnung bekommt.
+              Euer Wunschort. Mein persönliches Angebot.
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-4">

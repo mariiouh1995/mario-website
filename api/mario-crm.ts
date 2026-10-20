@@ -7,8 +7,8 @@ import { google } from "googleapis";
 import * as crm from "./crm-db.js";
 
 type CrmCustomer = any;
-type CustomerStatus = string;
-type InquiryStatus = string;
+type CustomerStatus = crm.CustomerStatus;
+type InquiryStatus = crm.InquiryStatus;
 type CustomerDocument = any;
 type InspirationLink = any;
 type ServiceItem = any;
@@ -71,7 +71,7 @@ function createTransport() {
     port: Number(process.env.SMTP_PORT) || 587,
     secure: process.env.SMTP_SECURE === "true",
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    tls: { rejectUnauthorized: false },
+    tls: { minVersion: 'TLSv1.2' },
   });
 }
 
@@ -96,7 +96,7 @@ function mailHtml(body: string) {
       <div style="padding:34px 24px;font-size:15px;line-height:1.75;color:#4d4944">${escaped}</div>
       <div style="padding:22px 24px;border-top:1px solid #ece8e2;color:#8f8880;font-size:12px;line-height:1.6;text-align:center">
         Mario Schubert Photography<br/>
-        Bäckerbühelgasse 14, 6020 Innsbruck<br/>
+        Hauning 30a, 6306 Söll<br/>
         servus@marioschub.com · marioschub.com
       </div>
     </div>
@@ -117,7 +117,7 @@ function marioMailHtml(body: string) {
           <span style="display:inline-block;background:#ffffff;border:1px solid #ece8e2;border-radius:12px;padding:10px 16px">
             <img src="${MARIO_LOGO_URL}" alt="Mario Schubert" style="display:block;height:44px;max-width:220px" />
           </span>
-          <p style="margin:14px 0 0;color:#8f8880;font-size:12px;letter-spacing:2px;text-transform:uppercase">Fotografie, Video und Fotospiegel</p>
+          <p style="margin:14px 0 0;color:#8f8880;font-size:12px;letter-spacing:2px;text-transform:uppercase">Fotografie und Video</p>
         </div>
         <div style="padding:36px 28px 30px;font-size:15px;line-height:1.78;color:#4d4944">${escaped}</div>
         <div style="padding:24px 28px 28px;border-top:1px solid #ece8e2;background:#faf8f5;color:#6f6860;font-size:12px;line-height:1.7">
@@ -128,7 +128,7 @@ function marioMailHtml(body: string) {
               </td>
               <td style="vertical-align:top">
                 <p style="margin:0 0 5px;color:#24211f;font-size:14px;font-weight:700">Mario Schubert</p>
-                <p style="margin:0 0 12px">Fotografie, Video und Fotospiegel<br/>Tirol &amp; Bayern</p>
+                <p style="margin:0 0 12px">Fotografie und Video<br/>Tirol &amp; Bayern</p>
                 <p style="margin:0">
                   AT: <a href="tel:+4367763681543" style="color:#4d4944;text-decoration:none">+43 67763681543</a><br/>
                   DE: <a href="tel:+4915155338029" style="color:#4d4944;text-decoration:none">+49 151 5533 8029</a><br/>
@@ -810,7 +810,7 @@ function renderOfferPdf(offer: CrmOffer) {
   }
   commands.push(drawUnicodeText(left, y - 58, "Mario Schubert", 9, "F1"));
   commands.push(drawUnicodeRightText(right, y - 8, "Mario Schubert Foto- und Videografie", 9, "F1"));
-  commands.push(drawUnicodeRightText(right, y - 21, "Bäckerbühelgasse 14, 6020 Innsbruck", 9, "F1"));
+  commands.push(drawUnicodeRightText(right, y - 21, "Hauning 30a, 6306 Söll", 9, "F1"));
   commands.push(drawUnicodeRightText(right, y - 34, "Tel. +43 67763681543", 9, "F1"));
   commands.push(drawUnicodeRightText(right, y - 47, "servus@marioschub.com", 9, "F1"));
   commands.push(drawUnicodeRightText(right, y - 60, "www.marioschub.com", 9, "F1"));
@@ -908,7 +908,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const items = normalizeRequestedServices(req.body?.items);
       const message = normalizeString(req.body?.message);
       if (items.length === 0) return res.status(400).json({ error: "Bitte mindestens eine Leistung auswählen" });
-      const request = {
+      const request: crm.AddOnRequest = {
         id: crm.createId("addon_req"),
         createdAt: new Date().toISOString(),
         status: "neu",

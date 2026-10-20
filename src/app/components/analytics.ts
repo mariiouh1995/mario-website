@@ -1,85 +1,51 @@
-/**
- * Google Analytics 4 – DSGVO-konform mit Consent Mode v2
- *
- * - gtag.js wird in index.html geladen mit consent: 'denied' als Default
- * - Erst wenn der User Analytics-Cookies akzeptiert, wird consent auf 'granted' gesetzt
- * - Page Views werden nur gesendet wenn analytics_storage granted ist
- */
-
-const GA_MEASUREMENT_ID = "G-YPBWYFCNYX";
-const COOKIE_CONSENT_KEY = "ms-cookie-consent";
-
-// Type-safe gtag helper
-function gtag(...args: any[]) {
-  if (typeof window !== "undefined" && window.dataLayer) {
-    window.dataLayer.push(arguments);
+import { getConsent } from './consent';
+import { publicPaths } from '../../content/seo';
+const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-YPBWYFCNYX';
+const validId = /^G-[A-Z0-9]+$/.test(measurementId);
+const privateRoute = (path: string) => /^\/(admin|kundenportal|angebot)(\/|$)/.test(path);
+let initialized = false;
+let lastPage = '';
+const allowed = () => validId && publicPaths.includes(location.pathname) && !new URLSearchParams(location.search).has('cms-preview') && getConsent()?.analytics === true;
+const disabledKey = `ga-disable-${measurementId}`;
+declare global { interface Window { dataLayer: any[]; gtag: (...args: any[]) => void; } }
+function clearAnalyticsCookies() {
+  const hosts = location.hostname.split('.');
+  const domains = ['', location.hostname, ...hosts.map((_, index) => '.' + hosts.slice(index).join('.'))];
+  for (const entry of document.cookie.split(';')) {
+    const name = entry.trim().split('=')[0];
+    if (!/^(_ga(?:_|$)|_gid$|_gat)/.test(name)) continue;
+    for (const domain of domains) document.cookie = `${name}=; Max-Age=0; path=/${domain ? '; domain=' + domain : ''}; SameSite=Lax`;
   }
 }
-
-// Extend Window for dataLayer
-declare global {
-  interface Window {
-    dataLayer: any[];
-    gtag: (...args: any[]) => void;
-  }
-}
-
-/**
- * Update Google Consent Mode based on user's cookie preferences.
- * Called when:
- *  1. User clicks a consent button in the CookieBanner
- *  2. On app load if consent was previously stored
- */
-export function updateGoogleConsent(analytics: boolean, marketing: boolean) {
-  gtag("consent", "update", {
-    analytics_storage: analytics ? "granted" : "denied",
-    ad_storage: marketing ? "granted" : "denied",
-    ad_user_data: marketing ? "granted" : "denied",
-    ad_personalization: marketing ? "granted" : "denied",
-  });
-
-  // If analytics was just granted, send the initial page view
-  if (analytics) {
-    gtag("event", "page_view", {
-      page_location: window.location.href,
-      page_title: document.title,
-    });
-  }
-}
-
-/**
- * Send a page_view event (called on route changes).
- * Only fires if analytics_storage is granted (GA handles this internally
- * via Consent Mode, but we also check localStorage as a safety net).
- */
-export function trackPageView(url: string, title?: string) {
-  try {
-    const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!stored) return;
-    const consent = JSON.parse(stored);
-    if (!consent.analytics) return;
-  } catch {
+export function updateGoogleConsent() {
+  (window as any)[disabledKey] = !allowed();
+  if (!allowed()) {
+    if (initialized) window.gtag?.('consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    clearAnalyticsCookies();
     return;
   }
-
-  gtag("event", "page_view", {
-    page_location: `https://marioschub.com${url}`,
-    page_title: title || document.title,
-    send_to: GA_MEASUREMENT_ID,
-  });
+  if (!initialized) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    window.gtag('consent', 'update', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    window.gtag('js', new Date());
+    window.gtag('config', measurementId, { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false, cookie_expires: 15552000, cookie_update: false, page_location: location.origin + location.pathname, page_referrer: '' });
+    const script = document.createElement('script');
+    script.id = 'mario-analytics';
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(measurementId);
+    document.head.appendChild(script);
+    initialized = true;
+  } else window.gtag('consent', 'update', { analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+  trackPageView(location.pathname);
 }
-
-/**
- * Restore consent state from localStorage on app load.
- * This ensures returning visitors who already accepted get tracked immediately.
- */
-export function restoreConsentFromStorage() {
-  try {
-    const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!stored) return;
-    const consent = JSON.parse(stored);
-    updateGoogleConsent(consent.analytics ?? false, consent.marketing ?? false);
-  } catch {
-    // No stored consent or parse error – remain in default denied state
-  }
+export function trackPageView(url: string, title?: string) {
+  const path = url.split(/[?#]/)[0];
+  if (!allowed() || privateRoute(path) || !initialized) return;
+  if (lastPage === path) return;
+  lastPage = path;
+  window.gtag('event', 'page_view', { page_location: location.origin + path, page_title: title || document.title, send_to: measurementId });
 }
+export function restoreConsentFromStorage() { updateGoogleConsent(); }
+if (typeof window !== 'undefined') window.addEventListener('mario:consent', updateGoogleConsent);

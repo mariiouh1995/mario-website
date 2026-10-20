@@ -11,7 +11,7 @@ const CORS_HEADERS = {
 const MARIO_LOGO_URL = process.env.MARIO_MAIL_LOGO_URL || "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 const MARIO_SIGNATURE_TEXT = [
   "Mario Schubert",
-  "Fotografie, Video und Fotospiegel",
+  "Fotografie und Video",
   "",
   "Tirol & Bayern",
   "AT: +43 67763681543",
@@ -39,7 +39,7 @@ function buildMarioSignatureHtml() {
           </td>
           <td style="vertical-align:top">
             <p style="margin:0 0 5px;color:#24211f;font-size:14px;font-weight:700">Mario Schubert</p>
-            <p style="margin:0 0 12px">Fotografie, Video und Fotospiegel<br/>Tirol &amp; Bayern</p>
+            <p style="margin:0 0 12px">Fotografie und Video<br/>Hauning 30a, 6306 Söll<br/>Tirol &amp; Bayern</p>
             <p style="margin:0">
               AT: <a href="tel:+4367763681543" style="color:#4d4944;text-decoration:none">+43 67763681543</a><br/>
               DE: <a href="tel:+4915155338029" style="color:#4d4944;text-decoration:none">+49 151 5533 8029</a><br/>
@@ -152,14 +152,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,        // smtp.ionos.de
     port: Number(process.env.SMTP_PORT), // 587
-    secure: false,
+    secure: Number(process.env.SMTP_PORT) === 465,
     auth: {
       user: process.env.SMTP_USER,       // servus@marioschub.com
       pass: process.env.SMTP_PASS,
     },
     tls: {
-      ciphers: "SSLv3",
-      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
     },
   });
 

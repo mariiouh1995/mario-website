@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster, toast } from "sonner";
 import {
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   ExternalLink,
   FileText,
   GripVertical,
+  Globe,
   LayoutDashboard,
   ListChecks,
   Lock,
@@ -30,6 +31,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+
+const WebsiteEditor = lazy(() => import('../cms/WebsiteEditor').then(module => ({ default: module.WebsiteEditor })));
 
 type CustomerStatus =
   | "anfrage"
@@ -636,7 +639,7 @@ export function AdminPage() {
   const [confirmBody, setConfirmBody] = useState("");
   const [confirmAttachmentUrl, setConfirmAttachmentUrl] = useState("");
   const [confirmAttachmentName, setConfirmAttachmentName] = useState("");
-  const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "offerDetail" | "offers" | "calendar" | "services">("dashboard");
+  const [view, setView] = useState<"dashboard" | "customerDetail" | "inquiryDetail" | "customersList" | "inquiriesList" | "offerDetail" | "offers" | "calendar" | "services" | "website">("dashboard");
   const [selectedOfferId, setSelectedOfferId] = useState("");
   const [offerDraft, setOfferDraft] = useState<Offer | null>(null);
   const [offerPdfPreviewUrl, setOfferPdfPreviewUrl] = useState("");
@@ -1558,6 +1561,17 @@ export function AdminPage() {
     );
   }
 
+  if (view === 'website') return (
+    <div className="min-h-screen bg-white px-3 sm:px-6">
+      <Toaster position="top-right" richColors closeButton />
+      <header className="flex items-center justify-between gap-3 border-b border-black/10 py-3">
+        <button onClick={() => setView('dashboard')} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm"><ChevronLeft className="w-4 h-4" /> Kundenverwaltung</button>
+        <span className="text-xs text-black/50">Mario Schubert</span>
+      </header>
+      <Suspense fallback={<p className="p-8 text-sm">Website-Editor wird geladen …</p>}><WebsiteEditor password={adminPassword} /></Suspense>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#f4f0eb] text-[#1f1b17]">
       <Toaster position="top-right" richColors closeButton />
@@ -1610,6 +1624,7 @@ export function AdminPage() {
                 </>
               )}
             </div>
+            <button onClick={() => setView('website')} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><Globe className="w-4 h-4" /> Website</button>
             <button onClick={() => setView("services")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><ListChecks className="w-4 h-4" /> Leistungen</button>
             <button onClick={() => setView("offers")} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white/80"><FileText className="w-4 h-4" /> Angebote</button>
             <button onClick={() => setSettingsOpen(true)} className="inline-flex items-center justify-center rounded-md border border-white/15 w-10 h-10 text-white/80" title="Globale Settings"><Settings className="w-4 h-4" /></button>

@@ -87,9 +87,9 @@ export function FAQSection({ categories, title, bg = "white" }: FAQSectionProps)
             const isOpen = openFaq === faqKey;
             return (
               <SectionReveal key={faqKey} delay={i * 0.04}>
-                <div className="border-b border-black/10">
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : faqKey)}
+                <details className="border-b border-black/10" open={isOpen}>
+                  <summary
+                    onClick={event => { event.preventDefault(); setOpenFaq(isOpen ? null : faqKey); }}
                     className="w-full flex items-center justify-between py-5 px-1 bg-transparent border-none cursor-pointer text-left group"
                   >
                     <span
@@ -108,13 +108,10 @@ export function FAQSection({ categories, title, bg = "white" }: FAQSectionProps)
                         transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                       }}
                     />
-                  </button>
+                  </summary>
                   <div
                     className="overflow-hidden transition-all duration-300"
-                    style={{
-                      maxHeight: isOpen ? "400px" : "0px",
-                      opacity: isOpen ? 1 : 0,
-                    }}
+
                   >
                     <p
                       className="text-black/50 text-[0.87rem] pb-5 px-1"
@@ -123,7 +120,7 @@ export function FAQSection({ categories, title, bg = "white" }: FAQSectionProps)
                       {faq.a[lang]}
                     </p>
                   </div>
-                </div>
+                </details>
               </SectionReveal>
             );
           })}

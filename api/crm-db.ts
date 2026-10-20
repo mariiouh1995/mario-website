@@ -401,11 +401,12 @@ export async function ensureMarioCrmSchema() {
 
 async function ensureMarioCrmSchemaInternal() {
   if (schemaReady) return;
-  const db = sql();
-
-  await db`SELECT pg_advisory_lock(74839201)`;
-  try {
-    if (schemaReady) return;
+  await sql().begin(async db => {
+    // Transaction locks are safe with Neon's transaction pooler.
+    await db`SELECT pg_advisory_xact_lock(74839203)`;
+    await db`CREATE TABLE IF NOT EXISTS mario_crm_schema_versions (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`;
+    const applied = await db`SELECT version FROM mario_crm_schema_versions WHERE version = '2026-06-05-wedding-timeline'`;
+    if (applied.length) return;
 
     await db`
       CREATE TABLE IF NOT EXISTS mario_inquiries (
@@ -580,10 +581,9 @@ async function ensureMarioCrmSchemaInternal() {
     await db`CREATE INDEX IF NOT EXISTS idx_mario_offers_updated_at ON mario_offers(updated_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_mario_offers_public_token ON mario_offers(public_token)`;
 
-    schemaReady = true;
-  } finally {
-    await db`SELECT pg_advisory_unlock(74839201)`;
-  }
+    await db`INSERT INTO mario_crm_schema_versions (version) VALUES ('2026-06-05-wedding-timeline') ON CONFLICT DO NOTHING`;
+  });
+  schemaReady = true;
 }
 
 function mapInquiry(row: any): CrmInquiry {
@@ -968,7 +968,7 @@ export async function appendMailLog(log: MailLog) {
   `;
 }
 
-function normalizeServiceCatalog(items: ServiceCatalogItem[]) {
+function normalizeServiceCatalog(items: ServiceCatalogItem[]): ServiceCatalogItem[] {
   return items
     .map((item) => ({
       id: item.id || createId("svc"),

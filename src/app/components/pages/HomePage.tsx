@@ -13,6 +13,7 @@ import { useShuffledGallery } from "../useShuffledGallery";
 import { useImages } from "../useImages";
 import { MasonryGrid } from "../MasonryGrid";
 import { usePageContent } from "../storyblok";
+import { RegionalSection } from '../RegionalSection';
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 const HERO_VIDEO_FALLBACK = "https://ik.imagekit.io/r2yqrg6np/Wedding%20Clip%20fu%CC%88r%20Wesbeite_ProRes422_1080p.mp4?updatedAt=1773071703884";
@@ -145,11 +146,11 @@ export function HomePage() {
             >
               {getText("hero_subtitle", t.home.heroSubtitle)}
             </p>
-            <img
+            <h1><img
               src={LOGO_URL}
-              alt="Mario Schubert Photography – Hochzeitsfotograf und Videograf in Innsbruck, Tirol"
+              alt="Mario Schubert Photography"
               className="h-16 md:h-24 w-auto mb-8 invert brightness-200"
-            />
+            /></h1>
             <p
               className="text-white/60 text-[1rem] md:text-[1.15rem] mb-10"
               style={{ fontWeight: 300, letterSpacing: "0.05em" }}
@@ -437,6 +438,7 @@ export function HomePage() {
       />
 
       {/* Testimonial Strip */}
+      <RegionalSection />
       <GoogleReviewSingle bg="white" reviewIndex={0} />
 
       {/* Wyldworks – Corporate CTA */}

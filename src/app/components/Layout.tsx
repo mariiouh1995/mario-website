@@ -9,6 +9,8 @@ import { StructuredData } from "./StructuredData";
 import { FloatingWhatsApp } from "./FloatingWhatsApp";
 import { useContactModal, type InquiryCategory } from "./ContactModal";
 import { restoreConsentFromStorage, trackPageView } from "./analytics";
+import { WebsiteSurface } from './cms/WebsiteSurface';
+import { publicPaths } from '../../content/seo';
 
 const LOGO_URL = "https://ik.imagekit.io/r2yqrg6np/68e54b92f722d45170d60f24_Logo%20MS.svg";
 
@@ -67,6 +69,11 @@ export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const { openContact } = useContactModal();
+  useEffect(() => {
+    if (lang !== 'en') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('lang') !== 'en') { url.searchParams.set('lang', 'en'); window.history.replaceState(window.history.state, '', url); }
+  }, [lang, location.pathname]);
 
   // Camera flash animation on CTA clicks
   useCameraFlashGlobal();
@@ -74,7 +81,7 @@ export function Layout() {
   // Google Analytics: Restore consent from localStorage on mount
   useEffect(() => {
     restoreConsentFromStorage();
-  }, []);
+  }, [location.pathname]);
 
   // Google Analytics: Track page views on route changes
   useEffect(() => {
@@ -114,7 +121,7 @@ export function Layout() {
             >
               <img
                 src={LOGO_URL}
-                alt="Mario Schubert - Hochzeitsfotograf und Videograf in Innsbruck, Tirol"
+                alt="Mario Schubert Photography – Fotograf aus Söll in Tirol"
                 className="h-8 md:h-10 w-auto"
               />
             </Link>
@@ -247,6 +254,7 @@ export function Layout() {
       {/* Main Content */}
       <main className="flex-1 pt-16 md:pt-20">
         <ScrollToTop />
+        <WebsiteSurface />
         <Outlet />
       </main>
 
@@ -266,8 +274,8 @@ export function Layout() {
                 style={{ lineHeight: 1.7, fontWeight: 300 }}
               >
                 {lang === "de"
-                  ? "Zeitlose Fotografie & Videografie in Innsbruck, Tirol und Bayern."
-                  : "Timeless photography & videography in Innsbruck, Tyrol and Bavaria."}
+                  ? "Fotografie & Videografie aus Söll am Wilden Kaiser. Für euch in Tirol und Bayern unterwegs."
+                  : "Photography & films from Söll near the Wilder Kaiser. Working across Tyrol and Bavaria."}
               </p>
             </div>
 
@@ -325,7 +333,7 @@ export function Layout() {
                   style={{ fontWeight: 300 }}
                 >
                   <MapPin size={14} />
-                  Innsbruck, Tirol
+                  Hauning 30a, 6306 Söll
                 </p>
               </div>
             </div>
@@ -366,8 +374,8 @@ export function Layout() {
         </div>
       </footer>
 
-      <FloatingWhatsApp />
-      <CookieBanner />
+      {publicPaths.includes(location.pathname) && !new URLSearchParams(location.search).has('cms-preview') && <FloatingWhatsApp />}
+      {publicPaths.includes(location.pathname) && <CookieBanner />}
     </div>
   );
 }

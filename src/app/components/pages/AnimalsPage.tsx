@@ -32,12 +32,12 @@ export function AnimalsPage() {
   const seo = lang === "de"
     ? {
         title: "Tierfotografie Innsbruck & Tirol | Hunde, Pferde & mehr | Mario Schubert",
-        description: "Professionelle Tierfotografie in Innsbruck, Tirol und Bayern. Hundefotografie, Pferdefotografie, Studio & Outdoor. Ab 190 Euro. Jetzt Termin anfragen!",
+        description: "Professionelle Tierfotografie in Innsbruck, Tirol und Bayern. Hundefotografie, Pferdefotografie, Studio & Outdoor. Preise auf Anfrage.",
         keywords: "Tierfotografie Innsbruck, Hundefotografie Tirol, Pferdefotografie Bayern, Tierfotograf Muenchen, Haustierfotografie Alpen, Tiershooting Innsbruck",
       }
     : {
         title: "Animal Photography Innsbruck & Tyrol | Dogs, Horses & more | Mario Schubert",
-        description: "Professional animal photography in Innsbruck, Tyrol and Bavaria. Dog photography, horse photography, studio & outdoor. From 190 Euro. Inquire now!",
+        description: "Professional animal photography in Innsbruck, Tyrol and Bavaria. Dog photography, horse photography, studio & outdoor. Prices on request.",
         keywords: "animal photography Innsbruck, dog photography Tyrol, horse photography Bavaria, pet photographer Munich, animal shooting Alps",
       };
 
@@ -234,7 +234,7 @@ export function AnimalsPage() {
                       lineHeight: 1.1,
                     }}
                   >
-                    {studioPackage.price}
+                    {lang === 'de' ? 'Auf Anfrage' : 'On request'}
                   </p>
                   <div className="flex flex-col gap-3 flex-1">
                     {studioPackage.features.map((feature, fi) => (
@@ -296,7 +296,7 @@ export function AnimalsPage() {
                       lineHeight: 1.1,
                     }}
                   >
-                    {outdoorPackage.price}
+                    {lang === 'de' ? 'Auf Anfrage' : 'On request'}
                   </p>
                   <div className="flex flex-col gap-3 flex-1">
                     {outdoorPackage.features.map((feature, fi) => (

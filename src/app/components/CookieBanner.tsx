@@ -1,265 +1,40 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
-import { useLanguage } from "./LanguageContext";
-import { Cookie, X } from "lucide-react";
-import { updateGoogleConsent } from "./analytics";
-
-const COOKIE_CONSENT_KEY = "ms-cookie-consent";
-
-type ConsentState = {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
-  timestamp: string;
-};
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Link } from 'react-router';
+import { Cookie, X } from 'lucide-react';
+import { useLanguage } from './LanguageContext';
+import { getConsent, openConsentSettings, saveConsent, subscribeConsent } from './consent';
 
 export function CookieBanner() {
   const { lang } = useLanguage();
-  const [visible, setVisible] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const [preferences, setPreferences] = useState({
-    necessary: true,
-    analytics: false,
-    marketing: false,
-  });
-
+  const consent = useSyncExternalStore(subscribeConsent, getConsent, () => null);
+  const [opened, setOpened] = useState(false);
+  const [details, setDetails] = useState(false);
+  const [choices, setChoices] = useState({ analytics: consent?.analytics || false, externalMedia: consent?.externalMedia || false });
+  const de = lang === 'de';
   useEffect(() => {
-    const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!stored) {
-      // Small delay so it doesn't flash on first paint
-      const timer = setTimeout(() => setVisible(true), 1200);
-      return () => clearTimeout(timer);
-    }
+    const open = () => { const saved = getConsent(); setChoices({ analytics: saved?.analytics || false, externalMedia: saved?.externalMedia || false }); setDetails(true); setOpened(true); };
+    window.addEventListener('mario:consent-settings', open);
+    return () => window.removeEventListener('mario:consent-settings', open);
   }, []);
-
-  const saveConsent = (consent: ConsentState) => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
-    updateGoogleConsent(consent.analytics, consent.marketing);
-    setVisible(false);
-  };
-
-  const acceptAll = () => {
-    saveConsent({
-      necessary: true,
-      analytics: true,
-      marketing: true,
-      timestamp: new Date().toISOString(),
-    });
-  };
-
-  const acceptSelected = () => {
-    saveConsent({
-      ...preferences,
-      necessary: true,
-      timestamp: new Date().toISOString(),
-    });
-  };
-
-  const acceptNecessary = () => {
-    saveConsent({
-      necessary: true,
-      analytics: false,
-      marketing: false,
-      timestamp: new Date().toISOString(),
-    });
-  };
-
-  const t = lang === "de"
-    ? {
-        title: "Cookie-Einstellungen",
-        text: "Wir verwenden Cookies, um Ihnen die bestmögliche Erfahrung auf unserer Website zu bieten. Einige Cookies sind technisch notwendig, andere helfen uns, die Website zu verbessern.",
-        acceptAll: "Alle akzeptieren",
-        acceptSelected: "Auswahl bestätigen",
-        rejectAll: "Nur notwendige",
-        settings: "Einstellungen",
-        necessary: "Notwendig",
-        necessaryDesc: "Diese Cookies sind technisch erforderlich und können nicht deaktiviert werden.",
-        analytics: "Analyse",
-        analyticsDesc: "Helfen uns zu verstehen, wie Besucher unsere Website nutzen.",
-        marketing: "Marketing",
-        marketingDesc: "Ermöglichen personalisierte Werbung und Inhalte.",
-        moreInfo: "Mehr in unserer",
-        privacy: "Datenschutzerklärung",
-      }
-    : {
-        title: "Cookie Settings",
-        text: "We use cookies to provide you with the best possible experience on our website. Some cookies are technically necessary, others help us improve the website.",
-        acceptAll: "Accept all",
-        acceptSelected: "Confirm selection",
-        rejectAll: "Necessary only",
-        settings: "Settings",
-        necessary: "Necessary",
-        necessaryDesc: "These cookies are technically required and cannot be disabled.",
-        analytics: "Analytics",
-        analyticsDesc: "Help us understand how visitors use our website.",
-        marketing: "Marketing",
-        marketingDesc: "Enable personalized advertising and content.",
-        moreInfo: "More in our",
-        privacy: "Privacy Policy",
-      };
-
-  return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 40 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed bottom-0 left-0 right-0 z-[9998] p-4 md:p-6"
-        >
-          <div className="max-w-2xl mx-auto bg-white border border-black/10 shadow-2xl shadow-black/10">
-            <div className="p-6 md:p-8">
-              {/* Header */}
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <Cookie size={20} className="text-black/40 shrink-0" />
-                  <h3
-                    style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontSize: "1.3rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {t.title}
-                  </h3>
-                </div>
-                <button
-                  onClick={acceptNecessary}
-                  className="text-black/30 hover:text-black transition-colors bg-transparent border-none cursor-pointer p-1 shrink-0"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Text */}
-              <p
-                className="text-black/55 text-[0.82rem] mb-5"
-                style={{ lineHeight: 1.7, fontWeight: 300 }}
-              >
-                {t.text}{" "}
-                <Link
-                  to="/datenschutz"
-                  className="text-black/70 underline hover:text-black transition-colors"
-                  onClick={() => setVisible(false)}
-                >
-                  {t.moreInfo} {t.privacy}
-                </Link>
-              </p>
-
-              {/* Details toggle */}
-              <AnimatePresence>
-                {showDetails && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-black/10 pt-5 mb-5 space-y-4">
-                      {/* Necessary */}
-                      <label className="flex items-start gap-3 cursor-not-allowed">
-                        <input
-                          type="checkbox"
-                          checked={true}
-                          disabled
-                          className="mt-1 accent-black"
-                        />
-                        <div>
-                          <p className="text-[0.82rem] text-black/80" style={{ fontWeight: 500 }}>
-                            {t.necessary}
-                          </p>
-                          <p className="text-[0.75rem] text-black/40" style={{ fontWeight: 300 }}>
-                            {t.necessaryDesc}
-                          </p>
-                        </div>
-                      </label>
-
-                      {/* Analytics */}
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={preferences.analytics}
-                          onChange={(e) =>
-                            setPreferences((p) => ({ ...p, analytics: e.target.checked }))
-                          }
-                          className="mt-1 accent-black cursor-pointer"
-                        />
-                        <div>
-                          <p className="text-[0.82rem] text-black/80" style={{ fontWeight: 500 }}>
-                            {t.analytics}
-                          </p>
-                          <p className="text-[0.75rem] text-black/40" style={{ fontWeight: 300 }}>
-                            {t.analyticsDesc}
-                          </p>
-                        </div>
-                      </label>
-
-                      {/* Marketing */}
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={preferences.marketing}
-                          onChange={(e) =>
-                            setPreferences((p) => ({ ...p, marketing: e.target.checked }))
-                          }
-                          className="mt-1 accent-black cursor-pointer"
-                        />
-                        <div>
-                          <p className="text-[0.82rem] text-black/80" style={{ fontWeight: 500 }}>
-                            {t.marketing}
-                          </p>
-                          <p className="text-[0.75rem] text-black/40" style={{ fontWeight: 300 }}>
-                            {t.marketingDesc}
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={acceptAll}
-                  className="flex-1 bg-black text-white py-3 px-6 text-[0.78rem] tracking-[0.1em] uppercase cursor-pointer border border-black hover:bg-black/85 transition-all"
-                  style={{ fontWeight: 400 }}
-                >
-                  {t.acceptAll}
-                </button>
-                {showDetails ? (
-                  <button
-                    onClick={acceptSelected}
-                    className="flex-1 bg-transparent text-black py-3 px-6 text-[0.78rem] tracking-[0.1em] uppercase cursor-pointer border border-black/20 hover:border-black transition-all"
-                    style={{ fontWeight: 400 }}
-                  >
-                    {t.acceptSelected}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowDetails(true)}
-                    className="flex-1 bg-transparent text-black py-3 px-6 text-[0.78rem] tracking-[0.1em] uppercase cursor-pointer border border-black/20 hover:border-black transition-all"
-                    style={{ fontWeight: 400 }}
-                  >
-                    {t.settings}
-                  </button>
-                )}
-                <button
-                  onClick={acceptNecessary}
-                  className="flex-1 bg-transparent text-black/50 py-3 px-6 text-[0.78rem] tracking-[0.1em] uppercase cursor-pointer border border-black/10 hover:border-black/30 transition-all"
-                  style={{ fontWeight: 400 }}
-                >
-                  {t.rejectAll}
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  const choose = (next: typeof choices) => { saveConsent(next); setOpened(false); setDetails(false); };
+  const visible = !consent || opened;
+  return <>
+    <button type="button" data-cms-ignore onClick={openConsentSettings} className="fixed bottom-3 left-3 z-[9980] inline-flex items-center gap-2 rounded-md border border-black/15 bg-white px-3 py-2 text-xs text-black shadow-sm" title={de ? 'Cookie-Einstellungen' : 'Cookie settings'}><Cookie size={16} /><span className="hidden sm:inline">{de ? 'Cookie-Einstellungen' : 'Cookie settings'}</span></button>
+    {visible && <section role="dialog" aria-modal="false" aria-labelledby="cookie-title" className="fixed bottom-0 left-0 right-0 z-[9998] max-h-[90vh] overflow-y-auto border-t border-black/15 bg-white p-5 shadow-xl md:p-7" data-cms-ignore>
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center justify-between gap-4"><h2 id="cookie-title" className="flex items-center gap-2 text-lg font-medium"><Cookie size={20} />{de ? 'Deine Privatsphäre' : 'Your privacy'}</h2>{consent && <button onClick={() => setOpened(false)} aria-label={de ? 'Schließen' : 'Close'} className="p-2"><X size={18} /></button>}</div>
+        <p className="mt-3 text-sm leading-relaxed text-black/65">{de ? 'Notwendige Funktionen und deine Auswahl werden ohne zusätzliche Zustimmung gespeichert. Google Analytics und externe Videos werden nur mit deiner Einwilligung geladen. Du kannst deine Auswahl jederzeit ändern.' : 'Necessary functions and your preferences are stored without additional consent. Google Analytics and external videos load only with your permission. You can change your choices at any time.'} <Link className="underline" to="/datenschutz">{de ? 'Datenschutz' : 'Privacy policy'}</Link></p>
+        {details && <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked disabled /><span>{de ? 'Notwendig' : 'Necessary'}<small className="mt-1 block text-black/55">{de ? 'Cookie-Auswahl und geschützte Kunden- / Adminbereiche.' : 'Privacy choices and protected customer / admin areas.'}</small></span></label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={choices.analytics} onChange={event => setChoices({ ...choices, analytics: event.target.checked })} /><span>Google Analytics<small className="mt-1 block text-black/55">{de ? 'Freiwillige Reichweitenanalyse. Keine Werbepersonalisierung.' : 'Optional audience analytics. No advertising personalization.'}</small></span></label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={choices.externalMedia} onChange={event => setChoices({ ...choices, externalMedia: event.target.checked })} /><span>{de ? 'Externe Videos' : 'External videos'}<small className="mt-1 block text-black/55">{de ? 'YouTube-Videos. Dabei werden Daten an Google übermittelt.' : 'YouTube videos. Loading transfers data to Google.'}</small></span></label>
+        </div>}
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <button className="flex-1 rounded-md border border-black px-4 py-3 text-sm" onClick={() => choose({ analytics: false, externalMedia: false })}>{de ? 'Alle ablehnen' : 'Reject all'}</button>
+          <button className="flex-1 rounded-md border border-black px-4 py-3 text-sm" onClick={() => details ? choose(choices) : setDetails(true)}>{details ? (de ? 'Auswahl speichern' : 'Save choices') : (de ? 'Einstellungen' : 'Settings')}</button>
+          <button className="flex-1 rounded-md border border-black px-4 py-3 text-sm" onClick={() => choose({ analytics: true, externalMedia: true })}>{de ? 'Alle akzeptieren' : 'Accept all'}</button>
+        </div>
+      </div>
+    </section>}
+  </>;
 }
